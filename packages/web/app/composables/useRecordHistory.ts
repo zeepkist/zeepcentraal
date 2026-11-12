@@ -55,6 +55,7 @@ function mapRows(edges?: Array<{ node: Zc_RecordHistoryRowFragment }>): RecordHi
 		return [
 			{
 				id: node.id,
+				medal: node.medal,
 				time: node.time,
 				dateCreated: String(node.dateCreated),
 				userId: node.userId,

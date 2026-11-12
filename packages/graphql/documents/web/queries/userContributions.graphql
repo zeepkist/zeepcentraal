@@ -26,6 +26,7 @@ query ZC_UserContributions(
 				record {
 					id
 					time
+					medal
 					dateCreated
 					levelId
 					userId

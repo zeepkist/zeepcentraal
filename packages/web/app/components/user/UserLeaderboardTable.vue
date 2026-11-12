@@ -1,13 +1,16 @@
 <template>
 	<DataTableFrame>
-		<table class="w-full text-left text-sm">
+		<table class="min-w-[60rem] w-full text-right text-sm">
 			<thead class="bg-muted/70 text-muted-foreground">
 				<tr>
 					<th class="px-4 py-3">{{ labels.rank }}</th>
-					<th class="px-4 py-3">{{ labels.player }}</th>
+					<th class="min-w-40 px-4 py-3 text-left">{{ labels.player }}</th>
 					<th class="px-4 py-3">{{ labels.points }}</th>
 					<th class="px-4 py-3">{{ labels.totalPoints }}</th>
 					<th class="px-4 py-3">{{ labels.worldRecords }}</th>
+					<th v-for="medal in MEDALS" :key="medal.key" :aria-label="t(medal.labelKey)" class="min-w-16 px-4 py-3" scope="col">
+						<MedalBadge :tier="medal.tier" />
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -32,7 +35,7 @@
 							</span>
 						</DataTableCellLink>
 					</td>
-					<td class="p-0">
+					<td class="p-0 text-left">
 						<DataTableCellLink
 							:to="userPath(user)"
 							focusable
@@ -62,6 +65,9 @@
 							{{ format(user.worldRecords) }}
 						</DataTableCellLink>
 					</td>
+					<td v-for="medal in MEDALS" :key="medal.key" class="p-0 tabular-nums">
+						<DataTableCellLink :to="userPath(user)" :aria-label="labels.openPlayer" class="px-4 py-3">{{ format(user.medals?.[medal.key]) }}</DataTableCellLink>
+					</td>
 				</DataTableRow>
 			</tbody>
 		</table>
@@ -70,6 +76,7 @@
 
 <script setup lang="ts">
 import type { UserSummary } from '~/types/app'
+import { MEDALS } from '~/utils/medals'
 import type { SupporterMap } from '~/utils/supporters'
 
 const props = defineProps<{
@@ -86,7 +93,7 @@ const props = defineProps<{
 		openPlayer: string
 	}
 }>()
-const { locale } = useAppI18n()
+const { locale, t } = useAppI18n()
 const transition = useSharedViewTransition()
 const formatter = computed(() => new Intl.NumberFormat(locale.value))
 const format = (value?: number | null) => formatter.value.format(value ?? 0)

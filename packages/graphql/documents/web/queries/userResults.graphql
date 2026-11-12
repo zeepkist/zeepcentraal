@@ -18,6 +18,7 @@ query ZC_UserResults(
 			node {
 				id
 				time
+				medal
 				dateCreated
 				levelId
 				userId

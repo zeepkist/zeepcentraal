@@ -570,6 +570,16 @@ export const levelItem = pgTable(
 		imageUrl: text('image_url').notNull(),
 		fileAuthor: text('file_author').notNull(),
 		fileUid: text('file_uid').notNull(),
+		validationTimeExpert: doublePrecision('validation_time_expert'),
+		validationTimeApex: doublePrecision('validation_time_apex'),
+		medalQualifiedAt: timestamp('medal_qualified_at', { withTimezone: true, mode: 'string' }),
+		medalDueAt: timestamp('medal_due_at', { withTimezone: true, mode: 'string' }),
+		medalCalculatedAt: timestamp('medal_calculated_at', { withTimezone: true, mode: 'string' }),
+		medalCalculationVersion: integer('medal_calculation_version'),
+		medalEligiblePbCount: integer('medal_eligible_pb_count').notNull().default(0),
+		medalEvaluatedAt: timestamp('medal_evaluated_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.defaultNow(),
 		validationTimeAuthor: real('validation_time_author').notNull(),
 		validationTimeGold: real('validation_time_gold').notNull(),
 		validationTimeSilver: real('validation_time_silver').notNull(),
@@ -874,6 +884,7 @@ export const levelRequest = pgTable(
 export const personalBestGlobal = pgTable(
 	'personal_best_global',
 	{
+		medal: smallint(),
 		recordEligible: boolean('record_eligible').notNull().default(true),
 		id: integer().primaryKey().generatedByDefaultAsIdentity({
 			name: 'personal_bests_id_seq',
@@ -935,6 +946,13 @@ export const personalBestGlobal = pgTable(
 export const userPoints = pgTable(
 	'user_points',
 	{
+		medalApex: integer('medal_apex').default(0).notNull(),
+		medalExpert: integer('medal_expert').default(0).notNull(),
+		medalAuthor: integer('medal_author').default(0).notNull(),
+		medalGold: integer('medal_gold').default(0).notNull(),
+		medalSilver: integer('medal_silver').default(0).notNull(),
+		medalBronze: integer('medal_bronze').default(0).notNull(),
+		medalNone: integer('medal_none').default(0).notNull(),
 		idUser: integer('id_user').primaryKey(),
 		points: integer().default(0).notNull(),
 		totalPoints: integer('total_points').default(0).notNull(),

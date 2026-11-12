@@ -43,6 +43,7 @@ fragment ZC_LevelExplorerCard on Level {
 	worldRecordGlobal {
 		record {
 			time
+			medal
 		}
 		user {
 			steamId

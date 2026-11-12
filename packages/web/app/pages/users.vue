@@ -35,18 +35,20 @@
 <script setup lang="ts">
 import type { UserPointsOrderBy } from '@zeepkist/graphql/generated'
 import { USER_SORTS } from '~/composables/usePlayers'
+import { MEDALS } from '~/utils/medals'
 
 usePageSeo('users')
 defineOgImage('UserRankings.takumi', { slug: 'users' })
 const { t } = useAppI18n()
 const session = useSessionStore()
 const { applyFilters, page, pagination, result, search, sort, users } = usePlayers()
+const medalSort = computed(() => MEDALS.find(medal => USER_SORTS[medal.key] === sort.value))
 useDiscordComponentEmbed(() => ({
 	title: t('pages.users.seo.title'),
 	description: result.data.value?.userPoints ? `${result.data.value.userPoints.totalCount} players` : undefined,
 	rows: result.error.value ? undefined : users.value.slice(0, 3).map((user) => ({
 		...discordStandingRow(user),
-		value: sort.value === USER_SORTS.worldRecords ? `${user.worldRecords} world records` : `${sort.value === USER_SORTS.totalPoints ? user.totalPoints : user.points} points`,
+		value: medalSort.value ? `${user.medals?.[medalSort.value.key] ?? 0} ${t(medalSort.value.labelKey)}` : sort.value === USER_SORTS.worldRecords ? `${user.worldRecords} world records` : `${sort.value === USER_SORTS.totalPoints ? user.totalPoints : user.points} points`,
 	})),
 }))
 onServerPrefetch(async () => { await result })
@@ -55,6 +57,7 @@ const sortOptions = computed(() => [
 	{ label: t('users.sort.points'), value: USER_SORTS.points },
 	{ label: t('users.sort.totalPoints'), value: USER_SORTS.totalPoints },
 	{ label: t('users.sort.worldRecords'), value: USER_SORTS.worldRecords },
+	...MEDALS.map(medal => ({ label: t(medal.labelKey), value: USER_SORTS[medal.key] })),
 ])
 const tableLabels = computed(() => ({
 	rank: t('common.rank'),

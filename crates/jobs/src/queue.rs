@@ -443,6 +443,10 @@ fn queue_identity(
     let id_level = payload.get("idLevel").and_then(serde_json::Value::as_i64);
     let derived_key = match task {
         TaskIdentifier::RefreshGlobalMetrics => Some("refresh-global-metrics".to_owned()),
+        TaskIdentifier::RefreshMedals => Some(id_level.map_or_else(
+            || "refresh-medals:sweep".to_owned(),
+            |id| format!("refresh-medals:{id}"),
+        )),
         TaskIdentifier::UpdatePlayerScores => {
             let root = if payload["silent"].as_bool() == Some(true) {
                 "eligibility-refresh-player-scores"
@@ -498,6 +502,8 @@ fn queue_identity(
     let key = derived_key.or_else(|| explicit_key.map(str::to_owned));
     let group = if task == TaskIdentifier::RefreshGlobalMetrics {
         Some("global-metrics".to_owned())
+    } else if task == TaskIdentifier::RefreshMedals {
+        Some(id_level.map_or_else(|| "medals:sweep".to_owned(), |id| format!("medals:{id}")))
     } else if task == TaskIdentifier::FanOutRecordEligibility {
         Some("eligibility-player-fanout".to_owned())
     } else if task == TaskIdentifier::UpdatePlayerScores {

@@ -23,6 +23,7 @@ export function mapLevelSummary(node: Zc_LevelExplorerCardFragment): LevelSummar
 		personalBestCount: node.personalBestGlobals.totalCount,
 		voteCount: node.votes.totalCount,
 		worldRecordTime: node.worldRecordGlobal?.record?.time,
+		worldRecordMedal: node.worldRecordGlobal?.record?.medal,
 		worldRecordAuthorName: node.worldRecordGlobal?.user?.steamName,
 		worldRecordAuthorSteamId:
 			node.worldRecordGlobal?.user?.steamId == null

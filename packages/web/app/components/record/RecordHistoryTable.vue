@@ -97,6 +97,9 @@
 								</span>
 							</DataTableCellLink>
 						</td>
+						<td v-else-if="column === 'medal'" class="px-4 py-3">
+							<MedalBadge :tier="record.medal" />
+						</td>
 						<td v-else-if="column === 'delta'" class="p-0 tabular-nums text-muted">
 							<DataTableCellLink
 								:to="recordPath(record)"
@@ -212,7 +215,7 @@ const props = withDefaults(
 	},
 )
 
-const { locale } = useAppI18n()
+const { locale, t } = useAppI18n()
 const transition = useSharedViewTransition()
 const number = computed(() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }))
 const showStatus = computed(() => props.statusMode !== 'none')
@@ -230,14 +233,15 @@ const columns = computed(() =>
 )
 const tableMinWidth = computed(() => {
 	if (props.showLevel && props.showPlayer) {
-		if (showStatus.value) return showDeltaColumn.value ? 'min-w-[70rem]' : 'min-w-[63rem]'
-		return showDeltaColumn.value ? 'min-w-[66rem]' : 'min-w-[59rem]'
+		if (showStatus.value) return showDeltaColumn.value ? 'min-w-[75rem]' : 'min-w-[68rem]'
+		return showDeltaColumn.value ? 'min-w-[71rem]' : 'min-w-[64rem]'
 	}
-	if (showStatus.value) return showDeltaColumn.value ? 'min-w-[59rem]' : 'min-w-[52rem]'
-	return showDeltaColumn.value ? 'min-w-[55rem]' : 'min-w-[48rem]'
+	if (showStatus.value) return showDeltaColumn.value ? 'min-w-[64rem]' : 'min-w-[57rem]'
+	return showDeltaColumn.value ? 'min-w-[60rem]' : 'min-w-[53rem]'
 })
 
 function columnWidth(column: RecordHistoryColumn) {
+	if (column === 'medal') return 'w-[5rem]'
 	if (column === 'player' && props.showLevel) return 'w-[11rem]'
 	if (column === 'rank') return 'w-[5rem]'
 	if (column === 'time') return 'w-[5rem]'
@@ -249,6 +253,7 @@ function columnWidth(column: RecordHistoryColumn) {
 }
 
 function columnLabel(column: RecordHistoryColumn) {
+	if (column === 'medal') return t('medals.column')
 	if (column === 'level') return props.labels.level
 	if (column === 'player') return props.labels.player
 	if (column === 'rank') return props.labels.rank

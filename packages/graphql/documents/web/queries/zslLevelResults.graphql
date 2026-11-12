@@ -3,6 +3,7 @@ fragment ZC_ZslLevelStandingFields on ZslLevelResult {
 	points
 	userId
 	time
+	medal
 	user {
 		id
 		steamId

@@ -6,6 +6,7 @@ query ZC_MyRecordCount($id: Int!) {
 
 fragment ZC_RecordHistoryRow on RecordHistoryEntry {
 	id
+	medal
 	time
 	dateCreated
 	levelId

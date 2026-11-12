@@ -1,4 +1,5 @@
 import type { TablerIconName } from '~/utils/icons'
+import type { MedalCounts } from '~/utils/medals'
 
 export type NavItem = {
 	to: string
@@ -22,12 +23,21 @@ export type SessionUser = {
 	discordId?: string | null
 }
 
-export type MedalTimes = { author: number; gold: number; silver: number; bronze: number }
+export type MedalTimes = {
+	author: number
+	gold: number
+	silver: number
+	bronze: number
+	expert?: number | null
+	apex?: number | null
+	dueAt?: string | null
+}
 
 export type RecordResultStatus = 'personal-best' | 'world-record'
 export type RecordLiveStatus = 'connecting' | 'live' | 'paused' | 'error'
 
 export type RecordHistoryRow = {
+	medal?: number | null
 	id: number
 	time: number
 	dateCreated: string
@@ -75,6 +85,7 @@ export type LevelSummary = {
 	recordCount?: number
 	personalBestCount?: number
 	worldRecordTime?: number | null
+	worldRecordMedal?: number | null
 	worldRecordAuthorName?: string | null
 	worldRecordAuthorSteamId?: string | null
 	medals?: MedalTimes | null
@@ -119,6 +130,7 @@ export type PlaylistImportReport = {
 }
 
 export type LevelWorldRecordSummary = {
+	medal?: number | null
 	recordId: number
 	time: number
 	dateCreated: string
@@ -143,6 +155,7 @@ export type LevelScoreInsights = {
 }
 
 export type UserSummary = {
+	medals?: MedalCounts
 	id: number
 	steamId: string
 	steamName: string
@@ -185,6 +198,7 @@ export type StatisticMetric = {
 }
 
 export type UserProfileSummary = {
+	medals?: MedalCounts
 	id: number
 	steamId: string
 	steamName: string | null
@@ -287,6 +301,7 @@ export type ZslSeasonSummary = {
 }
 
 export type ZslStanding = {
+	medal?: number | null
 	userId: number
 	pinned?: boolean
 	position: number
@@ -327,6 +342,7 @@ export type HeroPanel = {
 }
 
 export type DashboardChartEntry = {
+	image?: string
 	key: string
 	label: string
 	value: number

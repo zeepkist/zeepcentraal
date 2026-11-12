@@ -30,7 +30,7 @@ describe('interactive table rows', () => {
 
 	it('links every standings and leaderboard cell to player profiles', () => {
 		expect(standings.match(/:to="userPath\(row\.steamId\)"/g)?.length).toBeGreaterThan(4)
-		expect(users.match(/:to="userPath\(user\)"/g)).toHaveLength(5)
+		expect(users.match(/:to="userPath\(user\)"/g)).toHaveLength(6)
 		expect(standings).toContain('focusable')
 		expect(users).toContain('focusable')
 	})

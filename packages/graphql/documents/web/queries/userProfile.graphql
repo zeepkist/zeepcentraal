@@ -11,6 +11,13 @@ query ZC_UserProfile($steamId: BigInt!) {
 				totalPoints
 				worldRecords
 				personalBests
+				medalApex
+				medalExpert
+				medalAuthor
+				medalGold
+				medalSilver
+				medalBronze
+				medalNone
 			}
 			records(first: 0) {
 				totalCount

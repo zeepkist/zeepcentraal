@@ -93,11 +93,7 @@
 					class="w-full rounded-2xl border border-primary/25 bg-default/80 p-4 shadow-sm"
 				>
 					<div class="flex flex-wrap items-center gap-3 sm:flex-nowrap">
-						<span
-							class="grid size-11 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary"
-						>
-							<TablerIcon name="trophy" class="size-6" />
-						</span>
+						<img v-if="worldRecordMedal" :src="worldRecordMedal.src" :alt="t(worldRecordMedal.labelKey)" :title="t(worldRecordMedal.labelKey)" width="44" height="44" class="size-11 shrink-0 object-contain" />
 						<div class="min-w-0 flex-1">
 							<p class="text-xs font-bold uppercase tracking-[0.16em] text-primary">
 								{{ labels.worldRecord }}
@@ -150,6 +146,7 @@
 import type { LevelSummary, LevelWorldRecordSummary } from '~/types/app'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 import { isLevelRatingAvailable } from '~/utils/levelRating'
+import { MEDALS } from '~/utils/medals'
 
 const props = defineProps<{
 	level: LevelSummary
@@ -174,8 +171,9 @@ const props = defineProps<{
 	}
 }>()
 
-const { locale } = useAppI18n()
+const { locale, t } = useAppI18n()
 const transition = useSharedViewTransition()
+const worldRecordMedal = computed(() => MEDALS.find(medal => medal.tier === props.worldRecord?.medal))
 const numberFormat = computed(() => getNumberFormatter(locale.value))
 const percentFormat = computed(() => getNumberFormatter(locale.value, 'percent-one-decimal'))
 const distanceFormat = computed(() => getNumberFormatter(locale.value, 'one-decimal'))

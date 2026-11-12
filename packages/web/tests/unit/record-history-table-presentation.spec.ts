@@ -11,6 +11,7 @@ describe('record history table presentation', () => {
 			'player',
 			'status',
 			'rank',
+			'medal',
 			'time',
 			'points',
 			'rankedPoints',
@@ -22,6 +23,7 @@ describe('record history table presentation', () => {
 		expect(getRecordHistoryColumns({ rankFirst: true })).toEqual([
 			'rank',
 			'level',
+			'medal',
 			'time',
 			'points',
 			'rankedPoints',
@@ -29,7 +31,7 @@ describe('record history table presentation', () => {
 		])
 		expect(
 			getRecordHistoryColumns({ showLevel: false, showPlayer: true, rankFirst: true }),
-		).toEqual(['rank', 'player', 'time', 'points', 'rankedPoints', 'date'])
+		).toEqual(['rank', 'player', 'medal', 'time', 'points', 'rankedPoints', 'date'])
 	})
 
 	it('places an enabled delta column directly after time', () => {
@@ -40,7 +42,7 @@ describe('record history table presentation', () => {
 				rankFirst: true,
 				showDelta: true,
 			}),
-		).toEqual(['rank', 'player', 'time', 'delta', 'points', 'rankedPoints', 'date'])
+		).toEqual(['rank', 'player', 'medal', 'time', 'delta', 'points', 'rankedPoints', 'date'])
 	})
 
 	it('supports status modes, pinned rows, and data-fed point help', () => {

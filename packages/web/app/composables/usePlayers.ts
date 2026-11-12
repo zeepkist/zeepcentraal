@@ -5,12 +5,19 @@ import {
 	Zc_UsersDocument,
 } from '@zeepkist/graphql/generated'
 import type { CursorPage, UserSummary } from '~/types/app'
+import { mapMedalCounts } from '~/utils/medals'
 
 export const USER_SORTS = {
 	rank: 'RANK_ASC',
 	points: 'POINTS_DESC',
 	totalPoints: 'TOTAL_POINTS_DESC',
 	worldRecords: 'WORLD_RECORDS_DESC',
+	apex: 'MEDAL_APEX_DESC',
+	expert: 'MEDAL_EXPERT_DESC',
+	author: 'MEDAL_AUTHOR_DESC',
+	gold: 'MEDAL_GOLD_DESC',
+	silver: 'MEDAL_SILVER_DESC',
+	bronze: 'MEDAL_BRONZE_DESC',
 } as const satisfies Record<string, UserPointsOrderBy>
 
 export function usePlayers() {
@@ -51,7 +58,7 @@ export function usePlayers() {
 		variables: computed(() => ({
 			...pagination.variables.value,
 			filter: filter.value,
-			orderBy: [appliedSort.value],
+			orderBy: [appliedSort.value, 'PRIMARY_KEY_ASC'] satisfies UserPointsOrderBy[],
 		})),
 	})
 	const users = computed<UserSummary[]>(() =>
@@ -66,6 +73,7 @@ export function usePlayers() {
 							points: node.points,
 							totalPoints: node.totalPoints,
 							worldRecords: node.worldRecords,
+							medals: mapMedalCounts(node),
 						},
 					]
 				: [],

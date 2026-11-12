@@ -19,6 +19,7 @@ query ZC_LevelRecords(
 			cursor
 			node {
 				id
+				medal
 				time
 				dateCreated
 				levelId

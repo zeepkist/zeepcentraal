@@ -1299,6 +1299,19 @@ impl JobHandler for ServiceJobHandler {
         lane: JobLane,
         attempts: i32,
     ) -> Result<JobOutcome> {
+        if task == TaskIdentifier::RefreshMedals {
+            ensure!(lane == JobLane::Bulk, "medals require bulk lane");
+            let level = payload
+                .get("idLevel")
+                .and_then(serde_json::Value::as_i64)
+                .map(i32::try_from)
+                .transpose()?;
+            return Ok(if self.database.refresh_medals(level).await? {
+                JobOutcome::Completed
+            } else {
+                JobOutcome::Deferred
+            });
+        }
         if task == TaskIdentifier::UpdateLevelScore {
             return self.update_level_score(&payload, lane).await;
         }
@@ -1419,6 +1432,7 @@ impl JobHandler for ServiceJobHandler {
                 .await
                 .map(|_| ()),
             TaskIdentifier::FanOutRecordEligibility
+            | TaskIdentifier::RefreshMedals
             | TaskIdentifier::UpdatePlayerScore
             | TaskIdentifier::UpdateLevelRecordCounts
             | TaskIdentifier::UpdatePlayerScores => {

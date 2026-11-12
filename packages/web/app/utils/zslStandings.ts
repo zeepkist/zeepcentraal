@@ -6,6 +6,7 @@ type RoundPointResult = {
 }
 
 export type ZslStandingNode = {
+	medal?: number | null
 	position: number
 	points: number
 	userId: number
@@ -53,6 +54,7 @@ export function mapZslStanding(node: ZslStandingNode, bestOf?: number): ZslStand
 		steamId: node.user ? String(node.user.steamId) : null,
 		steamName: node.user?.steamName ?? null,
 		time: node.time,
+		medal: node.medal,
 	}
 	if (node.user?.zslLevelResults) {
 		row.levelsPlayed = node.user.zslLevelResults.totalCount

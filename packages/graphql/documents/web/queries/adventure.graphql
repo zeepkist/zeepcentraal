@@ -24,6 +24,7 @@ fragment ZC_AdventureLevelCard on Level {
 	worldRecordGlobal {
 		record {
 			time
+			medal
 		}
 		user {
 			steamId

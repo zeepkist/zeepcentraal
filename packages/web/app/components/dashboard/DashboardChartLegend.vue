@@ -6,7 +6,10 @@
 			class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 rounded-lg border border-border/60 bg-muted/25 px-3 text-sm"
 			:class="props.compact ? 'py-1' : 'py-2.5'"
 		>
-			<span class="size-2.5 rounded-full" :style="{ backgroundColor: entry.color }" />
+			<span class="inline-flex items-center gap-2">
+				<span class="size-2.5 shrink-0 rounded-full" :style="{ backgroundColor: entry.color }" />
+				<img v-if="entry.image" :src="entry.image" alt="" width="32" height="32" class="size-8 object-contain" />
+			</span>
 			<span class="min-w-0 truncate text-muted-foreground">{{ entry.label }}</span>
 			<span class="text-right">
 				<span class="block font-semibold tabular-nums text-highlighted">{{ entry.formattedValue }}</span>

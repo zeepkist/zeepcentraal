@@ -30,6 +30,7 @@ export function mapUserLevel(
 		personalBestCount: level.personalBestGlobals.totalCount,
 		voteCount: level.votes.totalCount,
 		worldRecordTime: level.worldRecordGlobal?.record?.time,
+		worldRecordMedal: level.worldRecordGlobal?.record?.medal,
 		worldRecordAuthorName: level.worldRecordGlobal?.user?.steamName,
 		worldRecordAuthorSteamId:
 			level.worldRecordGlobal?.user?.steamId == null

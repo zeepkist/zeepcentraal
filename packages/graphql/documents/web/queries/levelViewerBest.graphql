@@ -2,6 +2,7 @@ query ZC_LevelViewerBest($userId: Int!, $levelId: Int!) {
 	personalBestGlobalByUserIdAndLevelId(userId: $userId, levelId: $levelId) {
 		record {
 			id
+			medal
 			time
 			dateCreated
 			levelId

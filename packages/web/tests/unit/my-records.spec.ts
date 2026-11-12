@@ -103,7 +103,7 @@ describe('record history', () => {
 			'utf8',
 		)
 		expect(component).toContain('table-fixed')
-		expect(component).toContain('min-w-[48rem]')
+		expect(component).toContain('min-w-[53rem]')
 		expect(component).toContain('v-for="column in columns"')
 		expect(component).toContain('getRecordHistoryColumns({')
 		expect(component).toContain('showStatus: showStatus.value')

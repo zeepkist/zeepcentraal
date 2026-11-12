@@ -139,6 +139,7 @@ export function useUserResults(
 							{
 								id: node.record.id,
 								time: node.record.time,
+								medal: node.record.medal,
 								dateCreated: String(node.record.dateCreated),
 								userId: node.record.userId,
 								userSteamId: steamId.value,
@@ -178,6 +179,7 @@ export function useUserResults(
 					{
 						id: node.id,
 						time: node.time,
+						medal: node.medal,
 						dateCreated: String(node.dateCreated),
 						userId: node.userId,
 						userSteamId: steamId.value,

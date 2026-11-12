@@ -1,5 +1,6 @@
 import { Kind, parse } from 'graphql'
 import { applyDiscordFixtures, previewContest } from './discord-fixtures'
+import { applyMedalFixtures } from './medal-fixtures'
 
 const headers = {
 	'access-control-allow-origin': 'http://127.0.0.1:4173',
@@ -381,6 +382,7 @@ Bun.serve({
 				}
 			}
 			applyDiscordFixtures(data, query, variables, fixtureLevel)
+			applyMedalFixtures(data, query, variables, fixtureLevel)
 			return Response.json({ data }, { headers })
 		}
 		if (url.pathname === '/auth/web/refresh') {

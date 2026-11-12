@@ -1605,7 +1605,7 @@
 			},
 			"medals": {
 				"title": "Medal times",
-				"description": "Author-defined target times to beat.",
+				"description": "Author-defined and calculated competitive target times.",
 				"author": "Author",
 				"gold": "Gold",
 				"silver": "Silver",
@@ -1858,5 +1858,20 @@
 			"description": "Workshop items containing this level, newest published first.",
 			"empty": "No workshop items contain this level."
 		}
+	},
+	"medals": {
+		"apex": "Apex",
+		"expert": "Expert",
+		"author": "Author",
+		"gold": "Gold",
+		"silver": "Silver",
+		"bronze": "Bronze",
+		"none": "No medal",
+		"column": "Medal",
+		"distribution": "Medal distribution",
+		"description": "Highest medal earned on each available level.",
+		"empty": "No eligible personal bests on available levels.",
+		"settling": "Settling",
+		"unavailable": "Not available"
 	}
 }

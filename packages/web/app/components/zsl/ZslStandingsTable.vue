@@ -7,6 +7,7 @@
 			<colgroup>
 				<col class="w-[7rem]" />
 				<col />
+				<col v-if="showTime" class="w-[5rem]" />
 				<col v-if="showTime" class="w-[9rem]" />
 				<col v-if="showDeltaColumn" class="w-[7rem]" />
 				<col v-if="showLevelsPlayed" class="w-[9rem]" />
@@ -17,6 +18,7 @@
 				<tr>
 					<th class="px-4 py-3" scope="col">{{ labels.position }}</th>
 					<th class="px-4 py-3" scope="col">{{ labels.player }}</th>
+					<th v-if="showTime" class="px-4 py-3" scope="col">{{ t('medals.column') }}</th>
 					<th v-if="showTime" class="px-4 py-3" scope="col">{{ labels.time }}</th>
 					<th v-if="showDeltaColumn" class="px-4 py-3" scope="col">
 						{{ labels.delta }}
@@ -63,6 +65,7 @@
 							</UBadge>
 						</DataTableCellLink>
 					</td>
+					<td v-if="showTime" class="px-4 py-3"><MedalBadge :tier="row.medal" /></td>
 					<td v-if="showTime" class="p-0 font-semibold tabular-nums">
 						<DataTableCellLink :to="userPath(row.steamId)" :aria-label="labels.openPlayer" class="px-4 py-3">
 							{{ row.time == null ? labels.emptyValue : formatTime(row.time) }}
@@ -137,7 +140,7 @@ const props = withDefaults(
 	{ roundLabels: () => [], showDelta: false, showLevelsPlayed: false, showTime: false },
 )
 
-const { locale } = useAppI18n()
+const { locale, t } = useAppI18n()
 const number = computed(() => new Intl.NumberFormat(locale.value))
 const showDeltaColumn = computed(
 	() => props.showDelta && props.fastestTime !== undefined,
@@ -145,7 +148,7 @@ const showDeltaColumn = computed(
 const tableWidthClass = computed(() => {
 	if (props.roundLabels.length > 0) return 'min-w-[68rem]'
 	if (props.showLevelsPlayed) return 'min-w-[42rem]'
-	if (props.showTime) return showDeltaColumn.value ? 'min-w-[47rem]' : 'min-w-[40rem]'
+	if (props.showTime) return showDeltaColumn.value ? 'min-w-[52rem]' : 'min-w-[45rem]'
 	return 'min-w-[32rem]'
 })
 

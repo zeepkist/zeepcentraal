@@ -26,6 +26,7 @@ function mapStanding(node: Zc_TrackTournamentStandingFragment): TournamentStandi
 		userId: node.userId,
 		recordId: node.recordId,
 		time: node.time,
+		medal: node.record?.medal ?? null,
 		rank: node.rank,
 		points: node.points,
 		steamId: node.user?.steamId == null ? null : String(node.user.steamId),

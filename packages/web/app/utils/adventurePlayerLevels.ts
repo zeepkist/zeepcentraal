@@ -8,8 +8,8 @@ export type AdventurePlayerLevel = {
 	xxHash: string
 	name: string
 	item: Zc_AdventurePlayerLevelFragment['levelItem']
-	pb: { id: number; milliseconds: number } | null
-	worldRecord: { id: number; milliseconds: number } | null
+	pb: { id: number; milliseconds: number; medal?: number | null } | null
+	worldRecord: { id: number; milliseconds: number; medal?: number | null } | null
 	delta: number | null
 }
 
@@ -27,10 +27,14 @@ export function mapAdventurePlayerLevels(
 		const personalBest = level.personalBestGlobals?.nodes[0]?.record
 		const wr = level.worldRecordGlobal?.record
 		const pb = personalBest
-			? { id: personalBest.id, milliseconds: adventureRecordMilliseconds(personalBest.time) }
+			? {
+					id: personalBest.id,
+					milliseconds: adventureRecordMilliseconds(personalBest.time),
+					medal: personalBest.medal,
+				}
 			: null
 		const worldRecord = wr
-			? { id: wr.id, milliseconds: adventureRecordMilliseconds(wr.time) }
+			? { id: wr.id, milliseconds: adventureRecordMilliseconds(wr.time), medal: wr.medal }
 			: null
 		unique.set(level.id, {
 			id: level.id,

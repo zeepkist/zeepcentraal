@@ -18,6 +18,7 @@ fragment ZC_AdventurePlayerLevel on AdventureLevelMembership {
 				record {
 					id
 					time
+					medal
 				}
 			}
 		}
@@ -25,6 +26,7 @@ fragment ZC_AdventurePlayerLevel on AdventureLevelMembership {
 			record {
 				id
 				time
+				medal
 			}
 		}
 	}

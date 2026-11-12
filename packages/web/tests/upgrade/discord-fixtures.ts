@@ -42,6 +42,7 @@ export function applyDiscordFixtures(
 		rank: index < 2 ? 1 : 3,
 		position: index < 2 ? 1 : 3,
 		points: 100 - index,
+		medal: [5, 4, 0][index],
 		time: 42 + index,
 		dateCreated: '2026-10-01T00:00:00Z',
 		user: {
@@ -51,7 +52,7 @@ export function applyDiscordFixtures(
 			zslLevelResults: { totalCount: 1 },
 			zslRoundResults: { nodes: [] },
 		},
-		record: { id: 9500 + index, dateCreated: '2026-10-01T00:00:00Z' },
+		record: { id: 9500 + index, medal: [5, 4, 0][index], dateCreated: '2026-10-01T00:00:00Z' },
 		userPointContributions: {
 			nodes: [
 				{
@@ -101,7 +102,11 @@ export function applyDiscordFixtures(
 			query.includes(`query ${operation}(`) &&
 			(variables.id === 777 || variables.seasonId === 777)
 		) {
-			data[key as string] = connection(players)
+			data[key as string] = connection(
+				operation === 'ZC_ZslLevelResults'
+					? players.map((player) => ({ ...player, record: null }))
+					: players,
+			)
 			data.viewerStanding = connection([
 				{ ...players[0], user: { steamId: '999', steamName: 'PRIVATE PINNED PLAYER' } },
 			])

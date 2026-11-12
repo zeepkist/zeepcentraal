@@ -21,6 +21,13 @@ query ZC_Users(
 				rank
 				totalPoints
 				worldRecords
+				medalApex
+				medalExpert
+				medalAuthor
+				medalGold
+				medalSilver
+				medalBronze
+				medalNone
 				user {
 					id
 					steamId

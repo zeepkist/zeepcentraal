@@ -66,6 +66,7 @@ query ZC_DashboardViewerLevels($id: Int!, $viewerId: Int!, $includeViewer: Boole
 					worldRecordGlobal {
 						record {
 							time
+							medal
 						}
 						user {
 							steamId

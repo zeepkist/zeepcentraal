@@ -5,7 +5,11 @@ query ZC_LevelDetail($xxHash: String!, $now: Datetime!, $viewerId: Int!, $includ
 		publiclyVisible
 		adventure
 		dateCreated
-		levelItems(first: 1, filter: { deleted: { equalTo: false } }, orderBy: [UPDATED_AT_DESC]) {
+		levelItems(
+			first: 1
+			filter: { deleted: { equalTo: false } }
+			orderBy: [UPDATED_AT_DESC, PRIMARY_KEY_DESC]
+		) {
 			nodes {
 				name
 				imageUrl
@@ -17,6 +21,11 @@ query ZC_LevelDetail($xxHash: String!, $now: Datetime!, $viewerId: Int!, $includ
 				validationTimeGold
 				validationTimeSilver
 				validationTimeBronze
+				validationTimeExpert
+				validationTimeApex
+				medalDueAt
+				medalCalculatedAt
+				medalCalculationVersion
 				author {
 					id
 					steamId
@@ -77,6 +86,7 @@ query ZC_LevelDetail($xxHash: String!, $now: Datetime!, $viewerId: Int!, $includ
 			record {
 				id
 				time
+				medal
 				dateCreated
 				levelId
 				userId

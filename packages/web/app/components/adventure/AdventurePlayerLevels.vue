@@ -27,8 +27,8 @@ const options = computed(() => [{ label: t('adventure.leaderboard.levelOrder'), 
 						<tr v-if="!series"><th colspan="4" scope="colgroup" class="border-t border-border px-3 py-2 text-left font-semibold">{{ t('adventure.series', { series: group.series.key }) }}</th></tr>
 						<tr v-for="level in group.levels" :key="level.id" :data-adventure-level="level.id" class="border-t border-border/60">
 							<td class="px-3 py-2"><NuxtLink :to="`/level/${level.xxHash}`" class="font-medium hover:text-primary">{{ level.name }}</NuxtLink></td>
-							<td class="px-3 py-2 text-right tabular-nums"><NuxtLink v-if="level.pb" :to="`/record/${level.pb.id}`" class="hover:text-primary">{{ formatAdventureTime(level.pb.milliseconds) }}</NuxtLink><span v-else class="text-muted-foreground">{{ t('adventure.leaderboard.notCompleted') }}</span></td>
-							<td class="px-3 py-2 text-right tabular-nums"><NuxtLink v-if="level.worldRecord" :to="`/record/${level.worldRecord.id}`" class="hover:text-primary">{{ formatAdventureTime(level.worldRecord.milliseconds) }}</NuxtLink><span v-else>—</span></td>
+							<td class="px-3 py-2 text-right tabular-nums"><NuxtLink v-if="level.pb" :to="`/record/${level.pb.id}`" class="flex items-center justify-end gap-2 hover:text-primary"><MedalBadge :tier="level.pb.medal" /><span>{{ formatAdventureTime(level.pb.milliseconds) }}</span></NuxtLink><span v-else class="text-muted-foreground">{{ t('adventure.leaderboard.notCompleted') }}</span></td>
+							<td class="px-3 py-2 text-right tabular-nums"><NuxtLink v-if="level.worldRecord" :to="`/record/${level.worldRecord.id}`" class="flex items-center justify-end gap-2 hover:text-primary"><MedalBadge :tier="level.worldRecord.medal" /><span>{{ formatAdventureTime(level.worldRecord.milliseconds) }}</span></NuxtLink><span v-else>—</span></td>
 							<td class="px-3 py-2 text-right tabular-nums" :class="level.delta && level.delta > 0 ? 'text-muted-foreground' : undefined">{{ level.delta === null ? '—' : formatAdventureDelta(level.delta) }}</td>
 						</tr>
 					</tbody>

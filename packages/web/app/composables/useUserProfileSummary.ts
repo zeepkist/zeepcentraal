@@ -1,6 +1,7 @@
 import { useQuery } from '@urql/vue'
 import { Zc_UserProfileDocument } from '@zeepkist/graphql/generated'
 import type { UserProfileSummary } from '~/types/app'
+import { mapMedalCounts } from '~/utils/medals'
 import { buildVoteDistributionCounts } from '~/utils/voteDistribution'
 
 export function useUserProfileSummary(steamId: Ref<string>) {
@@ -14,6 +15,7 @@ export function useUserProfileSummary(steamId: Ref<string>) {
 		if (!value) return null
 		return {
 			id: value.id,
+			medals: mapMedalCounts(value.userPoints),
 			steamId: String(value.steamId),
 			steamName: value.steamName,
 			dateCreated: String(value.dateCreated),

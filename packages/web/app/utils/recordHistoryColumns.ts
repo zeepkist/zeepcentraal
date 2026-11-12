@@ -3,6 +3,7 @@ export type RecordHistoryColumn =
 	| 'player'
 	| 'rank'
 	| 'time'
+	| 'medal'
 	| 'delta'
 	| 'status'
 	| 'points'
@@ -33,6 +34,7 @@ export function getRecordHistoryColumns({
 		...entityColumns,
 		...(showStatus ? (['status'] as const) : []),
 		...(!rankFirst ? (['rank'] as const) : []),
+		'medal',
 		'time',
 		...(showDelta ? (['delta'] as const) : []),
 		'points',

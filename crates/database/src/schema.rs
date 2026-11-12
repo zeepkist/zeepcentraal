@@ -74,6 +74,14 @@ diesel::table! {
         image_url -> Text,
         file_author -> Text,
         file_uid -> Text,
+        validation_time_expert -> Nullable<Double>,
+        validation_time_apex -> Nullable<Double>,
+        medal_qualified_at -> Nullable<Timestamptz>,
+        medal_due_at -> Nullable<Timestamptz>,
+        medal_calculated_at -> Nullable<Timestamptz>,
+        medal_calculation_version -> Nullable<Integer>,
+        medal_eligible_pb_count -> Integer,
+        medal_evaluated_at -> Timestamptz,
         validation_time_author -> Float,
         validation_time_gold -> Float,
         validation_time_silver -> Float,
@@ -231,6 +239,7 @@ diesel::table! {
 diesel::table! {
     personal_best_global (id) {
         id -> Integer,
+        medal -> Nullable<SmallInt>,
         id_record -> Integer,
         id_user -> Integer,
         id_level -> Integer,
@@ -458,6 +467,13 @@ diesel::table! {
 diesel::table! {
     user_points (id_user) {
         id_user -> Integer,
+        medal_apex -> Integer,
+        medal_expert -> Integer,
+        medal_author -> Integer,
+        medal_gold -> Integer,
+        medal_silver -> Integer,
+        medal_bronze -> Integer,
+        medal_none -> Integer,
         points -> Integer,
         total_points -> Integer,
         rank -> Integer,

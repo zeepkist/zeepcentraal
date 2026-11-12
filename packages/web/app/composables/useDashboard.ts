@@ -38,7 +38,7 @@ type DashboardLevelLike = {
 	votes?: { totalCount: number }
 	viewerFavourites?: { totalCount: number }
 	worldRecordGlobal?: {
-		record: { time: number } | null
+		record: { time: number; medal?: number | null } | null
 		user: { steamId: unknown; steamName: string | null } | null
 	} | null
 }
@@ -65,6 +65,7 @@ function mapLevel(level?: DashboardLevelLike | null): LevelSummary | null {
 		personalBestCount: level.personalBestGlobals?.totalCount,
 		voteCount: level.votes?.totalCount,
 		worldRecordTime: level.worldRecordGlobal?.record?.time,
+		worldRecordMedal: level.worldRecordGlobal?.record?.medal,
 		worldRecordAuthorName: level.worldRecordGlobal?.user?.steamName,
 		worldRecordAuthorSteamId:
 			level.worldRecordGlobal?.user?.steamId == null

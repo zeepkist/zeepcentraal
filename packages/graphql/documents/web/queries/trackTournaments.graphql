@@ -39,6 +39,7 @@ fragment ZC_TrackTournamentStanding on TrackTournamentResult {
 	}
 	record {
 		dateCreated
+		medal
 	}
 }
 

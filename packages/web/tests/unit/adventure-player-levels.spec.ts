@@ -42,6 +42,18 @@ function membership(
 }
 
 describe('Adventure player rows and level comparisons', () => {
+	it('preserves independent PB and WR medals, including Bronze zero', () => {
+		const entry = membership('a', 1, 'A-01', 12, 10)
+		const pb = entry.level?.personalBestGlobals?.nodes[0]?.record
+		const wr = entry.level?.worldRecordGlobal?.record
+		if (!pb || !wr) throw new Error('Missing record fixture')
+		pb.medal = 0
+		wr.medal = 5
+		const [level] = mapAdventurePlayerLevels([entry])
+		expect(level?.pb?.medal).toBe(0)
+		expect(level?.worldRecord?.medal).toBe(5)
+		expect(level?.delta).toBe(2000)
+	})
 	it('pins viewer once and preserves ranks and input rows', () => {
 		const row = (userId: number): Zc_AdventureStandingFragment => ({
 			userId,

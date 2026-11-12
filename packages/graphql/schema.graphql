@@ -2659,6 +2659,18 @@ type Level implements Node {
   Reads and enables pagination through a set of `AdventureLevelMembership`.
   """
   adventureLevelMemberships(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: AdventureLevelMembershipCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: AdventureLevelMembershipFilter
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -2668,21 +2680,12 @@ type Level implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: AdventureLevelMembershipCondition
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: AdventureLevelMembershipFilter
     """The method to use when ordering `AdventureLevelMembership`."""
     orderBy: [AdventureLevelMembershipsOrderBy!] = [PRIMARY_KEY_ASC]
   ): AdventureLevelMembershipsConnection!
+  validationInputsUpdatedAt: Datetime!
+
+  validationMetadataUpdatedAt: Datetime!
 }
 
 type LevelAggregates {
@@ -2768,6 +2771,15 @@ input LevelCondition {
 
   """Checks for equality with the object’s `xxHash` field."""
   xxHash: String
+  """
+  Checks for equality with the object’s `validationInputsUpdatedAt` field.
+  """
+  validationInputsUpdatedAt: Datetime
+
+  """
+  Checks for equality with the object’s `validationMetadataUpdatedAt` field.
+  """
+  validationMetadataUpdatedAt: Datetime
 }
 
 type LevelDistinctCountAggregates {
@@ -2794,6 +2806,15 @@ type LevelDistinctCountAggregates {
 
   """Distinct count of xxHash across the matching connection"""
   xxHash: BigInt
+  """
+  Distinct count of validationInputsUpdatedAt across the matching connection
+  """
+  validationInputsUpdatedAt: BigInt
+
+  """
+  Distinct count of validationMetadataUpdatedAt across the matching connection
+  """
+  validationMetadataUpdatedAt: BigInt
 }
 
 """
@@ -2910,6 +2931,17 @@ input LevelFilter {
 
   """Some related `zslLevels` exist."""
   zslLevelsExist: Boolean
+  """Filter by the object’s `adventureLevelMemberships` relation."""
+  adventureLevelMemberships: LevelToManyAdventureLevelMembershipFilter
+
+  """Some related `adventureLevelMemberships` exist."""
+  adventureLevelMembershipsExist: Boolean
+
+  """Filter by the object’s `validationInputsUpdatedAt` field."""
+  validationInputsUpdatedAt: DatetimeFilter
+
+  """Filter by the object’s `validationMetadataUpdatedAt` field."""
+  validationMetadataUpdatedAt: DatetimeFilter
 }
 
 """Grouping methods for `Level` for usage during aggregation."""
@@ -2924,6 +2956,17 @@ enum LevelGroupBy {
   HASH
   PUBLICLY_VISIBLE
   SIMHASH
+  VALIDATION_INPUTS_UPDATED_AT
+
+  VALIDATION_INPUTS_UPDATED_AT_TRUNCATED_TO_DAY
+
+  VALIDATION_INPUTS_UPDATED_AT_TRUNCATED_TO_HOUR
+
+  VALIDATION_METADATA_UPDATED_AT
+
+  VALIDATION_METADATA_UPDATED_AT_TRUNCATED_TO_DAY
+
+  VALIDATION_METADATA_UPDATED_AT_TRUNCATED_TO_HOUR
 }
 
 input LevelHavingAverageInput {
@@ -2931,6 +2974,9 @@ input LevelHavingAverageInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 input LevelHavingDistinctCountInput {
@@ -2938,6 +2984,9 @@ input LevelHavingDistinctCountInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 """Conditions for `Level` aggregates."""
@@ -2960,6 +3009,9 @@ input LevelHavingMaxInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 input LevelHavingMinInput {
@@ -2967,6 +3019,9 @@ input LevelHavingMinInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 input LevelHavingStddevPopulationInput {
@@ -2974,6 +3029,9 @@ input LevelHavingStddevPopulationInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 input LevelHavingStddevSampleInput {
@@ -2981,6 +3039,9 @@ input LevelHavingStddevSampleInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 input LevelHavingSumInput {
@@ -2988,6 +3049,9 @@ input LevelHavingSumInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 input LevelHavingVariancePopulationInput {
@@ -2995,6 +3059,9 @@ input LevelHavingVariancePopulationInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 input LevelHavingVarianceSampleInput {
@@ -3002,6 +3069,9 @@ input LevelHavingVarianceSampleInput {
   dateUpdated: HavingDatetimeFilter
   id: HavingIntFilter
   simhash: HavingBigintFilter
+  validationInputsUpdatedAt: HavingDatetimeFilter
+
+  validationMetadataUpdatedAt: HavingDatetimeFilter
 }
 
 type LevelItem implements Node {
@@ -3035,6 +3105,21 @@ type LevelItem implements Node {
   """Reads a single `WorkshopItem` that is related to this `LevelItem`."""
   workshop: WorkshopItem
   workshopId: BigInt!
+  medalCalculatedAt: Datetime
+
+  medalCalculationVersion: Int
+
+  medalDueAt: Datetime
+
+  medalEligiblePbCount: Int!
+
+  medalQualifiedAt: Datetime
+
+  """Apex target in seconds; null until available."""
+  validationTimeApex: Float
+
+  """Expert target in seconds; null until available."""
+  validationTimeExpert: Float
 }
 
 type LevelItemAggregates {
@@ -3131,6 +3216,13 @@ input LevelItemAverageAggregateFilter {
   validationTimeGold: FloatFilter
   validationTimeSilver: FloatFilter
   workshopId: BigFloatFilter
+  medalCalculationVersion: BigFloatFilter
+
+  medalEligiblePbCount: BigFloatFilter
+
+  validationTimeApex: FloatFilter
+
+  validationTimeExpert: FloatFilter
 }
 
 type LevelItemAverageAggregates {
@@ -3157,6 +3249,17 @@ type LevelItemAverageAggregates {
 
   """Mean average of workshopId across the matching connection"""
   workshopId: BigFloat
+  """Mean average of medalCalculationVersion across the matching connection"""
+  medalCalculationVersion: BigFloat
+
+  """Mean average of medalEligiblePbCount across the matching connection"""
+  medalEligiblePbCount: BigFloat
+
+  """Mean average of validationTimeApex across the matching connection"""
+  validationTimeApex: Float
+
+  """Mean average of validationTimeExpert across the matching connection"""
+  validationTimeExpert: Float
 }
 
 """
@@ -3214,6 +3317,26 @@ input LevelItemCondition {
 
   """Checks for equality with the object’s `workshopId` field."""
   workshopId: BigInt
+  """Checks for equality with the object’s `medalCalculatedAt` field."""
+  medalCalculatedAt: Datetime
+
+  """Checks for equality with the object’s `medalCalculationVersion` field."""
+  medalCalculationVersion: Int
+
+  """Checks for equality with the object’s `medalDueAt` field."""
+  medalDueAt: Datetime
+
+  """Checks for equality with the object’s `medalEligiblePbCount` field."""
+  medalEligiblePbCount: Int
+
+  """Checks for equality with the object’s `medalQualifiedAt` field."""
+  medalQualifiedAt: Datetime
+
+  """Checks for equality with the object’s `validationTimeApex` field."""
+  validationTimeApex: Float
+
+  """Checks for equality with the object’s `validationTimeExpert` field."""
+  validationTimeExpert: Float
 }
 
 input LevelItemDistinctCountAggregateFilter {
@@ -3234,6 +3357,19 @@ input LevelItemDistinctCountAggregateFilter {
   validationTimeGold: BigIntFilter
   validationTimeSilver: BigIntFilter
   workshopId: BigIntFilter
+  medalCalculatedAt: BigIntFilter
+
+  medalCalculationVersion: BigIntFilter
+
+  medalDueAt: BigIntFilter
+
+  medalEligiblePbCount: BigIntFilter
+
+  medalQualifiedAt: BigIntFilter
+
+  validationTimeApex: BigIntFilter
+
+  validationTimeExpert: BigIntFilter
 }
 
 type LevelItemDistinctCountAggregates {
@@ -3287,6 +3423,28 @@ type LevelItemDistinctCountAggregates {
 
   """Distinct count of workshopId across the matching connection"""
   workshopId: BigInt
+  """Distinct count of medalCalculatedAt across the matching connection"""
+  medalCalculatedAt: BigInt
+
+  """
+  Distinct count of medalCalculationVersion across the matching connection
+  """
+  medalCalculationVersion: BigInt
+
+  """Distinct count of medalDueAt across the matching connection"""
+  medalDueAt: BigInt
+
+  """Distinct count of medalEligiblePbCount across the matching connection"""
+  medalEligiblePbCount: BigInt
+
+  """Distinct count of medalQualifiedAt across the matching connection"""
+  medalQualifiedAt: BigInt
+
+  """Distinct count of validationTimeApex across the matching connection"""
+  validationTimeApex: BigInt
+
+  """Distinct count of validationTimeExpert across the matching connection"""
+  validationTimeExpert: BigInt
 }
 
 """
@@ -3361,6 +3519,26 @@ input LevelItemFilter {
 
   """Filter by the object’s `workshopId` field."""
   workshopId: BigIntFilter
+  """Filter by the object’s `medalCalculatedAt` field."""
+  medalCalculatedAt: DatetimeFilter
+
+  """Filter by the object’s `medalCalculationVersion` field."""
+  medalCalculationVersion: IntFilter
+
+  """Filter by the object’s `medalDueAt` field."""
+  medalDueAt: DatetimeFilter
+
+  """Filter by the object’s `medalEligiblePbCount` field."""
+  medalEligiblePbCount: IntFilter
+
+  """Filter by the object’s `medalQualifiedAt` field."""
+  medalQualifiedAt: DatetimeFilter
+
+  """Filter by the object’s `validationTimeApex` field."""
+  validationTimeApex: FloatFilter
+
+  """Filter by the object’s `validationTimeExpert` field."""
+  validationTimeExpert: FloatFilter
 }
 
 """Grouping methods for `LevelItem` for usage during aggregation."""
@@ -3389,6 +3567,31 @@ enum LevelItemGroupBy {
   VALIDATION_TIME_GOLD
   VALIDATION_TIME_SILVER
   WORKSHOP_ID
+  MEDAL_CALCULATED_AT
+
+  MEDAL_CALCULATED_AT_TRUNCATED_TO_DAY
+
+  MEDAL_CALCULATED_AT_TRUNCATED_TO_HOUR
+
+  MEDAL_CALCULATION_VERSION
+
+  MEDAL_DUE_AT
+
+  MEDAL_DUE_AT_TRUNCATED_TO_DAY
+
+  MEDAL_DUE_AT_TRUNCATED_TO_HOUR
+
+  MEDAL_ELIGIBLE_PB_COUNT
+
+  MEDAL_QUALIFIED_AT
+
+  MEDAL_QUALIFIED_AT_TRUNCATED_TO_DAY
+
+  MEDAL_QUALIFIED_AT_TRUNCATED_TO_HOUR
+
+  VALIDATION_TIME_APEX
+
+  VALIDATION_TIME_EXPERT
 }
 
 input LevelItemHavingAverageInput {
@@ -3404,6 +3607,19 @@ input LevelItemHavingAverageInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 input LevelItemHavingDistinctCountInput {
@@ -3419,6 +3635,19 @@ input LevelItemHavingDistinctCountInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 """Conditions for `LevelItem` aggregates."""
@@ -3449,6 +3678,19 @@ input LevelItemHavingMaxInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 input LevelItemHavingMinInput {
@@ -3464,6 +3706,19 @@ input LevelItemHavingMinInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 input LevelItemHavingStddevPopulationInput {
@@ -3479,6 +3734,19 @@ input LevelItemHavingStddevPopulationInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 input LevelItemHavingStddevSampleInput {
@@ -3494,6 +3762,19 @@ input LevelItemHavingStddevSampleInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 input LevelItemHavingSumInput {
@@ -3509,6 +3790,19 @@ input LevelItemHavingSumInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 input LevelItemHavingVariancePopulationInput {
@@ -3524,6 +3818,19 @@ input LevelItemHavingVariancePopulationInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 input LevelItemHavingVarianceSampleInput {
@@ -3539,6 +3846,19 @@ input LevelItemHavingVarianceSampleInput {
   validationTimeGold: HavingFloatFilter
   validationTimeSilver: HavingFloatFilter
   workshopId: HavingBigintFilter
+  medalCalculatedAt: HavingDatetimeFilter
+
+  medalCalculationVersion: HavingIntFilter
+
+  medalDueAt: HavingDatetimeFilter
+
+  medalEligiblePbCount: HavingIntFilter
+
+  medalQualifiedAt: HavingDatetimeFilter
+
+  validationTimeApex: HavingFloatFilter
+
+  validationTimeExpert: HavingFloatFilter
 }
 
 input LevelItemMaxAggregateFilter {
@@ -3550,6 +3870,13 @@ input LevelItemMaxAggregateFilter {
   validationTimeGold: FloatFilter
   validationTimeSilver: FloatFilter
   workshopId: BigIntFilter
+  medalCalculationVersion: IntFilter
+
+  medalEligiblePbCount: IntFilter
+
+  validationTimeApex: FloatFilter
+
+  validationTimeExpert: FloatFilter
 }
 
 type LevelItemMaxAggregates {
@@ -3576,6 +3903,17 @@ type LevelItemMaxAggregates {
 
   """Maximum of workshopId across the matching connection"""
   workshopId: BigInt
+  """Maximum of medalCalculationVersion across the matching connection"""
+  medalCalculationVersion: Int
+
+  """Maximum of medalEligiblePbCount across the matching connection"""
+  medalEligiblePbCount: Int
+
+  """Maximum of validationTimeApex across the matching connection"""
+  validationTimeApex: Float
+
+  """Maximum of validationTimeExpert across the matching connection"""
+  validationTimeExpert: Float
 }
 
 input LevelItemMinAggregateFilter {
@@ -3587,6 +3925,13 @@ input LevelItemMinAggregateFilter {
   validationTimeGold: FloatFilter
   validationTimeSilver: FloatFilter
   workshopId: BigIntFilter
+  medalCalculationVersion: IntFilter
+
+  medalEligiblePbCount: IntFilter
+
+  validationTimeApex: FloatFilter
+
+  validationTimeExpert: FloatFilter
 }
 
 type LevelItemMinAggregates {
@@ -3613,6 +3958,17 @@ type LevelItemMinAggregates {
 
   """Minimum of workshopId across the matching connection"""
   workshopId: BigInt
+  """Minimum of medalCalculationVersion across the matching connection"""
+  medalCalculationVersion: Int
+
+  """Minimum of medalEligiblePbCount across the matching connection"""
+  medalEligiblePbCount: Int
+
+  """Minimum of validationTimeApex across the matching connection"""
+  validationTimeApex: Float
+
+  """Minimum of validationTimeExpert across the matching connection"""
+  validationTimeExpert: Float
 }
 
 input LevelItemStddevPopulationAggregateFilter {
@@ -3624,6 +3980,13 @@ input LevelItemStddevPopulationAggregateFilter {
   validationTimeGold: FloatFilter
   validationTimeSilver: FloatFilter
   workshopId: BigFloatFilter
+  medalCalculationVersion: BigFloatFilter
+
+  medalEligiblePbCount: BigFloatFilter
+
+  validationTimeApex: FloatFilter
+
+  validationTimeExpert: FloatFilter
 }
 
 type LevelItemStddevPopulationAggregates {
@@ -3664,6 +4027,25 @@ type LevelItemStddevPopulationAggregates {
   Population standard deviation of workshopId across the matching connection
   """
   workshopId: BigFloat
+  """
+  Population standard deviation of medalCalculationVersion across the matching connection
+  """
+  medalCalculationVersion: BigFloat
+
+  """
+  Population standard deviation of medalEligiblePbCount across the matching connection
+  """
+  medalEligiblePbCount: BigFloat
+
+  """
+  Population standard deviation of validationTimeApex across the matching connection
+  """
+  validationTimeApex: Float
+
+  """
+  Population standard deviation of validationTimeExpert across the matching connection
+  """
+  validationTimeExpert: Float
 }
 
 input LevelItemStddevSampleAggregateFilter {
@@ -3675,6 +4057,13 @@ input LevelItemStddevSampleAggregateFilter {
   validationTimeGold: FloatFilter
   validationTimeSilver: FloatFilter
   workshopId: BigFloatFilter
+  medalCalculationVersion: BigFloatFilter
+
+  medalEligiblePbCount: BigFloatFilter
+
+  validationTimeApex: FloatFilter
+
+  validationTimeExpert: FloatFilter
 }
 
 type LevelItemStddevSampleAggregates {
@@ -3709,6 +4098,25 @@ type LevelItemStddevSampleAggregates {
 
   """Sample standard deviation of workshopId across the matching connection"""
   workshopId: BigFloat
+  """
+  Sample standard deviation of medalCalculationVersion across the matching connection
+  """
+  medalCalculationVersion: BigFloat
+
+  """
+  Sample standard deviation of medalEligiblePbCount across the matching connection
+  """
+  medalEligiblePbCount: BigFloat
+
+  """
+  Sample standard deviation of validationTimeApex across the matching connection
+  """
+  validationTimeApex: Float
+
+  """
+  Sample standard deviation of validationTimeExpert across the matching connection
+  """
+  validationTimeExpert: Float
 }
 
 input LevelItemSumAggregateFilter {
@@ -3720,6 +4128,13 @@ input LevelItemSumAggregateFilter {
   validationTimeGold: FloatFilter
   validationTimeSilver: FloatFilter
   workshopId: BigFloatFilter
+  medalCalculationVersion: BigIntFilter
+
+  medalEligiblePbCount: BigIntFilter
+
+  validationTimeApex: FloatFilter
+
+  validationTimeExpert: FloatFilter
 }
 
 type LevelItemSumAggregates {
@@ -3746,6 +4161,17 @@ type LevelItemSumAggregates {
 
   """Sum of workshopId across the matching connection"""
   workshopId: BigFloat!
+  """Sum of medalCalculationVersion across the matching connection"""
+  medalCalculationVersion: BigInt!
+
+  """Sum of medalEligiblePbCount across the matching connection"""
+  medalEligiblePbCount: BigInt!
+
+  """Sum of validationTimeApex across the matching connection"""
+  validationTimeApex: Float!
+
+  """Sum of validationTimeExpert across the matching connection"""
+  validationTimeExpert: Float!
 }
 
 input LevelItemVariancePopulationAggregateFilter {
@@ -3757,6 +4183,13 @@ input LevelItemVariancePopulationAggregateFilter {
   validationTimeGold: FloatFilter
   validationTimeSilver: FloatFilter
   workshopId: BigFloatFilter
+  medalCalculationVersion: BigFloatFilter
+
+  medalEligiblePbCount: BigFloatFilter
+
+  validationTimeApex: FloatFilter
+
+  validationTimeExpert: FloatFilter
 }
 
 type LevelItemVariancePopulationAggregates {
@@ -3791,6 +4224,25 @@ type LevelItemVariancePopulationAggregates {
 
   """Population variance of workshopId across the matching connection"""
   workshopId: BigFloat
+  """
+  Population variance of medalCalculationVersion across the matching connection
+  """
+  medalCalculationVersion: BigFloat
+
+  """
+  Population variance of medalEligiblePbCount across the matching connection
+  """
+  medalEligiblePbCount: BigFloat
+
+  """
+  Population variance of validationTimeApex across the matching connection
+  """
+  validationTimeApex: Float
+
+  """
+  Population variance of validationTimeExpert across the matching connection
+  """
+  validationTimeExpert: Float
 }
 
 input LevelItemVarianceSampleAggregateFilter {
@@ -3802,6 +4254,13 @@ input LevelItemVarianceSampleAggregateFilter {
   validationTimeGold: FloatFilter
   validationTimeSilver: FloatFilter
   workshopId: BigFloatFilter
+  medalCalculationVersion: BigFloatFilter
+
+  medalEligiblePbCount: BigFloatFilter
+
+  validationTimeApex: FloatFilter
+
+  validationTimeExpert: FloatFilter
 }
 
 type LevelItemVarianceSampleAggregates {
@@ -3828,6 +4287,19 @@ type LevelItemVarianceSampleAggregates {
 
   """Sample variance of workshopId across the matching connection"""
   workshopId: BigFloat
+  """
+  Sample variance of medalCalculationVersion across the matching connection
+  """
+  medalCalculationVersion: BigFloat
+
+  """Sample variance of medalEligiblePbCount across the matching connection"""
+  medalEligiblePbCount: BigFloat
+
+  """Sample variance of validationTimeApex across the matching connection"""
+  validationTimeApex: Float
+
+  """Sample variance of validationTimeExpert across the matching connection"""
+  validationTimeExpert: Float
 }
 
 """A connection to a list of `LevelItem` values."""
@@ -3911,6 +4383,33 @@ enum LevelItemsOrderBy {
   VALIDATION_TIME_SILVER_DESC
   WORKSHOP_ID_ASC
   WORKSHOP_ID_DESC
+  MEDAL_CALCULATED_AT_ASC
+
+  MEDAL_CALCULATED_AT_DESC
+
+  MEDAL_CALCULATION_VERSION_ASC
+
+  MEDAL_CALCULATION_VERSION_DESC
+
+  MEDAL_DUE_AT_ASC
+
+  MEDAL_DUE_AT_DESC
+
+  MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  MEDAL_QUALIFIED_AT_ASC
+
+  MEDAL_QUALIFIED_AT_DESC
+
+  VALIDATION_TIME_APEX_ASC
+
+  VALIDATION_TIME_APEX_DESC
+
+  VALIDATION_TIME_EXPERT_ASC
+
+  VALIDATION_TIME_EXPERT_DESC
 }
 
 type LevelMaxAggregates {
@@ -3990,6 +4489,9 @@ enum LevelMetadataOrderBy {
   TYPE_GROUND_DESC
   TYPE_SKYBOX_ASC
   TYPE_SKYBOX_DESC
+  ENVIRONMENT_ASC
+
+  ENVIRONMENT_DESC
 }
 
 type LevelMetadatum implements Node {
@@ -7675,6 +8177,10 @@ type LevelUsersByPersonalBestGlobalManyToManyEdge {
   """The `User` at the end of the edge."""
   node: User!
   recordId: Int!
+  """
+  Highest medal: bronze=0, silver=1, gold=2, author=3, expert=4, apex=5; null means none.
+  """
+  medal: Int
 }
 
 """A connection to a list of `User` values, with data from `Record`."""
@@ -9429,6 +9935,253 @@ enum LevelsOrderBy {
   ZSL_LEVELS_VARIANCE_SAMPLE_LEVEL_ID_DESC
   ZSL_LEVELS_VARIANCE_SAMPLE_ROUND_ID_ASC
   ZSL_LEVELS_VARIANCE_SAMPLE_ROUND_ID_DESC
+  ADVENTURE_LEVEL_MEMBERSHIPS_AVERAGE_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_AVERAGE_LEVEL_ID_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_COUNT_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_COUNT_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_DISTINCT_COUNT_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_DISTINCT_COUNT_LEVEL_ID_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_DISTINCT_COUNT_SERIES_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_DISTINCT_COUNT_SERIES_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_MAX_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_MAX_LEVEL_ID_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_MIN_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_MIN_LEVEL_ID_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_STDDEV_POPULATION_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_STDDEV_POPULATION_LEVEL_ID_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_STDDEV_SAMPLE_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_STDDEV_SAMPLE_LEVEL_ID_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_SUM_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_SUM_LEVEL_ID_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_VARIANCE_POPULATION_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_VARIANCE_POPULATION_LEVEL_ID_DESC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_VARIANCE_SAMPLE_LEVEL_ID_ASC
+
+  ADVENTURE_LEVEL_MEMBERSHIPS_VARIANCE_SAMPLE_LEVEL_ID_DESC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATED_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATED_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_DUE_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_DUE_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_QUALIFIED_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_QUALIFIED_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_MAX_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_MAX_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_MAX_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_MAX_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_MIN_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_MIN_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_MIN_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_MIN_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_SUM_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_SUM_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_SUM_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_SUM_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_METADATA_DISTINCT_COUNT_ENVIRONMENT_ASC
+
+  LEVEL_METADATA_DISTINCT_COUNT_ENVIRONMENT_DESC
+
+  PERSONAL_BEST_GLOBALS_AVERAGE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_AVERAGE_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_DISTINCT_COUNT_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_DISTINCT_COUNT_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_MAX_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_MAX_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_MIN_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_MIN_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_POPULATION_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_POPULATION_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_SAMPLE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_SAMPLE_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_SUM_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_SUM_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_POPULATION_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_POPULATION_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_SAMPLE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_SAMPLE_MEDAL_DESC
+
+  VALIDATION_INPUTS_UPDATED_AT_ASC
+
+  VALIDATION_INPUTS_UPDATED_AT_DESC
+
+  VALIDATION_METADATA_UPDATED_AT_ASC
+
+  VALIDATION_METADATA_UPDATED_AT_DESC
 }
 
 """An object with a globally unique `ID`."""
@@ -9475,6 +10228,10 @@ type PersonalBestGlobal implements Node {
   """Reads a single `User` that is related to this `PersonalBestGlobal`."""
   user: User
   userId: Int!
+  """
+  Highest medal: bronze=0, silver=1, gold=2, author=3, expert=4, apex=5; null means none.
+  """
+  medal: Int
 }
 
 type PersonalBestGlobalAggregates {
@@ -9573,6 +10330,7 @@ input PersonalBestGlobalAverageAggregateFilter {
   levelId: BigFloatFilter
   recordId: BigFloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type PersonalBestGlobalAverageAggregates {
@@ -9587,6 +10345,8 @@ type PersonalBestGlobalAverageAggregates {
 
   """Mean average of userId across the matching connection"""
   userId: BigFloat
+  """Mean average of medal across the matching connection"""
+  medal: BigFloat
 }
 
 """
@@ -9611,6 +10371,8 @@ input PersonalBestGlobalCondition {
 
   """Checks for equality with the object’s `userId` field."""
   userId: Int
+  """Checks for equality with the object’s `medal` field."""
+  medal: Int
 }
 
 input PersonalBestGlobalDistinctCountAggregateFilter {
@@ -9620,6 +10382,7 @@ input PersonalBestGlobalDistinctCountAggregateFilter {
   levelId: BigIntFilter
   recordId: BigIntFilter
   userId: BigIntFilter
+  medal: BigIntFilter
 }
 
 type PersonalBestGlobalDistinctCountAggregates {
@@ -9640,6 +10403,8 @@ type PersonalBestGlobalDistinctCountAggregates {
 
   """Distinct count of userId across the matching connection"""
   userId: BigInt
+  """Distinct count of medal across the matching connection"""
+  medal: BigInt
 }
 
 """
@@ -9681,6 +10446,8 @@ input PersonalBestGlobalFilter {
 
   """Filter by the object’s `userId` field."""
   userId: IntFilter
+  """Filter by the object’s `medal` field."""
+  medal: IntFilter
 }
 
 """
@@ -9696,6 +10463,7 @@ enum PersonalBestGlobalGroupBy {
   LEVEL_ID
   RECORD_ID
   USER_ID
+  MEDAL
 }
 
 input PersonalBestGlobalHavingAverageInput {
@@ -9705,6 +10473,7 @@ input PersonalBestGlobalHavingAverageInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 input PersonalBestGlobalHavingDistinctCountInput {
@@ -9714,6 +10483,7 @@ input PersonalBestGlobalHavingDistinctCountInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 """Conditions for `PersonalBestGlobal` aggregates."""
@@ -9738,6 +10508,7 @@ input PersonalBestGlobalHavingMaxInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 input PersonalBestGlobalHavingMinInput {
@@ -9747,6 +10518,7 @@ input PersonalBestGlobalHavingMinInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 input PersonalBestGlobalHavingStddevPopulationInput {
@@ -9756,6 +10528,7 @@ input PersonalBestGlobalHavingStddevPopulationInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 input PersonalBestGlobalHavingStddevSampleInput {
@@ -9765,6 +10538,7 @@ input PersonalBestGlobalHavingStddevSampleInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 input PersonalBestGlobalHavingSumInput {
@@ -9774,6 +10548,7 @@ input PersonalBestGlobalHavingSumInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 input PersonalBestGlobalHavingVariancePopulationInput {
@@ -9783,6 +10558,7 @@ input PersonalBestGlobalHavingVariancePopulationInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 input PersonalBestGlobalHavingVarianceSampleInput {
@@ -9792,6 +10568,7 @@ input PersonalBestGlobalHavingVarianceSampleInput {
   levelId: HavingIntFilter
   recordId: HavingIntFilter
   userId: HavingIntFilter
+  medal: HavingIntFilter
 }
 
 input PersonalBestGlobalMaxAggregateFilter {
@@ -9799,6 +10576,7 @@ input PersonalBestGlobalMaxAggregateFilter {
   levelId: IntFilter
   recordId: IntFilter
   userId: IntFilter
+  medal: IntFilter
 }
 
 type PersonalBestGlobalMaxAggregates {
@@ -9813,6 +10591,8 @@ type PersonalBestGlobalMaxAggregates {
 
   """Maximum of userId across the matching connection"""
   userId: Int
+  """Maximum of medal across the matching connection"""
+  medal: Int
 }
 
 input PersonalBestGlobalMinAggregateFilter {
@@ -9820,6 +10600,7 @@ input PersonalBestGlobalMinAggregateFilter {
   levelId: IntFilter
   recordId: IntFilter
   userId: IntFilter
+  medal: IntFilter
 }
 
 type PersonalBestGlobalMinAggregates {
@@ -9834,6 +10615,8 @@ type PersonalBestGlobalMinAggregates {
 
   """Minimum of userId across the matching connection"""
   userId: Int
+  """Minimum of medal across the matching connection"""
+  medal: Int
 }
 
 input PersonalBestGlobalStddevPopulationAggregateFilter {
@@ -9841,6 +10624,7 @@ input PersonalBestGlobalStddevPopulationAggregateFilter {
   levelId: BigFloatFilter
   recordId: BigFloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type PersonalBestGlobalStddevPopulationAggregates {
@@ -9859,6 +10643,8 @@ type PersonalBestGlobalStddevPopulationAggregates {
 
   """Population standard deviation of userId across the matching connection"""
   userId: BigFloat
+  """Population standard deviation of medal across the matching connection"""
+  medal: BigFloat
 }
 
 input PersonalBestGlobalStddevSampleAggregateFilter {
@@ -9866,6 +10652,7 @@ input PersonalBestGlobalStddevSampleAggregateFilter {
   levelId: BigFloatFilter
   recordId: BigFloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type PersonalBestGlobalStddevSampleAggregates {
@@ -9880,6 +10667,8 @@ type PersonalBestGlobalStddevSampleAggregates {
 
   """Sample standard deviation of userId across the matching connection"""
   userId: BigFloat
+  """Sample standard deviation of medal across the matching connection"""
+  medal: BigFloat
 }
 
 input PersonalBestGlobalSumAggregateFilter {
@@ -9887,6 +10676,7 @@ input PersonalBestGlobalSumAggregateFilter {
   levelId: BigIntFilter
   recordId: BigIntFilter
   userId: BigIntFilter
+  medal: BigIntFilter
 }
 
 type PersonalBestGlobalSumAggregates {
@@ -9901,6 +10691,8 @@ type PersonalBestGlobalSumAggregates {
 
   """Sum of userId across the matching connection"""
   userId: BigInt!
+  """Sum of medal across the matching connection"""
+  medal: BigInt!
 }
 
 input PersonalBestGlobalVariancePopulationAggregateFilter {
@@ -9908,6 +10700,7 @@ input PersonalBestGlobalVariancePopulationAggregateFilter {
   levelId: BigFloatFilter
   recordId: BigFloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type PersonalBestGlobalVariancePopulationAggregates {
@@ -9922,6 +10715,8 @@ type PersonalBestGlobalVariancePopulationAggregates {
 
   """Population variance of userId across the matching connection"""
   userId: BigFloat
+  """Population variance of medal across the matching connection"""
+  medal: BigFloat
 }
 
 input PersonalBestGlobalVarianceSampleAggregateFilter {
@@ -9929,6 +10724,7 @@ input PersonalBestGlobalVarianceSampleAggregateFilter {
   levelId: BigFloatFilter
   recordId: BigFloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type PersonalBestGlobalVarianceSampleAggregates {
@@ -9943,6 +10739,8 @@ type PersonalBestGlobalVarianceSampleAggregates {
 
   """Sample variance of userId across the matching connection"""
   userId: BigFloat
+  """Sample variance of medal across the matching connection"""
+  medal: BigFloat
 }
 
 """A connection to a list of `PersonalBestGlobal` values."""
@@ -10008,6 +10806,9 @@ enum PersonalBestGlobalsOrderBy {
   RECORD_ID_DESC
   USER_ID_ASC
   USER_ID_DESC
+  MEDAL_ASC
+
+  MEDAL_DESC
 }
 
 """
@@ -10044,6 +10845,9 @@ input PlayerSkillAggregateFilter {
 
 """The root query type which gives access points into the data universe."""
 type Query implements Node {
+  """
+  Shared headline counts. Live counts use a 60-second cache with exact fallback. Completed periods freeze until rollover refresh; reads retain the previous coherent snapshot until refresh succeeds. Calendar periods use Europe/London.
+  """
   globalMetrics: GlobalMetricSummary
 
   """Get a single `DiscordActivityEvent`."""
@@ -11390,25 +12194,16 @@ type Query implements Node {
   """Get a single `AdventureLeaderboardScope`."""
   adventureLeaderboardScope(series: String!): AdventureLeaderboardScope
   """Get a single `AdventureLevelMembership`."""
-  adventureLevelMembership(series: String!, levelId: Int!): AdventureLevelMembership
+  adventureLevelMembership(levelId: Int!, series: String!): AdventureLevelMembership
   adventureLeaderboard(series: String): AdventureLeaderboardScope
   """
   Reads and enables pagination through a set of `AdventureLeaderboardEntry`.
   """
   adventureLeaderboardEntries(
-    """Only read the first `n` values of the set."""
-    first: Int
-    """Only read the last `n` values of the set."""
-    last: Int
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -11417,13 +12212,6 @@ type Query implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: AdventureLeaderboardEntryFilter
-    """The method to use when ordering `AdventureLeaderboardEntry`."""
-    orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): AdventureLeaderboardEntriesConnection
-  """
-  Reads and enables pagination through a set of `AdventureLeaderboardScope`.
-  """
-  adventureLeaderboardScopes(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -11433,10 +12221,17 @@ type Query implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `AdventureLeaderboardEntry`."""
+    orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardEntriesConnection
+  """
+  Reads and enables pagination through a set of `AdventureLeaderboardScope`.
+  """
+  adventureLeaderboardScopes(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -11445,13 +12240,6 @@ type Query implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: AdventureLeaderboardScopeFilter
-    """The method to use when ordering `AdventureLeaderboardScope`."""
-    orderBy: [AdventureLeaderboardScopesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): AdventureLeaderboardScopesConnection
-  """
-  Reads and enables pagination through a set of `AdventureLevelMembership`.
-  """
-  adventureLevelMemberships(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -11461,10 +12249,17 @@ type Query implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `AdventureLeaderboardScope`."""
+    orderBy: [AdventureLeaderboardScopesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardScopesConnection
+  """
+  Reads and enables pagination through a set of `AdventureLevelMembership`.
+  """
+  adventureLevelMemberships(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -11473,6 +12268,15 @@ type Query implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: AdventureLevelMembershipFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
     """The method to use when ordering `AdventureLevelMembership`."""
     orderBy: [AdventureLevelMembershipsOrderBy!] = [PRIMARY_KEY_ASC]
   ): AdventureLevelMembershipsConnection
@@ -11488,28 +12292,14 @@ type Query implements Node {
   Bounded last-observed room occupancy. At most 201 buckets. Gaps do not prove downtime.
   """
   lobbyOccupancyTimeline(
-    pLobbyId: BigInt
-    pBuckets: Int
-    """Only read the first `n` values of the set."""
-    first: Int
-    """Only read the last `n` values of the set."""
-    last: Int
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyOccupancyTimelineRecordFilter
-  ): LobbyOccupancyTimelineConnection
-  """Reads and enables pagination through a set of `Lobby`."""
-  lobbies(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -11519,10 +12309,15 @@ type Query implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    pBuckets: Int
+    pLobbyId: BigInt
+  ): LobbyOccupancyTimelineConnection
+  """Reads and enables pagination through a set of `Lobby`."""
+  lobbies(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -11531,11 +12326,6 @@ type Query implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyFilter
-    """The method to use when ordering `Lobby`."""
-    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbiesConnection
-  """Reads and enables pagination through a set of `LobbyHistory`."""
-  lobbyHistories(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -11545,10 +12335,15 @@ type Query implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `Lobby`."""
+    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbiesConnection
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  lobbyHistories(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -11557,11 +12352,6 @@ type Query implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyHistoryFilter
-    """The method to use when ordering `LobbyHistory`."""
-    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbyHistoriesConnection
-  """Reads and enables pagination through a set of `LobbyListing`."""
-  lobbyListings(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -11571,10 +12361,15 @@ type Query implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection
+  """Reads and enables pagination through a set of `LobbyListing`."""
+  lobbyListings(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -11583,11 +12378,6 @@ type Query implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyListingFilter
-    """The method to use when ordering `LobbyListing`."""
-    orderBy: [LobbyListingsOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbyListingsConnection
-  """Reads and enables pagination through a set of `LobbyStat`."""
-  lobbyStats(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -11597,10 +12387,15 @@ type Query implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `LobbyListing`."""
+    orderBy: [LobbyListingsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyListingsConnection
+  """Reads and enables pagination through a set of `LobbyStat`."""
+  lobbyStats(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -11609,9 +12404,41 @@ type Query implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyStatFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
     """The method to use when ordering `LobbyStat`."""
     orderBy: [LobbyStatsOrderBy!] = [PRIMARY_KEY_ASC]
   ): LobbyStatsConnection
+  """Reads and enables pagination through a set of `MedalCountsRecord`."""
+  medalCounts(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    discordId: BigInt
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: MedalCountsRecordFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    steamId: BigInt
+    userId: Int
+  ): MedalCountsConnection
 }
 
 type Record implements Node {
@@ -12186,6 +13013,7 @@ type Record implements Node {
     """The method to use when ordering `ZslLevel`."""
     orderBy: [ZslLevelsOrderBy!] = [PRIMARY_KEY_ASC]
   ): RecordZslLevelsByZslLevelResultManyToManyConnection!
+  medal: Int
 }
 
 type RecordAggregates {
@@ -12278,6 +13106,7 @@ input RecordAverageAggregateFilter {
   levelId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type RecordAverageAggregates {
@@ -12292,6 +13121,8 @@ type RecordAverageAggregates {
 
   """Mean average of userId across the matching connection"""
   userId: BigFloat
+  """Mean average of this field across the matching connection."""
+  medal: BigFloat
 }
 
 """
@@ -12340,6 +13171,7 @@ input RecordDistinctCountAggregateFilter {
   splits: BigIntFilter
   time: BigIntFilter
   userId: BigIntFilter
+  medal: BigIntFilter
 }
 
 type RecordDistinctCountAggregates {
@@ -12372,6 +13204,8 @@ type RecordDistinctCountAggregates {
 
   """Distinct count of userId across the matching connection"""
   userId: BigInt
+  """Distinct count of this field across the matching connection."""
+  medal: BigInt
 }
 
 """
@@ -12478,6 +13312,8 @@ input RecordFilter {
 
   """Some related `zslLevelResults` exist."""
   zslLevelResultsExist: Boolean
+  """Filter by the object’s `medal` field."""
+  medal: IntFilter
 }
 
 """Grouping methods for `Record` for usage during aggregation."""
@@ -12706,6 +13542,7 @@ type RecordHistoryEntry implements Node {
   userId: Int
   userName: String
   userSteamId: BigInt
+  medal: Int
 }
 
 type RecordHistoryEntryAggregates {
@@ -12786,6 +13623,8 @@ type RecordHistoryEntryAverageAggregates {
 
   """Mean average of userSteamId across the matching connection"""
   userSteamId: BigFloat
+  """Mean average of this field across the matching connection."""
+  medal: BigFloat
 }
 
 """
@@ -12902,6 +13741,8 @@ type RecordHistoryEntryDistinctCountAggregates {
 
   """Distinct count of userSteamId across the matching connection"""
   userSteamId: BigInt
+  """Distinct count of this field across the matching connection."""
+  medal: BigInt
 }
 
 """
@@ -12970,6 +13811,8 @@ input RecordHistoryEntryFilter {
 
   """Filter by the object’s `userSteamId` field."""
   userSteamId: BigIntFilter
+  """Filter by the object’s `medal` field."""
+  medal: IntFilter
 }
 
 """
@@ -13169,6 +14012,8 @@ type RecordHistoryEntryMaxAggregates {
 
   """Maximum of userSteamId across the matching connection"""
   userSteamId: BigInt
+  """Maximum of this field across the matching connection."""
+  medal: Int
 }
 
 type RecordHistoryEntryMinAggregates {
@@ -13201,6 +14046,8 @@ type RecordHistoryEntryMinAggregates {
 
   """Minimum of userSteamId across the matching connection"""
   userSteamId: BigInt
+  """Minimum of this field across the matching connection."""
+  medal: Int
 }
 
 type RecordHistoryEntryStddevPopulationAggregates {
@@ -13247,6 +14094,10 @@ type RecordHistoryEntryStddevPopulationAggregates {
   Population standard deviation of userSteamId across the matching connection
   """
   userSteamId: BigFloat
+  """
+  Population standard deviation of this field across the matching connection.
+  """
+  medal: BigFloat
 }
 
 type RecordHistoryEntryStddevSampleAggregates {
@@ -13291,6 +14142,10 @@ type RecordHistoryEntryStddevSampleAggregates {
   Sample standard deviation of userSteamId across the matching connection
   """
   userSteamId: BigFloat
+  """
+  Sample standard deviation of this field across the matching connection.
+  """
+  medal: BigFloat
 }
 
 type RecordHistoryEntrySumAggregates {
@@ -13323,6 +14178,8 @@ type RecordHistoryEntrySumAggregates {
 
   """Sum of userSteamId across the matching connection"""
   userSteamId: BigFloat!
+  """Sum of this field across the matching connection."""
+  medal: BigInt
 }
 
 type RecordHistoryEntryVariancePopulationAggregates {
@@ -13359,6 +14216,8 @@ type RecordHistoryEntryVariancePopulationAggregates {
 
   """Population variance of userSteamId across the matching connection"""
   userSteamId: BigFloat
+  """Population variance of this field across the matching connection."""
+  medal: BigFloat
 }
 
 type RecordHistoryEntryVarianceSampleAggregates {
@@ -13391,6 +14250,8 @@ type RecordHistoryEntryVarianceSampleAggregates {
 
   """Sample variance of userSteamId across the matching connection"""
   userSteamId: BigFloat
+  """Sample variance of this field across the matching connection."""
+  medal: BigFloat
 }
 
 """
@@ -13556,6 +14417,7 @@ input RecordMaxAggregateFilter {
   levelId: IntFilter
   time: FloatFilter
   userId: IntFilter
+  medal: IntFilter
 }
 
 type RecordMaxAggregates {
@@ -13570,6 +14432,8 @@ type RecordMaxAggregates {
 
   """Maximum of userId across the matching connection"""
   userId: Int
+  """Maximum of this field across the matching connection."""
+  medal: Int
 }
 
 type RecordMedia implements Node {
@@ -13880,6 +14744,7 @@ input RecordMinAggregateFilter {
   levelId: IntFilter
   time: FloatFilter
   userId: IntFilter
+  medal: IntFilter
 }
 
 type RecordMinAggregates {
@@ -13894,6 +14759,8 @@ type RecordMinAggregates {
 
   """Minimum of userId across the matching connection"""
   userId: Int
+  """Minimum of this field across the matching connection."""
+  medal: Int
 }
 
 type RecordStatistic implements Node {
@@ -17799,6 +18666,7 @@ input RecordStddevPopulationAggregateFilter {
   levelId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type RecordStddevPopulationAggregates {
@@ -17815,6 +18683,10 @@ type RecordStddevPopulationAggregates {
 
   """Population standard deviation of userId across the matching connection"""
   userId: BigFloat
+  """
+  Population standard deviation of this field across the matching connection.
+  """
+  medal: BigFloat
 }
 
 input RecordStddevSampleAggregateFilter {
@@ -17822,6 +18694,7 @@ input RecordStddevSampleAggregateFilter {
   levelId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type RecordStddevSampleAggregates {
@@ -17836,6 +18709,10 @@ type RecordStddevSampleAggregates {
 
   """Sample standard deviation of userId across the matching connection"""
   userId: BigFloat
+  """
+  Sample standard deviation of this field across the matching connection.
+  """
+  medal: BigFloat
 }
 
 input RecordSumAggregateFilter {
@@ -17843,6 +18720,7 @@ input RecordSumAggregateFilter {
   levelId: BigIntFilter
   time: FloatFilter
   userId: BigIntFilter
+  medal: BigIntFilter
 }
 
 type RecordSumAggregates {
@@ -17857,6 +18735,8 @@ type RecordSumAggregates {
 
   """Sum of userId across the matching connection"""
   userId: BigInt!
+  """Sum of this field across the matching connection."""
+  medal: BigInt
 }
 
 """
@@ -18490,6 +19370,7 @@ input RecordVariancePopulationAggregateFilter {
   levelId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type RecordVariancePopulationAggregates {
@@ -18504,6 +19385,8 @@ type RecordVariancePopulationAggregates {
 
   """Population variance of userId across the matching connection"""
   userId: BigFloat
+  """Population variance of this field across the matching connection."""
+  medal: BigFloat
 }
 
 input RecordVarianceSampleAggregateFilter {
@@ -18511,6 +19394,7 @@ input RecordVarianceSampleAggregateFilter {
   levelId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type RecordVarianceSampleAggregates {
@@ -18525,6 +19409,8 @@ type RecordVarianceSampleAggregates {
 
   """Sample variance of userId across the matching connection"""
   userId: BigFloat
+  """Sample variance of this field across the matching connection."""
+  medal: BigFloat
 }
 
 """
@@ -19436,6 +20322,41 @@ enum RecordsOrderBy {
   ZSL_LEVEL_RESULTS_VARIANCE_SAMPLE_TIME_DESC
   ZSL_LEVEL_RESULTS_VARIANCE_SAMPLE_USER_ID_ASC
   ZSL_LEVEL_RESULTS_VARIANCE_SAMPLE_USER_ID_DESC
+  PERSONAL_BEST_GLOBALS_AVERAGE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_AVERAGE_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_DISTINCT_COUNT_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_DISTINCT_COUNT_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_MAX_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_MAX_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_MIN_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_MIN_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_POPULATION_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_POPULATION_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_SAMPLE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_SAMPLE_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_SUM_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_SUM_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_POPULATION_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_POPULATION_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_SAMPLE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_SAMPLE_MEDAL_DESC
 }
 
 """
@@ -21460,6 +22381,9 @@ enum StatisticsOrderBy {
 The root subscription type: contains realtime events you can subscribe to with the `subscription` operation.
 """
 type Subscription {
+  """
+  Shared headline counts. Live counts use a 60-second cache with exact fallback. Completed periods freeze until rollover refresh; reads retain the previous coherent snapshot until refresh succeeds. Calendar periods use Europe/London.
+  """
   globalMetrics: GlobalMetricSummary
 
   """Get a single `DiscordActivityEvent`."""
@@ -22806,25 +23730,16 @@ type Subscription {
   """Get a single `AdventureLeaderboardScope`."""
   adventureLeaderboardScope(series: String!): AdventureLeaderboardScope
   """Get a single `AdventureLevelMembership`."""
-  adventureLevelMembership(series: String!, levelId: Int!): AdventureLevelMembership
+  adventureLevelMembership(levelId: Int!, series: String!): AdventureLevelMembership
   adventureLeaderboard(series: String): AdventureLeaderboardScope
   """
   Reads and enables pagination through a set of `AdventureLeaderboardEntry`.
   """
   adventureLeaderboardEntries(
-    """Only read the first `n` values of the set."""
-    first: Int
-    """Only read the last `n` values of the set."""
-    last: Int
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -22833,13 +23748,6 @@ type Subscription {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: AdventureLeaderboardEntryFilter
-    """The method to use when ordering `AdventureLeaderboardEntry`."""
-    orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): AdventureLeaderboardEntriesConnection
-  """
-  Reads and enables pagination through a set of `AdventureLeaderboardScope`.
-  """
-  adventureLeaderboardScopes(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -22849,10 +23757,17 @@ type Subscription {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `AdventureLeaderboardEntry`."""
+    orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardEntriesConnection
+  """
+  Reads and enables pagination through a set of `AdventureLeaderboardScope`.
+  """
+  adventureLeaderboardScopes(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -22861,13 +23776,6 @@ type Subscription {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: AdventureLeaderboardScopeFilter
-    """The method to use when ordering `AdventureLeaderboardScope`."""
-    orderBy: [AdventureLeaderboardScopesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): AdventureLeaderboardScopesConnection
-  """
-  Reads and enables pagination through a set of `AdventureLevelMembership`.
-  """
-  adventureLevelMemberships(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -22877,10 +23785,17 @@ type Subscription {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `AdventureLeaderboardScope`."""
+    orderBy: [AdventureLeaderboardScopesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): AdventureLeaderboardScopesConnection
+  """
+  Reads and enables pagination through a set of `AdventureLevelMembership`.
+  """
+  adventureLevelMemberships(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -22889,6 +23804,15 @@ type Subscription {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: AdventureLevelMembershipFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
     """The method to use when ordering `AdventureLevelMembership`."""
     orderBy: [AdventureLevelMembershipsOrderBy!] = [PRIMARY_KEY_ASC]
   ): AdventureLevelMembershipsConnection
@@ -22904,28 +23828,14 @@ type Subscription {
   Bounded last-observed room occupancy. At most 201 buckets. Gaps do not prove downtime.
   """
   lobbyOccupancyTimeline(
-    pLobbyId: BigInt
-    pBuckets: Int
-    """Only read the first `n` values of the set."""
-    first: Int
-    """Only read the last `n` values of the set."""
-    last: Int
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyOccupancyTimelineRecordFilter
-  ): LobbyOccupancyTimelineConnection
-  """Reads and enables pagination through a set of `Lobby`."""
-  lobbies(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -22935,10 +23845,15 @@ type Subscription {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    pBuckets: Int
+    pLobbyId: BigInt
+  ): LobbyOccupancyTimelineConnection
+  """Reads and enables pagination through a set of `Lobby`."""
+  lobbies(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -22947,11 +23862,6 @@ type Subscription {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyFilter
-    """The method to use when ordering `Lobby`."""
-    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbiesConnection
-  """Reads and enables pagination through a set of `LobbyHistory`."""
-  lobbyHistories(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -22961,10 +23871,15 @@ type Subscription {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `Lobby`."""
+    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbiesConnection
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  lobbyHistories(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -22973,11 +23888,6 @@ type Subscription {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyHistoryFilter
-    """The method to use when ordering `LobbyHistory`."""
-    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbyHistoriesConnection
-  """Reads and enables pagination through a set of `LobbyListing`."""
-  lobbyListings(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -22987,10 +23897,15 @@ type Subscription {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection
+  """Reads and enables pagination through a set of `LobbyListing`."""
+  lobbyListings(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -22999,11 +23914,6 @@ type Subscription {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyListingFilter
-    """The method to use when ordering `LobbyListing`."""
-    orderBy: [LobbyListingsOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbyListingsConnection
-  """Reads and enables pagination through a set of `LobbyStat`."""
-  lobbyStats(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -23013,10 +23923,15 @@ type Subscription {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `LobbyListing`."""
+    orderBy: [LobbyListingsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyListingsConnection
+  """Reads and enables pagination through a set of `LobbyStat`."""
+  lobbyStats(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -23025,9 +23940,41 @@ type Subscription {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyStatFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
     """The method to use when ordering `LobbyStat`."""
     orderBy: [LobbyStatsOrderBy!] = [PRIMARY_KEY_ASC]
   ): LobbyStatsConnection
+  """Reads and enables pagination through a set of `MedalCountsRecord`."""
+  medalCounts(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    discordId: BigInt
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: MedalCountsRecordFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    steamId: BigInt
+    userId: Int
+  ): MedalCountsConnection
 }
 
 type TrackTournament implements Node {
@@ -25850,19 +26797,10 @@ type User implements Node {
   Reads and enables pagination through a set of `AdventureLeaderboardEntry`.
   """
   adventureLeaderboardEntries(
-    """Only read the first `n` values of the set."""
-    first: Int
-    """Only read the last `n` values of the set."""
-    last: Int
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -25871,11 +26809,32 @@ type User implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: AdventureLeaderboardEntryFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
     """The method to use when ordering `AdventureLeaderboardEntry`."""
     orderBy: [AdventureLeaderboardEntriesOrderBy!] = [PRIMARY_KEY_ASC]
   ): AdventureLeaderboardEntriesConnection!
   """Reads and enables pagination through a set of `Lobby`."""
   lobbiesByLobbyHistory(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyFilter
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -25885,36 +26844,15 @@ type User implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: LobbyCondition
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: LobbyFilter
     """The method to use when ordering `Lobby`."""
     orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
   ): UserLobbiesByLobbyHistoryManyToManyConnection!
   """Reads and enables pagination through a set of `Lobby`."""
   hostedLobbies(
-    """Only read the first `n` values of the set."""
-    first: Int
-    """Only read the last `n` values of the set."""
-    last: Int
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -25923,11 +26861,6 @@ type User implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyFilter
-    """The method to use when ordering `Lobby`."""
-    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbiesConnection!
-  """Reads and enables pagination through a set of `LobbyHistory`."""
-  lobbyHistoryEntries(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -25937,10 +26870,15 @@ type User implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `Lobby`."""
+    orderBy: [LobbiesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbiesConnection!
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  lobbyHistoryEntries(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -25949,11 +26887,6 @@ type User implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyHistoryFilter
-    """The method to use when ordering `LobbyHistory`."""
-    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbyHistoriesConnection!
-  """Reads and enables pagination through a set of `LobbyListing`."""
-  lobbyListings(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -25963,10 +26896,15 @@ type User implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `LobbyHistory`."""
+    orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyHistoriesConnection!
+  """Reads and enables pagination through a set of `LobbyListing`."""
+  lobbyListings(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -25975,9 +26913,19 @@ type User implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyListingFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
     """The method to use when ordering `LobbyListing`."""
     orderBy: [LobbyListingsOrderBy!] = [PRIMARY_KEY_ASC]
   ): LobbyListingsConnection!
+  role: String!
 }
 
 type UserAggregates {
@@ -26063,6 +27011,8 @@ input UserCondition {
 
   """Checks for equality with the object’s `steamName` field."""
   steamName: String
+  """Checks for equality with the object’s `role` field."""
+  role: String
 }
 
 type UserDistinctCountAggregates {
@@ -26086,6 +27036,8 @@ type UserDistinctCountAggregates {
 
   """Distinct count of steamName across the matching connection"""
   steamName: BigInt
+  """Distinct count of role across the matching connection"""
+  role: BigInt
 }
 
 """
@@ -26229,6 +27181,32 @@ input UserFilter {
 
   """Some related `trackTournamentOverallStandings` exist."""
   trackTournamentOverallStandingsExist: Boolean
+  """Filter by the object’s `adventureLeaderboardEntries` relation."""
+  adventureLeaderboardEntries: UserToManyAdventureLeaderboardEntryFilter
+
+  """Some related `adventureLeaderboardEntries` exist."""
+  adventureLeaderboardEntriesExist: Boolean
+
+  """Filter by the object’s `hostedLobbies` relation."""
+  hostedLobbies: UserToManyLobbyFilter
+
+  """Some related `hostedLobbies` exist."""
+  hostedLobbiesExist: Boolean
+
+  """Filter by the object’s `lobbyHistoryEntries` relation."""
+  lobbyHistoryEntries: UserToManyLobbyHistoryFilter
+
+  """Some related `lobbyHistoryEntries` exist."""
+  lobbyHistoryEntriesExist: Boolean
+
+  """Filter by the object’s `lobbyListings` relation."""
+  lobbyListings: UserToManyLobbyListingFilter
+
+  """Some related `lobbyListings` exist."""
+  lobbyListingsExist: Boolean
+
+  """Filter by the object’s `role` field."""
+  role: StringFilter
 }
 
 """Grouping methods for `User` for usage during aggregation."""
@@ -26242,6 +27220,7 @@ enum UserGroupBy {
   DATE_UPDATED_TRUNCATED_TO_HOUR
   DISCORD_ID
   STEAM_NAME
+  ROLE
 }
 
 input UserHavingAverageInput {
@@ -26497,6 +27476,10 @@ type UserLevelsByPersonalBestGlobalManyToManyEdge {
   """The `Level` at the end of the edge."""
   node: Level!
   recordId: Int!
+  """
+  Highest medal: bronze=0, silver=1, gold=2, author=3, expert=4, apex=5; null means none.
+  """
+  medal: Int
 }
 
 """A connection to a list of `Level` values, with data from `Record`."""
@@ -26713,6 +27696,19 @@ type UserPoint implements Node {
   user: User
   userId: Int!
   worldRecords: Int!
+  medalApex: Int!
+
+  medalAuthor: Int!
+
+  medalBronze: Int!
+
+  medalExpert: Int!
+
+  medalGold: Int!
+
+  medalNone: Int!
+
+  medalSilver: Int!
 }
 
 type UserPointAggregates {
@@ -26781,6 +27777,26 @@ type UserPointAverageAggregates {
 
   """Mean average of worldRecords across the matching connection"""
   worldRecords: BigFloat
+  """Mean average of medalApex across the matching connection"""
+  medalApex: BigFloat
+
+  """Mean average of medalAuthor across the matching connection"""
+  medalAuthor: BigFloat
+
+  """Mean average of medalBronze across the matching connection"""
+  medalBronze: BigFloat
+
+  """Mean average of medalExpert across the matching connection"""
+  medalExpert: BigFloat
+
+  """Mean average of medalGold across the matching connection"""
+  medalGold: BigFloat
+
+  """Mean average of medalNone across the matching connection"""
+  medalNone: BigFloat
+
+  """Mean average of medalSilver across the matching connection"""
+  medalSilver: BigFloat
 }
 
 """
@@ -26811,6 +27827,26 @@ input UserPointCondition {
 
   """Checks for equality with the object’s `worldRecords` field."""
   worldRecords: Int
+  """Checks for equality with the object’s `medalApex` field."""
+  medalApex: Int
+
+  """Checks for equality with the object’s `medalAuthor` field."""
+  medalAuthor: Int
+
+  """Checks for equality with the object’s `medalBronze` field."""
+  medalBronze: Int
+
+  """Checks for equality with the object’s `medalExpert` field."""
+  medalExpert: Int
+
+  """Checks for equality with the object’s `medalGold` field."""
+  medalGold: Int
+
+  """Checks for equality with the object’s `medalNone` field."""
+  medalNone: Int
+
+  """Checks for equality with the object’s `medalSilver` field."""
+  medalSilver: Int
 }
 
 type UserPointContribution implements Node {
@@ -27621,6 +28657,26 @@ type UserPointDistinctCountAggregates {
 
   """Distinct count of worldRecords across the matching connection"""
   worldRecords: BigInt
+  """Distinct count of medalApex across the matching connection"""
+  medalApex: BigInt
+
+  """Distinct count of medalAuthor across the matching connection"""
+  medalAuthor: BigInt
+
+  """Distinct count of medalBronze across the matching connection"""
+  medalBronze: BigInt
+
+  """Distinct count of medalExpert across the matching connection"""
+  medalExpert: BigInt
+
+  """Distinct count of medalGold across the matching connection"""
+  medalGold: BigInt
+
+  """Distinct count of medalNone across the matching connection"""
+  medalNone: BigInt
+
+  """Distinct count of medalSilver across the matching connection"""
+  medalSilver: BigInt
 }
 
 """
@@ -27662,6 +28718,26 @@ input UserPointFilter {
 
   """Filter by the object’s `worldRecords` field."""
   worldRecords: IntFilter
+  """Filter by the object’s `medalApex` field."""
+  medalApex: IntFilter
+
+  """Filter by the object’s `medalAuthor` field."""
+  medalAuthor: IntFilter
+
+  """Filter by the object’s `medalBronze` field."""
+  medalBronze: IntFilter
+
+  """Filter by the object’s `medalExpert` field."""
+  medalExpert: IntFilter
+
+  """Filter by the object’s `medalGold` field."""
+  medalGold: IntFilter
+
+  """Filter by the object’s `medalNone` field."""
+  medalNone: IntFilter
+
+  """Filter by the object’s `medalSilver` field."""
+  medalSilver: IntFilter
 }
 
 """Grouping methods for `UserPoint` for usage during aggregation."""
@@ -27677,6 +28753,19 @@ enum UserPointGroupBy {
   RANK
   TOTAL_POINTS
   WORLD_RECORDS
+  MEDAL_APEX
+
+  MEDAL_AUTHOR
+
+  MEDAL_BRONZE
+
+  MEDAL_EXPERT
+
+  MEDAL_GOLD
+
+  MEDAL_NONE
+
+  MEDAL_SILVER
 }
 
 input UserPointHavingAverageInput {
@@ -27688,6 +28777,19 @@ input UserPointHavingAverageInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 input UserPointHavingDistinctCountInput {
@@ -27699,6 +28801,19 @@ input UserPointHavingDistinctCountInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 """Conditions for `UserPoint` aggregates."""
@@ -27725,6 +28840,19 @@ input UserPointHavingMaxInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 input UserPointHavingMinInput {
@@ -27736,6 +28864,19 @@ input UserPointHavingMinInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 input UserPointHavingStddevPopulationInput {
@@ -27747,6 +28888,19 @@ input UserPointHavingStddevPopulationInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 input UserPointHavingStddevSampleInput {
@@ -27758,6 +28912,19 @@ input UserPointHavingStddevSampleInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 input UserPointHavingSumInput {
@@ -27769,6 +28936,19 @@ input UserPointHavingSumInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 input UserPointHavingVariancePopulationInput {
@@ -27780,6 +28960,19 @@ input UserPointHavingVariancePopulationInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 input UserPointHavingVarianceSampleInput {
@@ -27791,6 +28984,19 @@ input UserPointHavingVarianceSampleInput {
   totalPoints: HavingIntFilter
   userId: HavingIntFilter
   worldRecords: HavingIntFilter
+  medalApex: HavingIntFilter
+
+  medalAuthor: HavingIntFilter
+
+  medalBronze: HavingIntFilter
+
+  medalExpert: HavingIntFilter
+
+  medalGold: HavingIntFilter
+
+  medalNone: HavingIntFilter
+
+  medalSilver: HavingIntFilter
 }
 
 type UserPointMaxAggregates {
@@ -27811,6 +29017,26 @@ type UserPointMaxAggregates {
 
   """Maximum of worldRecords across the matching connection"""
   worldRecords: Int
+  """Maximum of medalApex across the matching connection"""
+  medalApex: Int
+
+  """Maximum of medalAuthor across the matching connection"""
+  medalAuthor: Int
+
+  """Maximum of medalBronze across the matching connection"""
+  medalBronze: Int
+
+  """Maximum of medalExpert across the matching connection"""
+  medalExpert: Int
+
+  """Maximum of medalGold across the matching connection"""
+  medalGold: Int
+
+  """Maximum of medalNone across the matching connection"""
+  medalNone: Int
+
+  """Maximum of medalSilver across the matching connection"""
+  medalSilver: Int
 }
 
 type UserPointMinAggregates {
@@ -27831,6 +29057,26 @@ type UserPointMinAggregates {
 
   """Minimum of worldRecords across the matching connection"""
   worldRecords: Int
+  """Minimum of medalApex across the matching connection"""
+  medalApex: Int
+
+  """Minimum of medalAuthor across the matching connection"""
+  medalAuthor: Int
+
+  """Minimum of medalBronze across the matching connection"""
+  medalBronze: Int
+
+  """Minimum of medalExpert across the matching connection"""
+  medalExpert: Int
+
+  """Minimum of medalGold across the matching connection"""
+  medalGold: Int
+
+  """Minimum of medalNone across the matching connection"""
+  medalNone: Int
+
+  """Minimum of medalSilver across the matching connection"""
+  medalSilver: Int
 }
 
 type UserPointStddevPopulationAggregates {
@@ -27857,6 +29103,40 @@ type UserPointStddevPopulationAggregates {
   Population standard deviation of worldRecords across the matching connection
   """
   worldRecords: BigFloat
+  """
+  Population standard deviation of medalApex across the matching connection
+  """
+  medalApex: BigFloat
+
+  """
+  Population standard deviation of medalAuthor across the matching connection
+  """
+  medalAuthor: BigFloat
+
+  """
+  Population standard deviation of medalBronze across the matching connection
+  """
+  medalBronze: BigFloat
+
+  """
+  Population standard deviation of medalExpert across the matching connection
+  """
+  medalExpert: BigFloat
+
+  """
+  Population standard deviation of medalGold across the matching connection
+  """
+  medalGold: BigFloat
+
+  """
+  Population standard deviation of medalNone across the matching connection
+  """
+  medalNone: BigFloat
+
+  """
+  Population standard deviation of medalSilver across the matching connection
+  """
+  medalSilver: BigFloat
 }
 
 type UserPointStddevSampleAggregates {
@@ -27883,6 +29163,34 @@ type UserPointStddevSampleAggregates {
   Sample standard deviation of worldRecords across the matching connection
   """
   worldRecords: BigFloat
+  """Sample standard deviation of medalApex across the matching connection"""
+  medalApex: BigFloat
+
+  """
+  Sample standard deviation of medalAuthor across the matching connection
+  """
+  medalAuthor: BigFloat
+
+  """
+  Sample standard deviation of medalBronze across the matching connection
+  """
+  medalBronze: BigFloat
+
+  """
+  Sample standard deviation of medalExpert across the matching connection
+  """
+  medalExpert: BigFloat
+
+  """Sample standard deviation of medalGold across the matching connection"""
+  medalGold: BigFloat
+
+  """Sample standard deviation of medalNone across the matching connection"""
+  medalNone: BigFloat
+
+  """
+  Sample standard deviation of medalSilver across the matching connection
+  """
+  medalSilver: BigFloat
 }
 
 type UserPointSumAggregates {
@@ -27903,6 +29211,26 @@ type UserPointSumAggregates {
 
   """Sum of worldRecords across the matching connection"""
   worldRecords: BigInt!
+  """Sum of medalApex across the matching connection"""
+  medalApex: BigInt!
+
+  """Sum of medalAuthor across the matching connection"""
+  medalAuthor: BigInt!
+
+  """Sum of medalBronze across the matching connection"""
+  medalBronze: BigInt!
+
+  """Sum of medalExpert across the matching connection"""
+  medalExpert: BigInt!
+
+  """Sum of medalGold across the matching connection"""
+  medalGold: BigInt!
+
+  """Sum of medalNone across the matching connection"""
+  medalNone: BigInt!
+
+  """Sum of medalSilver across the matching connection"""
+  medalSilver: BigInt!
 }
 
 type UserPointVariancePopulationAggregates {
@@ -27923,6 +29251,26 @@ type UserPointVariancePopulationAggregates {
 
   """Population variance of worldRecords across the matching connection"""
   worldRecords: BigFloat
+  """Population variance of medalApex across the matching connection"""
+  medalApex: BigFloat
+
+  """Population variance of medalAuthor across the matching connection"""
+  medalAuthor: BigFloat
+
+  """Population variance of medalBronze across the matching connection"""
+  medalBronze: BigFloat
+
+  """Population variance of medalExpert across the matching connection"""
+  medalExpert: BigFloat
+
+  """Population variance of medalGold across the matching connection"""
+  medalGold: BigFloat
+
+  """Population variance of medalNone across the matching connection"""
+  medalNone: BigFloat
+
+  """Population variance of medalSilver across the matching connection"""
+  medalSilver: BigFloat
 }
 
 type UserPointVarianceSampleAggregates {
@@ -27943,6 +29291,26 @@ type UserPointVarianceSampleAggregates {
 
   """Sample variance of worldRecords across the matching connection"""
   worldRecords: BigFloat
+  """Sample variance of medalApex across the matching connection"""
+  medalApex: BigFloat
+
+  """Sample variance of medalAuthor across the matching connection"""
+  medalAuthor: BigFloat
+
+  """Sample variance of medalBronze across the matching connection"""
+  medalBronze: BigFloat
+
+  """Sample variance of medalExpert across the matching connection"""
+  medalExpert: BigFloat
+
+  """Sample variance of medalGold across the matching connection"""
+  medalGold: BigFloat
+
+  """Sample variance of medalNone across the matching connection"""
+  medalNone: BigFloat
+
+  """Sample variance of medalSilver across the matching connection"""
+  medalSilver: BigFloat
 }
 
 """A connection to a list of `UserPoint` values."""
@@ -28664,6 +30032,33 @@ enum UserPointsOrderBy {
   USER_ID_DESC
   WORLD_RECORDS_ASC
   WORLD_RECORDS_DESC
+  MEDAL_APEX_ASC
+
+  MEDAL_APEX_DESC
+
+  MEDAL_AUTHOR_ASC
+
+  MEDAL_AUTHOR_DESC
+
+  MEDAL_BRONZE_ASC
+
+  MEDAL_BRONZE_DESC
+
+  MEDAL_EXPERT_ASC
+
+  MEDAL_EXPERT_DESC
+
+  MEDAL_GOLD_ASC
+
+  MEDAL_GOLD_DESC
+
+  MEDAL_NONE_ASC
+
+  MEDAL_NONE_DESC
+
+  MEDAL_SILVER_ASC
+
+  MEDAL_SILVER_DESC
 }
 
 """
@@ -31288,6 +32683,1349 @@ enum UsersOrderBy {
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_SEASON_ID_DESC
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_USER_ID_ASC
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_USER_ID_DESC
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_AVERAGE_USER_ID_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_COUNT_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_COUNT_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_IS_COMPLETE_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_IS_COMPLETE_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_SERIES_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_SERIES_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_DISTINCT_COUNT_USER_ID_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MAX_USER_ID_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_MIN_USER_ID_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_POPULATION_USER_ID_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_STDDEV_SAMPLE_USER_ID_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_SUM_USER_ID_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_POPULATION_USER_ID_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_COMPLETED_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_COMPLETED_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_RANK_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_RANK_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_REMAINING_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_REMAINING_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_TOTAL_LEVELS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_TOTAL_LEVELS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_TOTAL_TIME_MS_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_TOTAL_TIME_MS_DESC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_USER_ID_ASC
+
+  ADVENTURE_LEADERBOARD_ENTRIES_VARIANCE_SAMPLE_USER_ID_DESC
+
+  HOSTED_LOBBIES_AVERAGE_HOST_ID_ASC
+
+  HOSTED_LOBBIES_AVERAGE_HOST_ID_DESC
+
+  HOSTED_LOBBIES_AVERAGE_ID_ASC
+
+  HOSTED_LOBBIES_AVERAGE_ID_DESC
+
+  HOSTED_LOBBIES_AVERAGE_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_AVERAGE_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_AVERAGE_PLAYERS_ASC
+
+  HOSTED_LOBBIES_AVERAGE_PLAYERS_DESC
+
+  HOSTED_LOBBIES_AVERAGE_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_AVERAGE_PLAYER_LIMIT_DESC
+
+  HOSTED_LOBBIES_COUNT_ASC
+
+  HOSTED_LOBBIES_COUNT_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_CLOSED_AT_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_CLOSED_AT_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_DATE_CREATED_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_DATE_CREATED_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_DATE_UPDATED_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_DATE_UPDATED_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_FIRST_SEEN_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_FIRST_SEEN_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_HOST_ID_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_HOST_ID_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_ID_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_ID_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_IS_PUBLIC_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_IS_PUBLIC_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_LAST_SEEN_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_LAST_SEEN_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_PEAK_TIME_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_PEAK_TIME_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_PLAYERS_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_PLAYERS_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_PLAYER_LIMIT_DESC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_ROOM_NAME_ASC
+
+  HOSTED_LOBBIES_DISTINCT_COUNT_ROOM_NAME_DESC
+
+  HOSTED_LOBBIES_MAX_HOST_ID_ASC
+
+  HOSTED_LOBBIES_MAX_HOST_ID_DESC
+
+  HOSTED_LOBBIES_MAX_ID_ASC
+
+  HOSTED_LOBBIES_MAX_ID_DESC
+
+  HOSTED_LOBBIES_MAX_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_MAX_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_MAX_PLAYERS_ASC
+
+  HOSTED_LOBBIES_MAX_PLAYERS_DESC
+
+  HOSTED_LOBBIES_MAX_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_MAX_PLAYER_LIMIT_DESC
+
+  HOSTED_LOBBIES_MIN_HOST_ID_ASC
+
+  HOSTED_LOBBIES_MIN_HOST_ID_DESC
+
+  HOSTED_LOBBIES_MIN_ID_ASC
+
+  HOSTED_LOBBIES_MIN_ID_DESC
+
+  HOSTED_LOBBIES_MIN_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_MIN_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_MIN_PLAYERS_ASC
+
+  HOSTED_LOBBIES_MIN_PLAYERS_DESC
+
+  HOSTED_LOBBIES_MIN_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_MIN_PLAYER_LIMIT_DESC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_HOST_ID_ASC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_HOST_ID_DESC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_ID_ASC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_ID_DESC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_PLAYERS_ASC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_PLAYERS_DESC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_STDDEV_POPULATION_PLAYER_LIMIT_DESC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_HOST_ID_ASC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_HOST_ID_DESC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_ID_ASC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_ID_DESC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_PLAYERS_ASC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_PLAYERS_DESC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_STDDEV_SAMPLE_PLAYER_LIMIT_DESC
+
+  HOSTED_LOBBIES_SUM_HOST_ID_ASC
+
+  HOSTED_LOBBIES_SUM_HOST_ID_DESC
+
+  HOSTED_LOBBIES_SUM_ID_ASC
+
+  HOSTED_LOBBIES_SUM_ID_DESC
+
+  HOSTED_LOBBIES_SUM_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_SUM_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_SUM_PLAYERS_ASC
+
+  HOSTED_LOBBIES_SUM_PLAYERS_DESC
+
+  HOSTED_LOBBIES_SUM_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_SUM_PLAYER_LIMIT_DESC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_HOST_ID_ASC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_HOST_ID_DESC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_ID_ASC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_ID_DESC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_PLAYERS_ASC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_PLAYERS_DESC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_VARIANCE_POPULATION_PLAYER_LIMIT_DESC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_HOST_ID_ASC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_HOST_ID_DESC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_ID_ASC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_ID_DESC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_PEAK_PLAYERS_ASC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_PEAK_PLAYERS_DESC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_PLAYERS_ASC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_PLAYERS_DESC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_PLAYER_LIMIT_ASC
+
+  HOSTED_LOBBIES_VARIANCE_SAMPLE_PLAYER_LIMIT_DESC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATED_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATED_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_DUE_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_DUE_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_QUALIFIED_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_QUALIFIED_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_MAX_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_MAX_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_MAX_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_MAX_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_MIN_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_MIN_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_MIN_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_MIN_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_SUM_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_SUM_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_SUM_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_SUM_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_EXPERT_DESC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_AVERAGE_PLAYER_LIMIT_DESC
+
+  LOBBY_HISTORY_ENTRIES_COUNT_ASC
+
+  LOBBY_HISTORY_ENTRIES_COUNT_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_CHANGE_TYPE_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_CHANGE_TYPE_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_DATE_CREATED_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_DATE_CREATED_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_IS_PUBLIC_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_IS_PUBLIC_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_OBSERVED_AT_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_OBSERVED_AT_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_PLAYER_LIMIT_DESC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_ROOM_NAME_ASC
+
+  LOBBY_HISTORY_ENTRIES_DISTINCT_COUNT_ROOM_NAME_DESC
+
+  LOBBY_HISTORY_ENTRIES_MAX_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_MAX_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_MAX_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_MAX_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_MAX_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_MAX_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_MAX_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_MAX_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_MAX_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_MAX_PLAYER_LIMIT_DESC
+
+  LOBBY_HISTORY_ENTRIES_MIN_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_MIN_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_MIN_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_MIN_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_MIN_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_MIN_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_MIN_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_MIN_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_MIN_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_MIN_PLAYER_LIMIT_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_POPULATION_PLAYER_LIMIT_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_STDDEV_SAMPLE_PLAYER_LIMIT_DESC
+
+  LOBBY_HISTORY_ENTRIES_SUM_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_SUM_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_SUM_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_SUM_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_SUM_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_SUM_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_SUM_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_SUM_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_SUM_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_SUM_PLAYER_LIMIT_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_POPULATION_PLAYER_LIMIT_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_HOST_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_HOST_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_LOBBY_ID_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_LOBBY_ID_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_PLAYERS_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_PLAYERS_DESC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_PLAYER_LIMIT_ASC
+
+  LOBBY_HISTORY_ENTRIES_VARIANCE_SAMPLE_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_AVERAGE_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_AVERAGE_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_AVERAGE_HOST_ID_ASC
+
+  LOBBY_LISTINGS_AVERAGE_HOST_ID_DESC
+
+  LOBBY_LISTINGS_AVERAGE_ID_ASC
+
+  LOBBY_LISTINGS_AVERAGE_ID_DESC
+
+  LOBBY_LISTINGS_AVERAGE_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_AVERAGE_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_AVERAGE_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_AVERAGE_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_AVERAGE_PLAYERS_ASC
+
+  LOBBY_LISTINGS_AVERAGE_PLAYERS_DESC
+
+  LOBBY_LISTINGS_AVERAGE_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_AVERAGE_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_COUNT_ASC
+
+  LOBBY_LISTINGS_COUNT_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_AVAILABLE_CAPACITY_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_AVAILABLE_CAPACITY_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_CLOSED_AT_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_CLOSED_AT_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_FIRST_SEEN_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_FIRST_SEEN_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_HOST_ID_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_HOST_ID_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_ID_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_ID_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_IS_PUBLIC_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_IS_PUBLIC_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_LAST_SEEN_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_LAST_SEEN_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_PEAK_TIME_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_PEAK_TIME_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_PLAYERS_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_PLAYERS_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_ROOM_NAME_ASC
+
+  LOBBY_LISTINGS_DISTINCT_COUNT_ROOM_NAME_DESC
+
+  LOBBY_LISTINGS_MAX_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_MAX_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_MAX_HOST_ID_ASC
+
+  LOBBY_LISTINGS_MAX_HOST_ID_DESC
+
+  LOBBY_LISTINGS_MAX_ID_ASC
+
+  LOBBY_LISTINGS_MAX_ID_DESC
+
+  LOBBY_LISTINGS_MAX_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_MAX_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_MAX_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_MAX_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_MAX_PLAYERS_ASC
+
+  LOBBY_LISTINGS_MAX_PLAYERS_DESC
+
+  LOBBY_LISTINGS_MAX_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_MAX_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_MIN_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_MIN_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_MIN_HOST_ID_ASC
+
+  LOBBY_LISTINGS_MIN_HOST_ID_DESC
+
+  LOBBY_LISTINGS_MIN_ID_ASC
+
+  LOBBY_LISTINGS_MIN_ID_DESC
+
+  LOBBY_LISTINGS_MIN_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_MIN_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_MIN_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_MIN_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_MIN_PLAYERS_ASC
+
+  LOBBY_LISTINGS_MIN_PLAYERS_DESC
+
+  LOBBY_LISTINGS_MIN_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_MIN_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_HOST_ID_ASC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_HOST_ID_DESC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_ID_ASC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_ID_DESC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_PLAYERS_ASC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_PLAYERS_DESC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_STDDEV_POPULATION_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_HOST_ID_ASC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_HOST_ID_DESC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_ID_ASC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_ID_DESC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_PLAYERS_ASC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_PLAYERS_DESC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_STDDEV_SAMPLE_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_SUM_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_SUM_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_SUM_HOST_ID_ASC
+
+  LOBBY_LISTINGS_SUM_HOST_ID_DESC
+
+  LOBBY_LISTINGS_SUM_ID_ASC
+
+  LOBBY_LISTINGS_SUM_ID_DESC
+
+  LOBBY_LISTINGS_SUM_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_SUM_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_SUM_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_SUM_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_SUM_PLAYERS_ASC
+
+  LOBBY_LISTINGS_SUM_PLAYERS_DESC
+
+  LOBBY_LISTINGS_SUM_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_SUM_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_HOST_ID_ASC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_HOST_ID_DESC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_ID_ASC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_ID_DESC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_PLAYERS_ASC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_PLAYERS_DESC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_VARIANCE_POPULATION_PLAYER_LIMIT_DESC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_DURATION_SECONDS_ASC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_DURATION_SECONDS_DESC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_HOST_ID_ASC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_HOST_ID_DESC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_ID_ASC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_ID_DESC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_OCCUPANCY_ASC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_OCCUPANCY_DESC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_PEAK_PLAYERS_ASC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_PEAK_PLAYERS_DESC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_PLAYERS_ASC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_PLAYERS_DESC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_PLAYER_LIMIT_ASC
+
+  LOBBY_LISTINGS_VARIANCE_SAMPLE_PLAYER_LIMIT_DESC
+
+  PERSONAL_BEST_GLOBALS_AVERAGE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_AVERAGE_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_DISTINCT_COUNT_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_DISTINCT_COUNT_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_MAX_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_MAX_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_MIN_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_MIN_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_POPULATION_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_POPULATION_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_SAMPLE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_STDDEV_SAMPLE_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_SUM_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_SUM_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_POPULATION_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_POPULATION_MEDAL_DESC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_SAMPLE_MEDAL_ASC
+
+  PERSONAL_BEST_GLOBALS_VARIANCE_SAMPLE_MEDAL_DESC
+
+  ROLE_ASC
+
+  ROLE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_AVERAGE_USER_ID_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_COUNT_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_COUNT_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_DISTINCT_COUNT_USER_ID_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MAX_USER_ID_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_MIN_USER_ID_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_POPULATION_USER_ID_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_STDDEV_SAMPLE_USER_ID_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_SUM_USER_ID_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_POPULATION_USER_ID_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_EVENTS_PLAYED_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_EVENTS_PLAYED_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_RANK_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_RANK_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_TOTAL_POINTS_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_TOTAL_POINTS_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_TYPE_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_TYPE_DESC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_USER_ID_ASC
+
+  TRACK_TOURNAMENT_OVERALL_STANDINGS_VARIANCE_SAMPLE_USER_ID_DESC
+
+  USER_POINTS_MEDAL_APEX_ASC
+
+  USER_POINTS_MEDAL_APEX_DESC
+
+  USER_POINTS_MEDAL_AUTHOR_ASC
+
+  USER_POINTS_MEDAL_AUTHOR_DESC
+
+  USER_POINTS_MEDAL_BRONZE_ASC
+
+  USER_POINTS_MEDAL_BRONZE_DESC
+
+  USER_POINTS_MEDAL_EXPERT_ASC
+
+  USER_POINTS_MEDAL_EXPERT_DESC
+
+  USER_POINTS_MEDAL_GOLD_ASC
+
+  USER_POINTS_MEDAL_GOLD_DESC
+
+  USER_POINTS_MEDAL_NONE_ASC
+
+  USER_POINTS_MEDAL_NONE_DESC
+
+  USER_POINTS_MEDAL_SILVER_ASC
+
+  USER_POINTS_MEDAL_SILVER_DESC
+
+  USER_POINTS_PERSONAL_BESTS_ASC
+
+  USER_POINTS_PERSONAL_BESTS_DESC
 }
 
 type Version implements Node {
@@ -33136,6 +35874,161 @@ enum WorkshopItemsOrderBy {
   VISIBILITY_DESC
   WORKSHOP_ID_ASC
   WORKSHOP_ID_DESC
+  LEVEL_ITEMS_AVERAGE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_AVERAGE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_AVERAGE_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATED_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATED_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_DUE_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_DUE_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_QUALIFIED_AT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_MEDAL_QUALIFIED_AT_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_DISTINCT_COUNT_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_MAX_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_MAX_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_MAX_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_MAX_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_MAX_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_MIN_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_MIN_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_MIN_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_MIN_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_MIN_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_STDDEV_POPULATION_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_STDDEV_SAMPLE_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_SUM_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_SUM_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_SUM_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_SUM_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_SUM_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_VARIANCE_POPULATION_VALIDATION_TIME_EXPERT_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_CALCULATION_VERSION_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_CALCULATION_VERSION_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_MEDAL_ELIGIBLE_PB_COUNT_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_APEX_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_APEX_DESC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_EXPERT_ASC
+
+  LEVEL_ITEMS_VARIANCE_SAMPLE_VALIDATION_TIME_EXPERT_DESC
 }
 
 type WorldRecordGlobal implements Node {
@@ -34350,6 +37243,7 @@ type ZslLevelResult implements Node {
   """Reads a single `ZslLevel` that is related to this `ZslLevelResult`."""
   level: ZslLevel
   levelId: Int!
+  medal: Int
 
   """
   A globally unique identifier. Can be used in various places throughout the system to identify this single value.
@@ -34464,6 +37358,7 @@ input ZslLevelResultAverageAggregateFilter {
   recordId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type ZslLevelResultAverageAggregates {
@@ -34484,6 +37379,8 @@ type ZslLevelResultAverageAggregates {
 
   """Mean average of userId across the matching connection"""
   userId: BigFloat
+  """Mean average of this field across the matching connection."""
+  medal: BigFloat
 }
 
 """
@@ -34525,6 +37422,7 @@ input ZslLevelResultDistinctCountAggregateFilter {
   recordId: BigIntFilter
   time: BigIntFilter
   userId: BigIntFilter
+  medal: BigIntFilter
 }
 
 type ZslLevelResultDistinctCountAggregates {
@@ -34551,6 +37449,8 @@ type ZslLevelResultDistinctCountAggregates {
 
   """Distinct count of userId across the matching connection"""
   userId: BigInt
+  """Distinct count of this field across the matching connection."""
+  medal: BigInt
 }
 
 """
@@ -34601,6 +37501,8 @@ input ZslLevelResultFilter {
 
   """Filter by the object’s `userId` field."""
   userId: IntFilter
+  """Filter by the object’s `medal` field."""
+  medal: IntFilter
 }
 
 """Grouping methods for `ZslLevelResult` for usage during aggregation."""
@@ -34740,6 +37642,7 @@ input ZslLevelResultMaxAggregateFilter {
   recordId: IntFilter
   time: FloatFilter
   userId: IntFilter
+  medal: IntFilter
 }
 
 type ZslLevelResultMaxAggregates {
@@ -34760,6 +37663,8 @@ type ZslLevelResultMaxAggregates {
 
   """Maximum of userId across the matching connection"""
   userId: Int
+  """Maximum of this field across the matching connection."""
+  medal: Int
 }
 
 input ZslLevelResultMinAggregateFilter {
@@ -34769,6 +37674,7 @@ input ZslLevelResultMinAggregateFilter {
   recordId: IntFilter
   time: FloatFilter
   userId: IntFilter
+  medal: IntFilter
 }
 
 type ZslLevelResultMinAggregates {
@@ -34789,6 +37695,8 @@ type ZslLevelResultMinAggregates {
 
   """Minimum of userId across the matching connection"""
   userId: Int
+  """Minimum of this field across the matching connection."""
+  medal: Int
 }
 
 input ZslLevelResultStddevPopulationAggregateFilter {
@@ -34798,6 +37706,7 @@ input ZslLevelResultStddevPopulationAggregateFilter {
   recordId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type ZslLevelResultStddevPopulationAggregates {
@@ -34824,6 +37733,10 @@ type ZslLevelResultStddevPopulationAggregates {
 
   """Population standard deviation of userId across the matching connection"""
   userId: BigFloat
+  """
+  Population standard deviation of this field across the matching connection.
+  """
+  medal: BigFloat
 }
 
 input ZslLevelResultStddevSampleAggregateFilter {
@@ -34833,6 +37746,7 @@ input ZslLevelResultStddevSampleAggregateFilter {
   recordId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type ZslLevelResultStddevSampleAggregates {
@@ -34853,6 +37767,10 @@ type ZslLevelResultStddevSampleAggregates {
 
   """Sample standard deviation of userId across the matching connection"""
   userId: BigFloat
+  """
+  Sample standard deviation of this field across the matching connection.
+  """
+  medal: BigFloat
 }
 
 input ZslLevelResultSumAggregateFilter {
@@ -34862,6 +37780,7 @@ input ZslLevelResultSumAggregateFilter {
   recordId: BigIntFilter
   time: FloatFilter
   userId: BigIntFilter
+  medal: BigIntFilter
 }
 
 type ZslLevelResultSumAggregates {
@@ -34882,6 +37801,8 @@ type ZslLevelResultSumAggregates {
 
   """Sum of userId across the matching connection"""
   userId: BigInt!
+  """Sum of this field across the matching connection."""
+  medal: BigInt
 }
 
 input ZslLevelResultVariancePopulationAggregateFilter {
@@ -34891,6 +37812,7 @@ input ZslLevelResultVariancePopulationAggregateFilter {
   recordId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type ZslLevelResultVariancePopulationAggregates {
@@ -34911,6 +37833,8 @@ type ZslLevelResultVariancePopulationAggregates {
 
   """Population variance of userId across the matching connection"""
   userId: BigFloat
+  """Population variance of this field across the matching connection."""
+  medal: BigFloat
 }
 
 input ZslLevelResultVarianceSampleAggregateFilter {
@@ -34920,6 +37844,7 @@ input ZslLevelResultVarianceSampleAggregateFilter {
   recordId: BigFloatFilter
   time: FloatFilter
   userId: BigFloatFilter
+  medal: BigFloatFilter
 }
 
 type ZslLevelResultVarianceSampleAggregates {
@@ -34940,6 +37865,8 @@ type ZslLevelResultVarianceSampleAggregates {
 
   """Sample variance of userId across the matching connection"""
   userId: BigFloat
+  """Sample variance of this field across the matching connection."""
+  medal: BigFloat
 }
 
 """A connection to a list of `ZslLevelResult` values."""
@@ -36014,6 +38941,17 @@ type ZslRound implements Node {
     """The method to use when ordering `ZslRoundResult`."""
     orderBy: [ZslRoundResultsOrderBy!] = [PRIMARY_KEY_ASC]
   ): ZslRoundResultsConnection!
+  cosmeticVoteEnd: Datetime
+
+  event2Date: Datetime
+
+  steamAnnouncementId: BigInt
+
+  submissionEnd: Datetime
+
+  submissionStart: Datetime
+
+  zslVoteEnd: Datetime
 }
 
 type ZslRoundAggregates {
@@ -36106,6 +39044,7 @@ input ZslRoundAverageAggregateFilter {
   round: BigFloatFilter
   seasonId: BigFloatFilter
   workshopId: BigFloatFilter
+  steamAnnouncementId: BigFloatFilter
 }
 
 type ZslRoundAverageAggregates {
@@ -36120,6 +39059,8 @@ type ZslRoundAverageAggregates {
 
   """Mean average of workshopId across the matching connection"""
   workshopId: BigFloat
+  """Mean average of steamAnnouncementId across the matching connection"""
+  steamAnnouncementId: BigFloat
 }
 
 """
@@ -36150,6 +39091,23 @@ input ZslRoundCondition {
 
   """Checks for equality with the object’s `workshopId` field."""
   workshopId: BigInt
+  """Checks for equality with the object’s `cosmeticVoteEnd` field."""
+  cosmeticVoteEnd: Datetime
+
+  """Checks for equality with the object’s `event2Date` field."""
+  event2Date: Datetime
+
+  """Checks for equality with the object’s `steamAnnouncementId` field."""
+  steamAnnouncementId: BigInt
+
+  """Checks for equality with the object’s `submissionEnd` field."""
+  submissionEnd: Datetime
+
+  """Checks for equality with the object’s `submissionStart` field."""
+  submissionStart: Datetime
+
+  """Checks for equality with the object’s `zslVoteEnd` field."""
+  zslVoteEnd: Datetime
 }
 
 input ZslRoundDistinctCountAggregateFilter {
@@ -36161,6 +39119,17 @@ input ZslRoundDistinctCountAggregateFilter {
   round: BigIntFilter
   seasonId: BigIntFilter
   workshopId: BigIntFilter
+  cosmeticVoteEnd: BigIntFilter
+
+  event2Date: BigIntFilter
+
+  steamAnnouncementId: BigIntFilter
+
+  submissionEnd: BigIntFilter
+
+  submissionStart: BigIntFilter
+
+  zslVoteEnd: BigIntFilter
 }
 
 type ZslRoundDistinctCountAggregates {
@@ -36187,6 +39156,23 @@ type ZslRoundDistinctCountAggregates {
 
   """Distinct count of workshopId across the matching connection"""
   workshopId: BigInt
+  """Distinct count of cosmeticVoteEnd across the matching connection"""
+  cosmeticVoteEnd: BigInt
+
+  """Distinct count of event2Date across the matching connection"""
+  event2Date: BigInt
+
+  """Distinct count of steamAnnouncementId across the matching connection"""
+  steamAnnouncementId: BigInt
+
+  """Distinct count of submissionEnd across the matching connection"""
+  submissionEnd: BigInt
+
+  """Distinct count of submissionStart across the matching connection"""
+  submissionStart: BigInt
+
+  """Distinct count of zslVoteEnd across the matching connection"""
+  zslVoteEnd: BigInt
 }
 
 """
@@ -36240,6 +39226,23 @@ input ZslRoundFilter {
 
   """Some related `zslRoundResults` exist."""
   zslRoundResultsExist: Boolean
+  """Filter by the object’s `cosmeticVoteEnd` field."""
+  cosmeticVoteEnd: DatetimeFilter
+
+  """Filter by the object’s `event2Date` field."""
+  event2Date: DatetimeFilter
+
+  """Filter by the object’s `steamAnnouncementId` field."""
+  steamAnnouncementId: BigIntFilter
+
+  """Filter by the object’s `submissionEnd` field."""
+  submissionEnd: DatetimeFilter
+
+  """Filter by the object’s `submissionStart` field."""
+  submissionStart: DatetimeFilter
+
+  """Filter by the object’s `zslVoteEnd` field."""
+  zslVoteEnd: DatetimeFilter
 }
 
 """Grouping methods for `ZslRound` for usage during aggregation."""
@@ -36257,6 +39260,37 @@ enum ZslRoundGroupBy {
   ROUND
   SEASON_ID
   WORKSHOP_ID
+  COSMETIC_VOTE_END
+
+  COSMETIC_VOTE_END_TRUNCATED_TO_DAY
+
+  COSMETIC_VOTE_END_TRUNCATED_TO_HOUR
+
+  EVENT2_DATE
+
+  EVENT2_DATE_TRUNCATED_TO_DAY
+
+  EVENT2_DATE_TRUNCATED_TO_HOUR
+
+  STEAM_ANNOUNCEMENT_ID
+
+  SUBMISSION_END
+
+  SUBMISSION_END_TRUNCATED_TO_DAY
+
+  SUBMISSION_END_TRUNCATED_TO_HOUR
+
+  SUBMISSION_START
+
+  SUBMISSION_START_TRUNCATED_TO_DAY
+
+  SUBMISSION_START_TRUNCATED_TO_HOUR
+
+  ZSL_VOTE_END
+
+  ZSL_VOTE_END_TRUNCATED_TO_DAY
+
+  ZSL_VOTE_END_TRUNCATED_TO_HOUR
 }
 
 input ZslRoundHavingAverageInput {
@@ -36267,6 +39301,17 @@ input ZslRoundHavingAverageInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 input ZslRoundHavingDistinctCountInput {
@@ -36277,6 +39322,17 @@ input ZslRoundHavingDistinctCountInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 """Conditions for `ZslRound` aggregates."""
@@ -36302,6 +39358,17 @@ input ZslRoundHavingMaxInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 input ZslRoundHavingMinInput {
@@ -36312,6 +39379,17 @@ input ZslRoundHavingMinInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 input ZslRoundHavingStddevPopulationInput {
@@ -36322,6 +39400,17 @@ input ZslRoundHavingStddevPopulationInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 input ZslRoundHavingStddevSampleInput {
@@ -36332,6 +39421,17 @@ input ZslRoundHavingStddevSampleInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 input ZslRoundHavingSumInput {
@@ -36342,6 +39442,17 @@ input ZslRoundHavingSumInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 input ZslRoundHavingVariancePopulationInput {
@@ -36352,6 +39463,17 @@ input ZslRoundHavingVariancePopulationInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 input ZslRoundHavingVarianceSampleInput {
@@ -36362,6 +39484,17 @@ input ZslRoundHavingVarianceSampleInput {
   round: HavingIntFilter
   seasonId: HavingIntFilter
   workshopId: HavingBigintFilter
+  cosmeticVoteEnd: HavingDatetimeFilter
+
+  event2Date: HavingDatetimeFilter
+
+  steamAnnouncementId: HavingBigintFilter
+
+  submissionEnd: HavingDatetimeFilter
+
+  submissionStart: HavingDatetimeFilter
+
+  zslVoteEnd: HavingDatetimeFilter
 }
 
 """A connection to a list of `Level` values, with data from `ZslLevel`."""
@@ -36445,6 +39578,7 @@ input ZslRoundMaxAggregateFilter {
   round: IntFilter
   seasonId: IntFilter
   workshopId: BigIntFilter
+  steamAnnouncementId: BigIntFilter
 }
 
 type ZslRoundMaxAggregates {
@@ -36459,6 +39593,8 @@ type ZslRoundMaxAggregates {
 
   """Maximum of workshopId across the matching connection"""
   workshopId: BigInt
+  """Maximum of steamAnnouncementId across the matching connection"""
+  steamAnnouncementId: BigInt
 }
 
 input ZslRoundMinAggregateFilter {
@@ -36466,6 +39602,7 @@ input ZslRoundMinAggregateFilter {
   round: IntFilter
   seasonId: IntFilter
   workshopId: BigIntFilter
+  steamAnnouncementId: BigIntFilter
 }
 
 type ZslRoundMinAggregates {
@@ -36480,6 +39617,8 @@ type ZslRoundMinAggregates {
 
   """Minimum of workshopId across the matching connection"""
   workshopId: BigInt
+  """Minimum of steamAnnouncementId across the matching connection"""
+  steamAnnouncementId: BigInt
 }
 
 type ZslRoundResult implements Node {
@@ -37030,6 +40169,7 @@ input ZslRoundStddevPopulationAggregateFilter {
   round: BigFloatFilter
   seasonId: BigFloatFilter
   workshopId: BigFloatFilter
+  steamAnnouncementId: BigFloatFilter
 }
 
 type ZslRoundStddevPopulationAggregates {
@@ -37048,6 +40188,10 @@ type ZslRoundStddevPopulationAggregates {
   Population standard deviation of workshopId across the matching connection
   """
   workshopId: BigFloat
+  """
+  Population standard deviation of steamAnnouncementId across the matching connection
+  """
+  steamAnnouncementId: BigFloat
 }
 
 input ZslRoundStddevSampleAggregateFilter {
@@ -37055,6 +40199,7 @@ input ZslRoundStddevSampleAggregateFilter {
   round: BigFloatFilter
   seasonId: BigFloatFilter
   workshopId: BigFloatFilter
+  steamAnnouncementId: BigFloatFilter
 }
 
 type ZslRoundStddevSampleAggregates {
@@ -37069,6 +40214,10 @@ type ZslRoundStddevSampleAggregates {
 
   """Sample standard deviation of workshopId across the matching connection"""
   workshopId: BigFloat
+  """
+  Sample standard deviation of steamAnnouncementId across the matching connection
+  """
+  steamAnnouncementId: BigFloat
 }
 
 input ZslRoundSumAggregateFilter {
@@ -37076,6 +40225,7 @@ input ZslRoundSumAggregateFilter {
   round: BigIntFilter
   seasonId: BigIntFilter
   workshopId: BigFloatFilter
+  steamAnnouncementId: BigFloatFilter
 }
 
 type ZslRoundSumAggregates {
@@ -37090,6 +40240,8 @@ type ZslRoundSumAggregates {
 
   """Sum of workshopId across the matching connection"""
   workshopId: BigFloat!
+  """Sum of steamAnnouncementId across the matching connection"""
+  steamAnnouncementId: BigFloat!
 }
 
 """
@@ -37191,6 +40343,7 @@ input ZslRoundVariancePopulationAggregateFilter {
   round: BigFloatFilter
   seasonId: BigFloatFilter
   workshopId: BigFloatFilter
+  steamAnnouncementId: BigFloatFilter
 }
 
 type ZslRoundVariancePopulationAggregates {
@@ -37205,6 +40358,10 @@ type ZslRoundVariancePopulationAggregates {
 
   """Population variance of workshopId across the matching connection"""
   workshopId: BigFloat
+  """
+  Population variance of steamAnnouncementId across the matching connection
+  """
+  steamAnnouncementId: BigFloat
 }
 
 input ZslRoundVarianceSampleAggregateFilter {
@@ -37212,6 +40369,7 @@ input ZslRoundVarianceSampleAggregateFilter {
   round: BigFloatFilter
   seasonId: BigFloatFilter
   workshopId: BigFloatFilter
+  steamAnnouncementId: BigFloatFilter
 }
 
 type ZslRoundVarianceSampleAggregates {
@@ -37226,6 +40384,8 @@ type ZslRoundVarianceSampleAggregates {
 
   """Sample variance of workshopId across the matching connection"""
   workshopId: BigFloat
+  """Sample variance of steamAnnouncementId across the matching connection"""
+  steamAnnouncementId: BigFloat
 }
 
 """A connection to a list of `ZslRound` values."""
@@ -37429,6 +40589,29 @@ enum ZslRoundsOrderBy {
   ZSL_ROUND_RESULTS_VARIANCE_SAMPLE_ROUND_ID_DESC
   ZSL_ROUND_RESULTS_VARIANCE_SAMPLE_USER_ID_ASC
   ZSL_ROUND_RESULTS_VARIANCE_SAMPLE_USER_ID_DESC
+  COSMETIC_VOTE_END_ASC
+
+  COSMETIC_VOTE_END_DESC
+
+  EVENT2_DATE_ASC
+
+  EVENT2_DATE_DESC
+
+  STEAM_ANNOUNCEMENT_ID_ASC
+
+  STEAM_ANNOUNCEMENT_ID_DESC
+
+  SUBMISSION_END_ASC
+
+  SUBMISSION_END_DESC
+
+  SUBMISSION_START_ASC
+
+  SUBMISSION_START_DESC
+
+  ZSL_VOTE_END_ASC
+
+  ZSL_VOTE_END_DESC
 }
 
 type ZslSeason implements Node {
@@ -38834,6 +42017,61 @@ enum ZslSeasonsOrderBy {
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_SEASON_ID_DESC
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_USER_ID_ASC
   ZSL_SEASON_RESULTS_VARIANCE_SAMPLE_USER_ID_DESC
+  ZSL_ROUNDS_AVERAGE_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_AVERAGE_STEAM_ANNOUNCEMENT_ID_DESC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_COSMETIC_VOTE_END_ASC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_COSMETIC_VOTE_END_DESC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_EVENT2_DATE_ASC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_EVENT2_DATE_DESC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_STEAM_ANNOUNCEMENT_ID_DESC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_SUBMISSION_END_ASC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_SUBMISSION_END_DESC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_SUBMISSION_START_ASC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_SUBMISSION_START_DESC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_ZSL_VOTE_END_ASC
+
+  ZSL_ROUNDS_DISTINCT_COUNT_ZSL_VOTE_END_DESC
+
+  ZSL_ROUNDS_MAX_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_MAX_STEAM_ANNOUNCEMENT_ID_DESC
+
+  ZSL_ROUNDS_MIN_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_MIN_STEAM_ANNOUNCEMENT_ID_DESC
+
+  ZSL_ROUNDS_STDDEV_POPULATION_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_STDDEV_POPULATION_STEAM_ANNOUNCEMENT_ID_DESC
+
+  ZSL_ROUNDS_STDDEV_SAMPLE_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_STDDEV_SAMPLE_STEAM_ANNOUNCEMENT_ID_DESC
+
+  ZSL_ROUNDS_SUM_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_SUM_STEAM_ANNOUNCEMENT_ID_DESC
+
+  ZSL_ROUNDS_VARIANCE_POPULATION_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_VARIANCE_POPULATION_STEAM_ANNOUNCEMENT_ID_DESC
+
+  ZSL_ROUNDS_VARIANCE_SAMPLE_STEAM_ANNOUNCEMENT_ID_ASC
+
+  ZSL_ROUNDS_VARIANCE_SAMPLE_STEAM_ANNOUNCEMENT_ID_DESC
 }
 
 type TrackTournamentOverallPeriod implements Node {
@@ -41003,56 +44241,45 @@ type AdventureLeaderboardScope implements Node {
   Reads and enables pagination through a set of `AdventureLeaderboardEntry`.
   """
   entries(
-    """Only read the first `n` values of the set."""
-    first: Int
-
-    """Only read the last `n` values of the set."""
-    last: Int
-
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
     """Read all values in the set after (below) this cursor."""
     after: Cursor
-
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: AdventureLeaderboardEntryFilter
-  ): AdventureLeaderboardEntriesConnection!
-
-  """Reads and enables pagination through a set of `Level`."""
-  missingLevels(
-    userId: Int
-
     """Only read the first `n` values of the set."""
     first: Int
-
     """Only read the last `n` values of the set."""
     last: Int
-
     """
     Skip the first `n` values from our `after` cursor, an alternative to cursor
     based pagination. May not be used with `last`.
     """
     offset: Int
+  ): AdventureLeaderboardEntriesConnection!
 
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-
+  """Reads and enables pagination through a set of `Level`."""
+  missingLevels(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
-
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LevelFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    userId: Int
   ): LevelsConnection!
   playerEntry(userId: Int): AdventureLeaderboardEntry
   totalPlayers: Int
@@ -41362,19 +44589,10 @@ type Lobby implements Node {
   dateUpdated: Datetime!
   """Reads and enables pagination through a set of `User`."""
   usersByLobbyHistory(
-    """Only read the first `n` values of the set."""
-    first: Int
-    """Only read the last `n` values of the set."""
-    last: Int
-    """
-    Skip the first `n` values from our `after` cursor, an alternative to cursor
-    based pagination. May not be used with `last`.
-    """
-    offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -41383,13 +44601,6 @@ type Lobby implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: UserFilter
-    """The method to use when ordering `User`."""
-    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
-  ): LobbyUsersByLobbyHistoryManyToManyConnection!
-  """Reads a single `User` that is related to this `Lobby`."""
-  host: User
-  """Reads and enables pagination through a set of `LobbyHistory`."""
-  history(
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -41399,10 +44610,17 @@ type Lobby implements Node {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
+    """The method to use when ordering `User`."""
+    orderBy: [UsersOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyUsersByLobbyHistoryManyToManyConnection!
+  """Reads a single `User` that is related to this `Lobby`."""
+  host: User
+  """Reads and enables pagination through a set of `LobbyHistory`."""
+  history(
     """Read all values in the set after (below) this cursor."""
     after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
     """
     A condition to be used in determining which values should be returned by the collection.
     """
@@ -41411,6 +44629,15 @@ type Lobby implements Node {
     A filter to be used in determining which values should be returned by the collection.
     """
     filter: LobbyHistoryFilter
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
     """The method to use when ordering `LobbyHistory`."""
     orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
   ): LobbyHistoriesConnection!
@@ -41482,6 +44709,18 @@ type UserLobbiesByLobbyHistoryManyToManyEdge {
   node: Lobby!
   """Reads and enables pagination through a set of `LobbyHistory`."""
   lobbyHistoryEntries(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyHistoryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyHistoryFilter
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -41491,18 +44730,6 @@ type UserLobbiesByLobbyHistoryManyToManyEdge {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: LobbyHistoryCondition
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: LobbyHistoryFilter
     """The method to use when ordering `LobbyHistory`."""
     orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
   ): LobbyHistoriesConnection!
@@ -43538,6 +46765,18 @@ type LobbyUsersByLobbyHistoryManyToManyEdge {
   node: User!
   """Reads and enables pagination through a set of `LobbyHistory`."""
   history(
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyHistoryCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyHistoryFilter
     """Only read the first `n` values of the set."""
     first: Int
     """Only read the last `n` values of the set."""
@@ -43547,18 +46786,6 @@ type LobbyUsersByLobbyHistoryManyToManyEdge {
     based pagination. May not be used with `last`.
     """
     offset: Int
-    """Read all values in the set before (above) this cursor."""
-    before: Cursor
-    """Read all values in the set after (below) this cursor."""
-    after: Cursor
-    """
-    A condition to be used in determining which values should be returned by the collection.
-    """
-    condition: LobbyHistoryCondition
-    """
-    A filter to be used in determining which values should be returned by the collection.
-    """
-    filter: LobbyHistoryFilter
     """The method to use when ordering `LobbyHistory`."""
     orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
   ): LobbyHistoriesConnection!
@@ -44019,4 +47246,108 @@ enum LobbyStatsOrderBy {
   DATE_CREATED_DESC
   DATE_UPDATED_ASC
   DATE_UPDATED_DESC
+}
+
+"""
+A filter to be used against many `AdventureLevelMembership` object types. All fields are combined with a logical ‘and.’
+"""
+input LevelToManyAdventureLevelMembershipFilter {
+  """
+  Aggregates across related `AdventureLevelMembership` match the filter criteria.
+  """
+  aggregates: AdventureLevelMembershipAggregatesFilter
+  """
+  Every related `AdventureLevelMembership` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: AdventureLevelMembershipFilter
+  """
+  No related `AdventureLevelMembership` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: AdventureLevelMembershipFilter
+  """
+  Some related `AdventureLevelMembership` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: AdventureLevelMembershipFilter
+}
+
+"""A connection to a list of `MedalCountsRecord` values."""
+type MedalCountsConnection {
+  """
+  A list of edges which contains the `MedalCountsRecord` and cursor to aid in pagination.
+  """
+  edges: [MedalCountsEdge!]!
+  """A list of `MedalCountsRecord` objects."""
+  nodes: [MedalCountsRecord!]!
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+  """
+  The count of *all* `MedalCountsRecord` you could get from the connection.
+  """
+  totalCount: Int!
+}
+
+"""A `MedalCountsRecord` edge in the connection."""
+type MedalCountsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+  """The `MedalCountsRecord` at the end of the edge."""
+  node: MedalCountsRecord!
+}
+
+type MedalCountsRecord {
+  apex: BigInt
+  author: BigInt
+  bronze: BigInt
+  expert: BigInt
+  gold: BigInt
+  none: BigInt
+  silver: BigInt
+}
+
+"""
+A filter to be used against `MedalCountsRecord` object types. All fields are combined with a logical ‘and.’
+"""
+input MedalCountsRecordFilter {
+  """Checks for all expressions in this list."""
+  and: [MedalCountsRecordFilter!]
+  """Filter by the object’s `apex` field."""
+  apex: BigIntFilter
+  """Filter by the object’s `author` field."""
+  author: BigIntFilter
+  """Filter by the object’s `bronze` field."""
+  bronze: BigIntFilter
+  """Filter by the object’s `expert` field."""
+  expert: BigIntFilter
+  """Filter by the object’s `gold` field."""
+  gold: BigIntFilter
+  """Filter by the object’s `none` field."""
+  none: BigIntFilter
+  """Negates the expression."""
+  not: MedalCountsRecordFilter
+  """Checks for any expressions in this list."""
+  or: [MedalCountsRecordFilter!]
+  """Filter by the object’s `silver` field."""
+  silver: BigIntFilter
+}
+
+"""
+A filter to be used against many `AdventureLeaderboardEntry` object types. All fields are combined with a logical ‘and.’
+"""
+input UserToManyAdventureLeaderboardEntryFilter {
+  """
+  Aggregates across related `AdventureLeaderboardEntry` match the filter criteria.
+  """
+  aggregates: AdventureLeaderboardEntryAggregatesFilter
+  """
+  Every related `AdventureLeaderboardEntry` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  every: AdventureLeaderboardEntryFilter
+  """
+  No related `AdventureLeaderboardEntry` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  none: AdventureLeaderboardEntryFilter
+  """
+  Some related `AdventureLeaderboardEntry` matches the filter criteria. All fields are combined with a logical ‘and.’
+  """
+  some: AdventureLeaderboardEntryFilter
 }

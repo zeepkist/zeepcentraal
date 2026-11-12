@@ -13,6 +13,8 @@ GTR submits your online runs. ZeepCentraal groups those records by level version
   ::
   ::content-resource-card{to="/wiki/zeepcentraal-gtr/level-points" icon="chart-line" title="Level Points" description="Understand the level score, its four factors and the effect of mature votes."}
   ::
+  ::content-resource-card{to="/wiki/zeepcentraal-gtr/medals" icon="trophy" title="Medals" description="Learn how to earn all six medals and how Expert and Apex Times are calculated."}
+  ::
   ::content-resource-card{to="/wiki/zeepcentraal-gtr/track-of-the-week-month" icon="calendar-event" title="Track of the Week/Month" description="Learn when featured tracks rotate and how eligible levels are selected."}
   ::
   ::content-resource-card{to="/wiki/zeepcentraal-gtr/faq" icon="info-circle" title="Frequently Asked Questions" description="Find out when levels appear and where an older-version personal best went."}

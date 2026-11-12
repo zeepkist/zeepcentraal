@@ -85,17 +85,20 @@
 					'border-purple-500/25 bg-purple-500/10': !isWorldRecord
 				}"
 			>
-				<div class="min-w-0">
-					<p
-						class="text-xs font-semibold uppercase tracking-wide"
-						:class="{
-							'text-primary': isWorldRecord,
-							'text-purple-700 dark:text-purple-300': !isWorldRecord
-						}"
-					>{{ bestTimeLabel }}</p>
-					<p v-if="bestTimeAuthor" class="truncate text-xs text-muted-foreground">
-						{{ byLabel ? `${byLabel} ${bestTimeAuthor}` : bestTimeAuthor }}
-					</p>
+				<div class="flex min-w-0 items-center gap-2">
+					<img v-if="isWorldRecord && worldRecordMedal" :src="worldRecordMedal.src" :alt="t(worldRecordMedal.labelKey)" :title="t(worldRecordMedal.labelKey)" width="32" height="32" class="size-8 shrink-0 object-contain" />
+					<div class="min-w-0">
+						<p
+							class="text-xs font-semibold uppercase tracking-wide"
+							:class="{
+								'text-primary': isWorldRecord,
+								'text-purple-700 dark:text-purple-300': !isWorldRecord
+							}"
+						>{{ bestTimeLabel }}</p>
+						<p v-if="bestTimeAuthor" class="truncate text-xs text-muted-foreground">
+							{{ byLabel ? `${byLabel} ${bestTimeAuthor}` : bestTimeAuthor }}
+						</p>
+					</div>
 				</div>
 				<p class="shrink-0 font-bold tabular-nums text-highlighted">{{ formatTime(bestTime) }}</p>
 			</div>
@@ -121,6 +124,7 @@
 import type { LevelSummary } from '~/types/app'
 import { getNumberFormatter } from '~/utils/intlFormatters'
 import { createLevelRatingFormatter, isLevelRatingAvailable } from '~/utils/levelRating'
+import { MEDALS } from '~/utils/medals'
 
 const props = defineProps<{
 	level: LevelSummary
@@ -137,7 +141,7 @@ const props = defineProps<{
 	createdLabel?: string
 }>()
 
-const { locale } = useAppI18n()
+const { locale, t } = useAppI18n()
 const transition = useSharedViewTransition()
 const numberFormat = computed(() => getNumberFormatter(locale.value))
 const ratingFormat = computed(() => createLevelRatingFormatter(locale.value))
@@ -147,6 +151,7 @@ const bestTimeLabel = computed(() =>
 	props.level.worldRecordTime == null ? props.authorTimeLabel : props.worldRecordLabel,
 )
 const isWorldRecord = computed(() => props.level.worldRecordTime != null)
+const worldRecordMedal = computed(() => MEDALS.find(medal => medal.tier === props.level.worldRecordMedal))
 
 function beginTransition(event: MouseEvent) {
 	transition.begin({

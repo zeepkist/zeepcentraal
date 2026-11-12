@@ -114,6 +114,37 @@ pub async fn verify(connection: &mut AsyncPgConnection) -> Result<()> {
 }
 
 fn apply_migration_overlay(snapshot: &mut Snapshot, versions: &[String]) {
+    if versions.iter().any(|version| version == "20261112000000") {
+        apply_medal_overlay(snapshot);
+    }
+    if versions.iter().any(|version| version == "20261112010000") {
+        snapshot.tables.remove("public.level_medal_threshold");
+        snapshot.tables.remove("zc_private.level_medal_revision");
+        let columns = &mut snapshot
+            .tables
+            .get_mut("public.level_item")
+            .unwrap()
+            .columns;
+        for (name, data_type, not_null) in [
+            ("validation_time_expert", "double precision", false),
+            ("validation_time_apex", "double precision", false),
+            ("medal_qualified_at", "timestamp with time zone", false),
+            ("medal_due_at", "timestamp with time zone", false),
+            ("medal_calculated_at", "timestamp with time zone", false),
+            ("medal_calculation_version", "integer", false),
+            ("medal_eligible_pb_count", "integer", true),
+            ("medal_evaluated_at", "timestamp with time zone", true),
+        ] {
+            columns.insert(
+                name.into(),
+                SnapshotColumn {
+                    name: name.into(),
+                    data_type: data_type.into(),
+                    not_null,
+                },
+            );
+        }
+    }
     apply_optimization_overlay(snapshot, versions);
     if versions.iter().any(|version| version == "20261019000900") {
         let statistics = snapshot
@@ -572,6 +603,83 @@ fn apply_donations_overlay(snapshot: &mut Snapshot, versions: &[String]) {
             ("is_subscription_payment", "boolean", false),
             ("tier_name", "text", false),
             ("discord_userid", "bigint", false),
+        ]),
+    );
+}
+
+fn apply_medal_overlay(snapshot: &mut Snapshot) {
+    let object = |columns: &[(&str, &str, bool)]| Object {
+        columns: columns
+            .iter()
+            .map(|&(name, data_type, not_null)| {
+                (
+                    name.to_owned(),
+                    SnapshotColumn {
+                        name: name.to_owned(),
+                        data_type: data_type.to_owned(),
+                        not_null,
+                    },
+                )
+            })
+            .collect(),
+    };
+    snapshot
+        .tables
+        .get_mut("public.personal_best_global")
+        .unwrap()
+        .columns
+        .extend(object(&[("medal", "smallint", false)]).columns);
+    for name in [
+        "medal_apex",
+        "medal_expert",
+        "medal_author",
+        "medal_gold",
+        "medal_silver",
+        "medal_bronze",
+        "medal_none",
+    ] {
+        snapshot
+            .tables
+            .get_mut("public.user_points")
+            .unwrap()
+            .columns
+            .extend(object(&[(name, "integer", true)]).columns);
+    }
+    snapshot.tables.insert(
+        "public.level_medal_threshold".into(),
+        object(&[
+            ("id_level", "integer", true),
+            ("source_item_id", "integer", false),
+            ("author_ms", "bigint", false),
+            ("gold_ms", "bigint", false),
+            ("silver_ms", "bigint", false),
+            ("bronze_ms", "bigint", false),
+            ("qualified_at", "timestamp with time zone", false),
+            ("due_at", "timestamp with time zone", false),
+            ("expert_ms", "bigint", false),
+            ("apex_ms", "bigint", false),
+            ("revision", "integer", true),
+            ("calculation_version", "integer", true),
+            ("eligible_pb_count", "integer", true),
+            ("calculated_at", "timestamp with time zone", false),
+            ("evaluated_at", "timestamp with time zone", true),
+        ]),
+    );
+    snapshot.tables.insert(
+        "zc_private.level_medal_revision".into(),
+        object(&[
+            ("id_level", "integer", true),
+            ("revision", "integer", true),
+            ("content_hash", "text", true),
+            ("source_item_id", "integer", false),
+            ("author_ms", "bigint", false),
+            ("expert_ms", "bigint", false),
+            ("apex_ms", "bigint", false),
+            ("eligible_pb_count", "integer", true),
+            ("calculation_version", "integer", true),
+            ("calculated_at", "timestamp with time zone", true),
+            ("reason", "text", true),
+            ("reference_records", "jsonb", true),
         ]),
     );
 }

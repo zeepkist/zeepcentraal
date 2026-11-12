@@ -190,7 +190,7 @@ describe('shared tournament web implementation', () => {
 		expect(query.match(/\.\.\.ZC_TrackTournamentGhostStanding/g)).toHaveLength(2)
 		expect(query.match(/\.\.\.ZC_GhostComparisonRecord/g)).toHaveLength(1)
 		expect(query).toMatch(
-			/fragment ZC_TrackTournamentStanding[\s\S]*?record \{\s*dateCreated\s*\}/,
+			/fragment ZC_TrackTournamentStanding[\s\S]*?record \{\s*dateCreated\s*medal\s*\}/,
 		)
 		expect(composable).toContain('function mapGhostStanding')
 		expect(composable).toContain('ghost: null')

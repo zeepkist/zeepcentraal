@@ -177,6 +177,14 @@ async fn run_leader(
 }
 
 async fn enqueue_due(queue: &Queue, schedule: &ScheduleRow) -> Result<()> {
+    enqueue(
+        queue,
+        TaskIdentifier::RefreshMedals,
+        serde_json::json!({}),
+        JobLane::Bulk,
+        "cron:refreshMedals",
+    )
+    .await?;
     if schedule.recover {
         enqueue(
             queue,

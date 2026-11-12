@@ -1,0 +1,20 @@
+SET LOCAL lock_timeout = '5s';
+DROP TRIGGER medal_ban_refresh ON public."user";
+DROP TRIGGER medal_level_refresh ON public.level;
+DROP TRIGGER medal_item_refresh ON public.level_item;
+DROP TRIGGER medal_pb_insert ON public.personal_best_global;
+DROP TRIGGER medal_pb_update ON public.personal_best_global;
+DROP TRIGGER medal_pb_delete ON public.personal_best_global;
+DROP TRIGGER pb_medal ON public.personal_best_global;
+DELETE FROM zc_jobs.job WHERE task='refreshMedals';
+DROP FUNCTION zc_private.tg_medal_metadata_refresh(),zc_private.tg_medal_pb_refresh(),zc_private.tg_pb_medal();
+DROP FUNCTION zc_private.refresh_level_medals(integer);
+DROP FUNCTION public.medal_counts(integer,bigint,bigint),public.record_history_entry_medal(public.record_history_entry),public.record_medal(public.record);
+DROP FUNCTION zc_private.medal_tier(bigint,bigint,bigint,bigint,bigint,bigint,bigint);
+DROP FUNCTION zc_private.user_medal_counts(integer[]);
+DROP TABLE zc_private.level_medal_revision;
+DROP TABLE public.level_medal_threshold;
+DROP FUNCTION zc_private.level_medal_reference(integer,bigint),zc_private.calculate_medal_thresholds(bigint,bigint[]),zc_private.medal_milliseconds(real);
+ALTER TABLE public.personal_best_global DROP COLUMN medal;
+ALTER TABLE public.user_points DROP COLUMN medal_apex,DROP COLUMN medal_expert,DROP COLUMN medal_author,
+ DROP COLUMN medal_gold,DROP COLUMN medal_silver,DROP COLUMN medal_bronze,DROP COLUMN medal_none;

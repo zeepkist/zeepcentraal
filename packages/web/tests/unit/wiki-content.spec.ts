@@ -21,6 +21,7 @@ const wikiDocuments = [
 	'zeepcentraal-gtr/index.md',
 	'zeepcentraal-gtr/points-and-ranked-points.md',
 	'zeepcentraal-gtr/level-points.md',
+	'zeepcentraal-gtr/medals.md',
 	'zeepcentraal-gtr/track-of-the-week-month.md',
 	'zeepcentraal-gtr/faq.md',
 ]

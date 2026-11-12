@@ -18,6 +18,7 @@ export type UserTrackTournamentResult = {
 }
 
 export type TournamentStanding = {
+	medal?: number | null
 	tournamentId: number
 	userId: number
 	recordId: number

@@ -21,6 +21,7 @@ pub mod level_simhash;
 pub mod lobby;
 pub mod lobby_assets;
 pub mod managed_lobby;
+pub mod medals;
 pub mod practice;
 pub mod record;
 pub(crate) mod record_counts;

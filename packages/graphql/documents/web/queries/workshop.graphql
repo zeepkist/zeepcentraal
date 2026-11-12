@@ -96,6 +96,7 @@ fragment ZC_WorkshopLevelCard on Level {
 	worldRecordGlobal {
 		record {
 			time
+			medal
 		}
 		user {
 			steamId

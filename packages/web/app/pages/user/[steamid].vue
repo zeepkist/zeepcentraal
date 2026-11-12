@@ -74,6 +74,8 @@
 										</DataState>
 									</section>
 
+									<UserMedalDistribution v-if="summary?.medals" :counts="summary.medals" />
+
 									<section
 										:ref="data.statisticsTarget"
 										aria-labelledby="profile-telemetry"

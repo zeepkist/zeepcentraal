@@ -37,6 +37,7 @@ import { buildVoteDistributionCounts } from '~/utils/voteDistribution'
 function mapRecord(
 	record: {
 		id: number
+		medal?: number | null
 		time: number
 		dateCreated: unknown
 		levelId: number
@@ -58,15 +59,17 @@ function mapRecord(
 	levelName: string,
 	baseLevelPoints: number | null | undefined,
 	assumePersonalBest = false,
+	worldRecordId?: number,
 ): RecordHistoryRow {
 	const status = assumePersonalBest
-		? record.userPointContributions?.nodes[0]?.levelPosition === 1
+		? record.id === worldRecordId
 			? 'world-record'
 			: 'personal-best'
 		: resolveRecordPbOrWr(record)
 	const contribution = status ? record.userPointContributions?.nodes[0] : undefined
 	return {
 		id: record.id,
+		medal: record.medal,
 		time: record.time,
 		dateCreated: String(record.dateCreated),
 		levelId: record.levelId,
@@ -133,6 +136,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 			),
 			level.value?.levelPoints?.points,
 			assumePersonalBest,
+			level.value?.worldRecordGlobal?.record?.id,
 		)
 	const pointsHistoryQuery = useQuery({
 		query: Zc_LevelPointsHistoryDocument,
@@ -268,6 +272,9 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 						gold: item.validationTimeGold,
 						silver: item.validationTimeSilver,
 						bronze: item.validationTimeBronze,
+						expert: item.validationTimeExpert,
+						apex: item.validationTimeApex,
+						dueAt: item.medalDueAt == null ? null : String(item.medalDueAt),
 					}
 				: null,
 		}
@@ -357,6 +364,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 		if (!value?.record) return null
 		return {
 			recordId: value.record.id,
+			medal: value.record.medal,
 			time: value.record.time,
 			dateCreated: String(value.record.dateCreated),
 			userName: value.user?.steamName,

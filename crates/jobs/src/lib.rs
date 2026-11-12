@@ -20,6 +20,7 @@ pub const WORKSHOP_SCAN_BATCH_SIZE: usize = 10;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TaskIdentifier {
+    RefreshMedals,
     ReconcileRecordEligibility,
     FanOutRecordEligibility,
     RefreshGlobalMetrics,
@@ -52,7 +53,8 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 29] = [
+    pub const ALL: [Self; 30] = [
+        Self::RefreshMedals,
         Self::ReconcileRecordEligibility,
         Self::FanOutRecordEligibility,
         Self::RefreshGlobalMetrics,
@@ -86,6 +88,7 @@ impl TaskIdentifier {
 
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::RefreshMedals => "refreshMedals",
             Self::ReconcileRecordEligibility => "reconcileRecordEligibility",
             Self::FanOutRecordEligibility => "fanOutRecordEligibility",
             Self::RefreshGlobalMetrics => "refreshGlobalMetrics",
@@ -126,6 +129,7 @@ impl TaskIdentifier {
         !matches!(
             self,
             Self::FanOutRecordEligibility
+                | Self::RefreshMedals
                 | Self::RefreshGlobalMetrics
                 | Self::RecoverLevelRequests
                 | Self::RotateTrackTournament
@@ -150,6 +154,7 @@ impl TaskIdentifier {
         if matches!(
             self,
             Self::UpdateLevelRecordCounts
+                | Self::RefreshMedals
                 | Self::FanOutRecordEligibility
                 | Self::RefreshGlobalMetrics
         ) {
@@ -214,6 +219,14 @@ impl TaskIdentifier {
         };
         match self {
             Self::RefreshGlobalMetrics => object.is_empty(),
+            Self::RefreshMedals => {
+                object.keys().all(|key| key == "idLevel")
+                    && object.get("idLevel").is_none_or(|value| {
+                        value
+                            .as_i64()
+                            .is_some_and(|id| (1..=i32::MAX.into()).contains(&id))
+                    })
+            }
             Self::FanOutRecordEligibility => serde_json::from_value::<
                 zc_database::services::record_eligibility::EligibilityFanOut,
             >(payload.clone())
@@ -648,10 +661,25 @@ mod tests {
 
     #[test]
     fn task_registry_round_trips_all_identifiers() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 29);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 30);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
+    }
+    #[test]
+    fn medal_refresh_payloads_are_bounded_and_internal() {
+        let task = TaskIdentifier::RefreshMedals;
+        assert!(task.validate_payload(&serde_json::json!({})));
+        assert!(task.validate_payload(&serde_json::json!({"idLevel": 1})));
+        for invalid in [
+            serde_json::json!({"idLevel": 0}),
+            serde_json::json!({"idLevel": 2147483648_i64}),
+            serde_json::json!({"idLevel": 1,"all": true}),
+        ] {
+            assert!(!task.validate_payload(&invalid));
+        }
+        assert!(!task.validate_external_payload(&serde_json::json!({"idLevel":1})));
+        assert!(!task.compatible());
     }
     #[test]
     fn eligibility_fan_out_is_internal_and_bounds_pages() {
