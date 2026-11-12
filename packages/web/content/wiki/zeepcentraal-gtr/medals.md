@@ -10,14 +10,14 @@ Your PB shows only the highest medal it earns. An Apex PB counts as one Apex med
 
 ## The six medals
 
-| Medal | How to earn it |
-| --- | --- |
-| ![Bronze medal](/assets/medals/MED_Bronze.png){width="48" height="48"} **Bronze** | Match or beat the Bronze Time. This is the first medal target. |
-| ![Silver medal](/assets/medals/MED_Silver.png){width="48" height="48"} **Silver** | Match or beat the Silver Time, a harder target than Bronze. |
-| ![Gold medal](/assets/medals/MED_Gold.png){width="48" height="48"} **Gold** | Match or beat the Gold Time, a harder target than Silver. |
-| ![Author medal](/assets/medals/MED_Author.png){width="48" height="48"} **Author** | Match or beat the author's fastest time from validating the level. |
-| ![Expert medal](/assets/medals/MED_Expert.png){width="48" height="48"} **Expert** | Match or beat ZeepCentraal's calculated Expert Time. This is faster than Author Time. |
-| ![Apex medal](/assets/medals/MED_Apex.png){width="48" height="48"} **Apex** | Match or beat ZeepCentraal's calculated Apex Time. This is the hardest medal target. |
+| | Medal | How to earn it |
+| --- | --- | --- |
+| ![Bronze medal](/assets/medals/MED_Bronze.png){width="48" height="48"} | **Bronze** | Match or beat the Bronze Time. This is the first medal target. |
+| ![Silver medal](/assets/medals/MED_Silver.png){width="48" height="48"} | **Silver** | Match or beat the Silver Time, a harder target than Bronze. |
+| ![Gold medal](/assets/medals/MED_Gold.png){width="48" height="48"} | **Gold** | Match or beat the Gold Time, a harder target than Silver. |
+| ![Author medal](/assets/medals/MED_Author.png){width="48" height="48"} | **Author** | Match or beat the author's fastest time from validating the level. |
+| ![Expert medal](/assets/medals/MED_Expert.png){width="48" height="48"} | **Expert** | Match or beat ZeepCentraal's calculated Expert Time. This is faster than Author Time. |
+| ![Apex medal](/assets/medals/MED_Apex.png){width="48" height="48"} | **Apex** | Match or beat ZeepCentraal's calculated Apex Time. This is the hardest medal target. |
 
 ## Bronze, Silver, Gold and Author Times
 
@@ -59,7 +59,7 @@ Apex reference = sum of each PB × its share
 Apex Time = Apex reference + 0.05 × (AT − Apex reference)
 ```
 
-The fastest four PBs contribute 68% of the Apex reference. This keeps Apex closer to the best times and makes it harder than Expert.
+The fastest four PBs contribute 85% of the Apex reference. This keeps Apex closer to the best times and makes it harder than Expert.
 
 ## Worked example
 
@@ -67,26 +67,26 @@ Suppose AT is **40.000 seconds** and these are the 10 fastest qualifying PBs. Ea
 
 | PB rank | Time | Share used for Apex |
 | --- | ---: | ---: |
-| 1st | 35.200s | 20% |
-| 2nd | 35.800s | 18% |
-| 3rd | 36.100s | 16% |
-| 4th | 36.400s | 14% |
-| 5th | 36.700s | 10% |
-| 6th | 36.900s | 8% |
-| 7th | 37.200s | 5% |
-| 8th | 37.500s | 4% |
-| 9th | 38.000s | 3% |
-| 10th | 38.400s | 2% |
+| 1st | 35.200s | 30% |
+| 2nd | 35.800s | 25% |
+| 3rd | 36.100s | 20% |
+| 4th | 36.400s | 10% |
+| 5th | 36.700s | 5% |
+| 6th | 36.900s | 3% |
+| 7th | 37.200s | 2% |
+| 8th | 37.500s | 2% |
+| 9th | 38.000s | 2% |
+| 10th | 38.400s | 1% |
 
-The Expert reference is **36.820s**. The Apex reference is **36.246s**.
+The Expert reference is **36.820s**. The Apex reference is **35.950s**.
 
 ```text
 Expert = 36.820 + 0.45 × (40.000 − 36.820)
        = 38.251s
 
-Apex   = 36.246 + 0.05 × (40.000 − 36.246)
-       = 36.4337s
-       = 36.433s after rounding down to milliseconds
+Apex   = 35.950 + 0.05 × (40.000 − 35.950)
+       = 36.1525s
+       = 36.152s after rounding down to milliseconds
 ```
 
 Both targets are rounded **down** to the nearest millisecond.
@@ -96,13 +96,13 @@ Both targets are rounded **down** to the nearest millisecond.
 | 39.000s | Author |
 | 38.251s | Expert |
 | 37.000s | Expert |
-| 36.433s | Apex |
+| 36.152s | Apex |
 
 You can earn Apex without holding the world record. In this example, the fastest PB is still **35.200s**.
 
 ## Do the targets change?
 
-Once generated, **Expert and Apex Times stay fixed**. More players beating AT, or faster PBs arriving later, do not make those targets harder.
+Once generated, **Expert and Apex Medals stay fixed**. More players beating AT, or faster PBs arriving later, do not make those targets harder.
 
 If a level updates its Author Time, Expert and Apex may be recalculated.
 
