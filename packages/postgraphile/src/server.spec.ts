@@ -68,6 +68,13 @@ function createApp(readiness = createReadiness(), release?: () => Promise<void>)
 }
 
 describe('buildPostGraphileServer', () => {
+	test.each(['production', 'development'])('uses native schema watching in %s', (nodeEnv) => {
+		const config = { ...postgraphileRuntimeConfig, nodeEnv }
+		const preset = createPostGraphilePreset(config)
+		expect(createPostGraphileV4Options(config).watchPg).toBe(true)
+		expect(preset.grafserv?.watch).toBe(true)
+		expect(preset.gather?.installWatchFixtures).toBeUndefined()
+	})
 	test('disposes readiness and runtime once when stopped', async () => {
 		const disposed: string[] = []
 		const app = createApp(
@@ -90,10 +97,11 @@ describe('buildPostGraphileServer', () => {
 		}
 	})
 
-	test('respects database grants and never configures a production superuser pool', () => {
+	test('respects query-role grants with a separate production fixture connection', () => {
 		expect(createPostGraphileV4Options(postgraphileRuntimeConfig).ignoreRBAC).toBe(false)
 		expect(createPostGraphilePgServiceOptions(postgraphileRuntimeConfig)).toEqual({
 			connectionString: postgraphileRuntimeConfig.databaseUrl,
+			superuserConnectionString: postgraphileRuntimeConfig.superuserDatabaseUrl,
 			poolConfig: {
 				application_name: 'zeepcentraal-postgraphile',
 				max: 6,
@@ -106,7 +114,7 @@ describe('buildPostGraphileServer', () => {
 		})
 	})
 
-	test('uses a distinct superuser connection only for development schema watching', () => {
+	test('uses a distinct superuser connection for development schema watching', () => {
 		expect(
 			createPostGraphilePgServiceOptions({
 				...postgraphileRuntimeConfig,
@@ -125,6 +133,15 @@ describe('buildPostGraphileServer', () => {
 			superuserConnectionString: postgraphileRuntimeConfig.superuserDatabaseUrl,
 			schemas: ['public'],
 		})
+	})
+
+	test('omits optional superuser connection when not configured', () => {
+		const options = createPostGraphilePgServiceOptions({
+			...postgraphileRuntimeConfig,
+			superuserDatabaseUrl: undefined,
+		})
+		expect(options.connectionString).toBe(postgraphileRuntimeConfig.databaseUrl)
+		expect(options).not.toHaveProperty('superuserConnectionString')
 	})
 
 	test('serves database-backed readiness separately from liveness', async () => {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test'
-import { buildSchema } from 'postgraphile/graphql'
+import { buildSchema, type GraphQLSchema } from 'postgraphile/graphql'
 import { createLiveQueryWebSocketHandlers } from './liveQueryWebSocket'
 import {
 	createQueryCostEvaluator,
@@ -47,6 +47,7 @@ function createWebSocket(protocol = 'graphql-transport-ws', headers: Record<stri
 }
 
 type HandlerOptions = {
+	schema?: () => GraphQLSchema
 	maxOperationsPerConnection?: number
 	maxConcurrentExecutions?: number
 	maxPendingMessagesPerConnection?: number
@@ -83,7 +84,9 @@ function createHandlers(
 	options: HandlerOptions = {},
 ) {
 	return createLiveQueryWebSocketHandlers({
-		schema: buildSchema(`
+		schema:
+			options.schema ??
+			buildSchema(`
 			type RecordsConnection {
 				totalCount: Int
 				nodes: [Record!]!
@@ -139,6 +142,40 @@ function getFirstVariable(variables: unknown) {
 }
 
 describe('createLiveQueryWebSocketHandlers', () => {
+	test('validates subscriptions against rebuilt schema on existing connections', async () => {
+		let schema = buildSchema('type Query { old: Int } type Subscription { old: Int }')
+		const { handlers, dispose } = createHandlers(
+			() => ({ data: { added: 1 } }),
+			undefined,
+			10,
+			undefined,
+			{ schema: () => schema },
+		)
+		const socket = createWebSocket()
+		try {
+			handlers.open(socket.ws)
+			handlers.message(socket.ws, subscribe('before', 'subscription { added }'))
+			await Bun.sleep(5)
+			expect(
+				socket.sent.some((message) => message.id === 'before' && message.type === 'error'),
+			).toBe(true)
+			schema = buildSchema('type Query { added: Int } type Subscription { added: Int }')
+			handlers.message(socket.ws, subscribe('after', 'subscription { added }'))
+			await Bun.sleep(5)
+			expect(socket.sent).toContainEqual({
+				id: 'after',
+				type: 'next',
+				payload: { data: { added: 1 } },
+			})
+			handlers.message(socket.ws, subscribe('removed', 'subscription { old }'))
+			await Bun.sleep(5)
+			expect(
+				socket.sent.some((message) => message.id === 'removed' && message.type === 'error'),
+			).toBe(true)
+		} finally {
+			await dispose()
+		}
+	})
 	test('acks connection init', async () => {
 		const { handlers } = createHandlers(() => ({ data: {} }))
 		const socket = createWebSocket()

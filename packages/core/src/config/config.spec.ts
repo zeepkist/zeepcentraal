@@ -338,15 +338,14 @@ test('postgraphile config accepts custom runtime memory controls', () => {
 	expect(config.liveQueries.maxResultBytes).toBe(262144)
 })
 
-test('postgraphile config rejects a superuser connection in production', () => {
-	expect(() =>
-		parsePostgraphileConfig({
-			NODE_ENV: 'production',
-			DATABASE_URL: 'postgres://zeepcentraal_graphql:secret@database:5432/zeepkist',
-			POSTGRAPHILE_SUPERUSER_DATABASE_URL:
-				'postgres://postgres:postgres@database:5432/zeepkist',
-		}),
-	).toThrow('POSTGRAPHILE_SUPERUSER_DATABASE_URL is forbidden in production')
+test('postgraphile config keeps separate query and fixture connections in production', () => {
+	const config = parsePostgraphileConfig({
+		NODE_ENV: 'production',
+		DATABASE_URL: 'postgres://zeepcentraal_graphql:secret@database:5432/zeepkist',
+		POSTGRAPHILE_SUPERUSER_DATABASE_URL: 'postgres://postgres:postgres@database:5432/zeepkist',
+	})
+	expect(config.databaseUrl).toBe('postgres://zeepcentraal_graphql:secret@database:5432/zeepkist')
+	expect(config.superuserDatabaseUrl).toBe('postgres://postgres:postgres@database:5432/zeepkist')
 })
 
 test('production server config rejects weak secrets', () => {

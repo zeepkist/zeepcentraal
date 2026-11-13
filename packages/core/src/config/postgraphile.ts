@@ -146,12 +146,6 @@ function resolveDatabaseUrl(env: z.infer<typeof postgraphileEnvSchema>): string 
 
 export function parsePostgraphileConfig(env: EnvSource) {
 	const parsedEnv = postgraphileEnvSchema.parse(env)
-	if (
-		parsedEnv.NODE_ENV === 'production' &&
-		parsedEnv.POSTGRAPHILE_SUPERUSER_DATABASE_URL !== undefined
-	) {
-		throw new Error('POSTGRAPHILE_SUPERUSER_DATABASE_URL is forbidden in production')
-	}
 
 	return {
 		nodeEnv: parsedEnv.NODE_ENV,

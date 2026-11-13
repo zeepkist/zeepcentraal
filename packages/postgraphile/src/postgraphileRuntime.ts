@@ -185,7 +185,7 @@ export function createPostGraphileRuntime(
 		maxQueryBytes: config.maxQueryBytes,
 	})
 	const liveQueryWebSocket = createLiveQueryWebSocketHandlers({
-		schema: Promise.resolve(handler.getSchema()),
+		schema: () => handler.getSchema(),
 		evaluateQueryCost: liveQueryCostEvaluator,
 		getExecutionScopeKey: () => 'public',
 		debounceMs: config.liveQueries.debounceMs,

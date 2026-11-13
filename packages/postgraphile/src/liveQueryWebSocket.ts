@@ -65,7 +65,10 @@ type WebSocketUpgradeContext = {
 }
 
 type LiveQueryWebSocketConfig = {
-	schema: GraphQLSchema | Promise<GraphQLSchema>
+	schema:
+		| GraphQLSchema
+		| Promise<GraphQLSchema>
+		| (() => GraphQLSchema | PromiseLike<GraphQLSchema>)
 	execute: (request: Request, body: GraphqlPayload) => Promise<unknown>
 	evaluateQueryCost?: QueryCostEvaluator
 	getExecutionScopeKey?: (request: Request) => string | Promise<string>
@@ -98,7 +101,9 @@ type LiveQueryWebSocketConfig = {
 
 export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfig) {
 	const states = new WeakMap<object, WebSocketState>()
-	const schema = Promise.resolve(config.schema)
+	const configuredSchema = config.schema
+	const getSchema =
+		typeof configuredSchema === 'function' ? configuredSchema : () => configuredSchema
 	const sharedOperations = new Map<string, SharedOperation>()
 	const initialQueue: SharedOperation[] = []
 	const rerunQueue: SharedOperation[] = []
@@ -550,7 +555,7 @@ export function createLiveQueryWebSocketHandlers(config: LiveQueryWebSocketConfi
 				return
 			}
 
-			const prepared = await prepareLiveQuery(schema, payload)
+			const prepared = await prepareLiveQuery(Promise.resolve(getSchema()), payload)
 			if (state.closed) {
 				return
 			}

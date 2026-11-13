@@ -49,7 +49,7 @@ export function createPostGraphileV4Options(config: PostGraphileRuntimeConfig) {
 		simpleCollections: 'omit' as const,
 		ignoreIndexes: true,
 		allowExplain: config.allowExplain,
-		watchPg: config.nodeEnv !== 'production',
+		watchPg: true,
 		subscriptions: config.liveQueries.enabled,
 		simpleSubscriptions: false,
 		graphileBuildOptions: {
@@ -69,7 +69,7 @@ export function createPostGraphilePgServiceOptions(config: PostGraphileRuntimeCo
 			lock_timeout: config.databaseTimeouts.lockMs,
 			idle_in_transaction_session_timeout: config.databaseTimeouts.idleTransactionMs,
 		},
-		...(config.nodeEnv !== 'production' && config.superuserDatabaseUrl
+		...(config.superuserDatabaseUrl
 			? { superuserConnectionString: config.superuserDatabaseUrl }
 			: {}),
 		schemas: ['public'],
@@ -135,7 +135,7 @@ export function createPostGraphilePreset(
 			graphiqlStaticPath: '/ruru-static/',
 			graphqlOverGET: false,
 			graphiqlOnGraphQLGET: false,
-			watch: config.nodeEnv !== 'production',
+			watch: true,
 			websockets: config.liveQueries.enabled,
 			parseAndValidateCacheSize: config.cacheMaxEntries,
 		},
