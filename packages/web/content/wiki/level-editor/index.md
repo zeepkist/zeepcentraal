@@ -25,6 +25,8 @@ The Level Editor shows control tips in the top-left corner when you enter it for
   ::
   ::content-resource-card{to="/wiki/level-editor/light-tricks" icon="sparkles" title="Light Tricks" description="Directional-light techniques for colour, world lighting, and volumetric effects."}
   ::
+  ::content-resource-card{to="/wiki/level-editor/sign-text" icon="code" title="Sign Text" description="Rich text tags for sign colours, letter styles, spacing, and layout."}
+  ::
   ::content-resource-card{to="/wiki/level-editor/pre-v18-logic-blocks" icon="code" title="Pre-V18 Logic Blocks" description="Legacy triggers, single and double input gates, truth tables, and effect gates."}
   ::
 ::
