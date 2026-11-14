@@ -1,5 +1,5 @@
 <template>
-	<div class="not-prose my-6 overflow-hidden rounded-xl border border-border bg-card/65">
+	<div class="not-prose my-6 min-w-0 max-w-full overflow-hidden rounded-xl border border-border bg-card/65">
 		<UCollapsible :default-open="false" :unmount-on-hide="false">
 			<template #default="{ open }">
 				<UButton
@@ -18,14 +18,14 @@
 			</template>
 
 			<template #content>
-				<div class="border-t border-border p-4">
+				<div ref="tabsRoot" class="min-w-0 max-w-full border-t border-border p-4">
 					<UTabs
 						v-model="activeTab"
 						:items="tabs"
 						color="primary"
 						variant="pill"
-						class="w-full"
-						:ui="{ content: 'pt-4 outline-none' }"
+						class="min-w-0 w-full max-w-full"
+						:ui="{ ...tabsUi, content: 'pt-4 outline-none' }"
 					>
 						<template #curl>
 							<div :class="contentClasses"><slot name="curl" /></div>
@@ -52,6 +52,7 @@ const props = defineProps<{
 }>()
 
 const activeTab = ref<'curl' | 'python' | 'typescript'>('curl')
+const tabsRoot = useTemplateRef<HTMLElement>('tabsRoot')
 const tabs = computed(() => [
 	{ label: props.curlLabel, slot: 'curl' as const, value: 'curl' as const },
 	{
@@ -61,6 +62,7 @@ const tabs = computed(() => [
 	},
 	{ label: props.pythonLabel, slot: 'python' as const, value: 'python' as const },
 ])
+const tabsUi = useScrollableTabs(tabsRoot, activeTab, tabs)
 const contentClasses =
 	'space-y-4 text-sm leading-6 text-toned [&_p]:m-0 [&_pre]:m-0 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-border [&_pre]:p-4 [&_code]:text-xs sm:[&_code]:text-sm'
 </script>

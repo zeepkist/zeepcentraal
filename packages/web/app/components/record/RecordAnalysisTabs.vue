@@ -1,14 +1,16 @@
 <template>
-	<section :aria-label="labels.label">
+	<section ref="tabsRoot" class="min-w-0 max-w-full" :aria-label="labels.label">
 		<UTabs
 			v-model="activeTab"
 			:items="items"
 			:aria-label="labels.label"
 			color="primary"
 			variant="pill"
-			class="w-full"
+			class="min-w-0 w-full max-w-full"
 			:ui="{
-				list: 'w-full flex-wrap justify-start rounded-xl border border-border bg-card/60 p-1.5',
+				...tabsUi,
+				list: `${tabsUi.list} rounded-xl border border-border bg-card/60 p-1.5`,
+				indicator: 'inset-y-1.5',
 				content: 'pt-6 outline-none',
 			}"
 		>
@@ -48,6 +50,7 @@ const props = defineProps<{
 type RecordAnalysisTab = 'telemetry' | 'charts' | 'analysis' | 'improvement'
 
 const activeTab = defineModel<RecordAnalysisTab>({ default: 'telemetry' })
+const tabsRoot = useTemplateRef<HTMLElement>('tabsRoot')
 const items = computed(() => [
 	{ label: props.labels.telemetry, slot: 'telemetry' as const, value: 'telemetry' as const },
 	{ label: props.labels.charts, slot: 'charts' as const, value: 'charts' as const },
@@ -58,4 +61,5 @@ const items = computed(() => [
 		value: 'improvement' as const,
 	},
 ])
+const tabsUi = useScrollableTabs(tabsRoot, activeTab, items)
 </script>

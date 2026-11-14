@@ -29,9 +29,8 @@ describe('detail section tabs', () => {
 
 	it('matches record-analysis pill styling and accepts data-fed labels', () => {
 		expect(component).toContain('variant="pill"')
-		expect(component).toContain(
-			'flex-wrap justify-start rounded-xl border border-border bg-card/60',
-		)
+		expect(component).toContain('useScrollableTabs(tabsRoot, activeTab, tabItems)')
+		expect(component).toContain('rounded-xl border border-border bg-card/60')
 		expect(component).toContain("content: 'pt-6 outline-none'")
 		expect(model).toContain('value: T')
 		expect(model).toContain('label: string')

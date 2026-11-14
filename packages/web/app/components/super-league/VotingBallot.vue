@@ -55,6 +55,8 @@ const tabItems = computed(() => openTypes.value.map(type => ({
 	slot: 'ballot' as const,
 	badge: snapshot.value?.votes[type - 1]?.length ? 'Saved' : undefined,
 })))
+const tabsRoot = useTemplateRef<HTMLElement>('tabsRoot')
+const tabsUi = useScrollableTabs(tabsRoot, activeTab, tabItems)
 const cards = computed<LevelSummary[]>(() => (snapshot.value?.candidates ?? []).map(voteCandidateLevel))
 const ownLevels = computed(() => new Set((snapshot.value?.candidates ?? [])
 	.filter(candidate => candidate.selfAuthored).map(candidate => candidate.levelId)))
@@ -138,9 +140,10 @@ await initial
 			<p v-if="savedTypes.length" class="text-sm text-muted-foreground">
 				Saved votes: {{ savedTypes.map(type => names[type - 1]).join(', ') }}.
 			</p>
-			<UTabs v-if="openTypes.length" v-model="activeTab" :items="tabItems" aria-label="Vote category"
-				color="primary" variant="pill" class="w-full"
-				:ui="{ list: 'w-full flex-wrap justify-start rounded-xl border border-border bg-card/60 p-1.5', content: 'pt-6 outline-none' }">
+			<div v-if="openTypes.length" ref="tabsRoot" class="min-w-0 max-w-full">
+			<UTabs v-model="activeTab" :items="tabItems" aria-label="Vote category"
+				color="primary" variant="pill" class="min-w-0 w-full max-w-full"
+				:ui="{ ...tabsUi, list: `${tabsUi.list} rounded-xl border border-border bg-card/60 p-1.5`, indicator: 'inset-y-1.5', content: 'pt-6 outline-none' }">
 				<template #ballot>
 					<div class="space-y-6">
 						<div v-if="voteDeadline" class="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm">
@@ -158,6 +161,7 @@ await initial
 					</div>
 				</template>
 			</UTabs>
+			</div>
 			<p v-else-if="snapshot.votingPending">Ballots are being prepared. Check back shortly.</p>
 			<p v-else>Voting has closed. Your saved ballots remain above.</p>
 		</template>

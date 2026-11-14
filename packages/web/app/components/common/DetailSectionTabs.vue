@@ -1,5 +1,5 @@
 <template>
-	<section :aria-label="label">
+	<section ref="tabsRoot" class="min-w-0 max-w-full" :aria-label="label">
 		<UTabs
 			v-model="activeTab"
 			:items="tabItems"
@@ -7,9 +7,11 @@
 			:unmount-on-hide="false"
 			color="primary"
 			variant="pill"
-			class="w-full"
+			class="min-w-0 w-full max-w-full"
 			:ui="{
-				list: 'w-full flex-wrap justify-start rounded-xl border border-border bg-card/60 p-1.5',
+				...tabsUi,
+				list: `${tabsUi.list} rounded-xl border border-border bg-card/60 p-1.5`,
+				indicator: 'inset-y-1.5',
 				content: 'pt-6 outline-none',
 			}"
 		>
@@ -32,6 +34,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: T] }>()
+const tabsRoot = useTemplateRef<HTMLElement>('tabsRoot')
 const visitedTabs = shallowReactive(new Set<T>([props.modelValue]))
 
 const activeTab = computed<T>({
@@ -54,4 +57,6 @@ const tabItems = computed(() =>
 		value: item.value,
 	})),
 )
+
+const tabsUi = useScrollableTabs(tabsRoot, activeTab, tabItems)
 </script>
