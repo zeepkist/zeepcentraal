@@ -183,6 +183,8 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
     for category in results.1["categories"].as_array().unwrap() {
         assert_eq!(category["state"], "pending");
         assert!(category["totalVotes"].is_null());
+        assert!(category.as_object().unwrap().contains_key("uniqueVoters"));
+        assert!(category["uniqueVoters"].is_null());
         assert_eq!(category["levels"], json!([]));
     }
     for path in [

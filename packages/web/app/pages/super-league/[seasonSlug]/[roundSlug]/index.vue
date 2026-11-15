@@ -37,7 +37,7 @@
 						/>
 					</template>
 				</PageHeader>
-				<ContestLinks :round-ids="[Number(round.id)]" />
+				<ContestLinks :round-ids="[Number(round.id)]" :season-id="parsedSeasonId" :current-round-id="Number(round.id)" />
 				<section>
 					<SectionHeader :title="t('zsl.levels')" :description="t('zsl.levelsDescription')" />
 					<ZslLevelGrid

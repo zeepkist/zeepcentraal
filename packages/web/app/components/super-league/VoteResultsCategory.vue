@@ -8,7 +8,9 @@ const props = defineProps<{
 	title: string
 	votedLevels: Set<number>
 	ownLevels: Set<number>
+	open: boolean
 }>()
+const emit = defineEmits<{ 'update:open': [open: boolean] }>()
 const tooltipPosition = shallowRef<{ x: number; y: number } | null>(null)
 function moveTooltip(event: PointerEvent) {
 	tooltipPosition.value = {
@@ -43,13 +45,18 @@ const tooltipName = (levelId: number) => levels.value.find((level) => level.leve
 
 <template>
 	<section :aria-labelledby="`vote-category-${category.voteType}`">
-		<SectionHeader :id="`vote-category-${category.voteType}`" :title="title">
-			<div v-if="category.state === 'published'" class="flex items-baseline gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2">
-				<span class="text-2xl font-bold tabular-nums text-primary" :data-category-total="category.voteType">{{ formatNumber(category.totalVotes ?? 0) }}</span>
-				<span class="text-sm text-muted-foreground">{{ t('zsl.voting.totalVotes') }}</span>
+		<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+			<h2 :id="`vote-category-${category.voteType}`" tabindex="-1" class="scroll-mt-28 text-xl font-semibold text-highlighted focus-visible:outline-2 focus-visible:outline-primary">
+				<button type="button" class="flex items-center gap-2 rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary"
+					:aria-expanded="open" :aria-controls="`vote-category-content-${category.voteType}`" @click="emit('update:open', !open)">
+					{{ title }}<UIcon :name="open ? 'i-tabler-chevron-up' : 'i-tabler-chevron-down'" class="size-5 shrink-0" />
+				</button>
+			</h2>
+			<div v-if="category.state === 'published'" class="rounded-xl border border-primary/20 bg-primary/5 px-4 py-2 text-sm tabular-nums text-primary" :data-category-total="category.voteType">
+				{{ t('zsl.voting.voteCount', { count: formatNumber(category.totalVotes ?? 0) }, category.totalVotes ?? 0) }} {{ t('zsl.voting.playerCount', { count: formatNumber(category.uniqueVoters ?? 0) }, category.uniqueVoters ?? 0) }}
 			</div>
-		</SectionHeader>
-		<UCard class="overflow-hidden rounded-2xl border-border/80 bg-card shadow-sm" :ui="{ body: 'p-0 sm:p-0' }">
+		</div>
+		<UCard v-show="open" :id="`vote-category-content-${category.voteType}`" class="overflow-hidden rounded-2xl border-border/80 bg-card shadow-sm" :ui="{ body: 'p-0 sm:p-0' }">
 			<div v-if="category.state === 'pending'" class="flex items-start gap-3 p-4 text-muted-foreground sm:p-6">
 				<TablerIcon name="clock" class="mt-0.5 size-5 shrink-0 text-primary" />
 				<div class="space-y-1">

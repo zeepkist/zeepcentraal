@@ -30,6 +30,7 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     let co_author = (steam_id + 2_000_000).to_string();
     let user: i32 = client.query_one("INSERT INTO public.\"user\"(steam_id,steam_name) VALUES($1,'Voter fixture') RETURNING id", &[&steam_id]).await?.get(0);
     let second_user: i32 = client.query_one("INSERT INTO public.\"user\"(steam_id,steam_name) VALUES($1,'Second voter fixture') RETURNING id", &[&(steam_id + 1_000_000)]).await?.get(0);
+    let invalid_user: i32 = client.query_one("INSERT INTO public.\"user\"(steam_id,steam_name) VALUES($1,'Invalid candidate voter') RETURNING id", &[&(steam_id + 3_000_000)]).await?.get(0);
     let mut levels = Vec::new();
     let mut hashes = Vec::new();
     for index in 0..5 {
@@ -80,6 +81,9 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     for id in [levels[0], levels[1], levels[2]] {
         client.execute("INSERT INTO zc_private.level_submission_vote(id_contest,id_user,id_level,vote_type) VALUES($1,$2,$3,1)", &[&contest.id, &second_user, &id]).await?;
     }
+    for vote_type in 1..=3_i16 {
+        client.execute("INSERT INTO zc_private.level_submission_vote(id_contest,id_user,id_level,vote_type) VALUES($1,$2,$3,$4)", &[&contest.id, &invalid_user, &levels[4], &vote_type]).await?;
+    }
     let pending = db.super_league_vote_results(round).await?.unwrap();
     assert!(
         pending
@@ -87,6 +91,7 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
             .iter()
             .all(|category| category.state == VoteResultState::Pending
                 && category.total_votes.is_none()
+                && category.unique_voters.is_none()
                 && category.levels.is_empty())
     );
     client
@@ -98,6 +103,7 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     let partial = db.super_league_vote_results(round).await?.unwrap();
     assert_eq!(partial.categories[0].state, VoteResultState::Published);
     assert_eq!(partial.categories[0].total_votes, Some(6));
+    assert_eq!(partial.categories[0].unique_voters, Some(2));
     assert_eq!(
         partial.categories[0].levels[0].author_ids,
         vec![
@@ -132,13 +138,11 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
             (levels[3], 0)
         ]
     );
-    assert!(
-        partial.categories[1..]
-            .iter()
-            .all(|category| category.state == VoteResultState::Pending
-                && category.total_votes.is_none()
-                && category.levels.is_empty())
-    );
+    assert!(partial.categories[1..].iter().all(|category| category.state
+        == VoteResultState::Pending
+        && category.total_votes.is_none()
+        && category.unique_voters.is_none()
+        && category.levels.is_empty()));
     let public = db.submission_contests(None, Some(round)).await?;
     assert_eq!(public[0]["resultTypes"], json!([1]));
     client
@@ -148,6 +152,14 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
         )
         .await?;
     let complete = db.super_league_vote_results(round).await?.unwrap();
+    assert_eq!(
+        complete
+            .categories
+            .iter()
+            .map(|category| category.unique_voters)
+            .collect::<Vec<_>>(),
+        vec![Some(2), Some(1), Some(1)]
+    );
     assert_eq!(
         complete
             .categories
@@ -190,6 +202,7 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
             .iter()
             .all(|category| category.state == VoteResultState::Unavailable
                 && category.total_votes.is_none()
+                && category.unique_voters.is_none()
                 && category.levels.is_empty())
     );
     assert!(db.super_league_vote_results(i32::MAX).await?.is_none());
@@ -203,6 +216,29 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
             .categories[0]
             .total_votes,
         Some(6)
+    );
+    client
+        .execute(
+            "DELETE FROM zc_private.level_submission_vote WHERE id_contest=$1",
+            &[&contest.id],
+        )
+        .await?;
+    let empty = db.super_league_vote_results(round).await?.unwrap();
+    assert!(
+        empty
+            .categories
+            .iter()
+            .all(|category| category.total_votes == Some(0) && category.unique_voters == Some(0))
+    );
+    client.execute("UPDATE zc_private.level_submission_validation SET valid=false WHERE id IN (SELECT id_validation FROM zc_private.level_submission_playlist_entry WHERE id_playlist=$1)", &[&playlist]).await?;
+    let no_candidates = db.super_league_vote_results(round).await?.unwrap();
+    assert!(
+        no_candidates
+            .categories
+            .iter()
+            .all(|category| category.total_votes == Some(0)
+                && category.unique_voters == Some(0)
+                && category.levels.is_empty())
     );
     client.execute("UPDATE zc_private.level_submission_contest SET state='open',finalized_at=NULL,archive_object_key=NULL,archive_sha256=NULL,archive_size=NULL WHERE id=$1", &[&contest.id]).await?;
     assert!(

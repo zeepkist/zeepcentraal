@@ -38,6 +38,8 @@ describe('anonymous vote result proxy', () => {
 				{
 					voteType: 1,
 					state: 'published',
+					totalVotes: 4,
+					uniqueVoters: 2,
 					levels: [
 						{
 							levelId: 1,

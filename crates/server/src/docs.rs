@@ -125,6 +125,10 @@ mod tests {
         assert!(schema["paths"]["/super-league/vote"]["get"].is_object());
         assert!(schema["paths"]["/super-league/vote"]["post"].is_object());
         assert!(schema["paths"]["/super-league/vote-results"]["get"].is_object());
+        assert!(
+            schema["components"]["schemas"]["VoteResultCategory"]["properties"]["uniqueVoters"]
+                .is_object()
+        );
         assert_eq!(
             schema["paths"]["/super-league/vote-results"]["get"]["parameters"][0]["required"],
             true

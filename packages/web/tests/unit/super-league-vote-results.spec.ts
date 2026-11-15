@@ -55,10 +55,25 @@ const results = (roundId: number): VoteResultsSnapshot => ({
 			state: 'published',
 			deadline: null,
 			totalVotes: 8,
+			uniqueVoters: 2,
 			levels: [level(1, 8), level(2, 0)],
 		},
-		{ voteType: 2, state: 'pending', deadline: null, totalVotes: null, levels: [] },
-		{ voteType: 3, state: 'pending', deadline: null, totalVotes: null, levels: [] },
+		{
+			voteType: 2,
+			state: 'pending',
+			deadline: null,
+			totalVotes: null,
+			uniqueVoters: null,
+			levels: [],
+		},
+		{
+			voteType: 3,
+			state: 'pending',
+			deadline: null,
+			totalVotes: null,
+			uniqueVoters: null,
+			levels: [],
+		},
 	],
 })
 afterEach(() => vi.unstubAllGlobals())

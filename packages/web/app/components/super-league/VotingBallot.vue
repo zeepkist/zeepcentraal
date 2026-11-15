@@ -16,13 +16,18 @@ const requestedRound = computed(() => {
 	return Number.isInteger(id) && id > 0 ? id : undefined
 })
 const { snapshot, pending, resolved, error, refresh, initial } = useSuperLeagueVote(requestedRound)
-const previewOverview = useSuperLeagueSubmissionOverview(requestedRound, 2000)
+const previewOverview = useSuperLeagueSubmissionOverview(requestedRound)
+const publicOverview = computed(() => {
+	const overview = previewOverview.data.value
+	if (requestedRound.value !== undefined && overview?.contest?.roundId !== requestedRound.value) return null
+	return overview
+})
 useSeoMeta({
-	title: () => `${previewOverview.data.value?.contest?.name ?? 'Super League'} | Vote`,
+	title: () => `${publicOverview.value?.contest?.name ?? 'Super League'} | Vote`,
 	description: 'Vote for community levels in Zeepkist Super League.',
 })
 useDiscordComponentEmbed(() => {
-	const contest = previewOverview.data.value?.contest
+	const contest = publicOverview.value?.contest
 	return contest ? {
 		title: `${contest.name} | Vote`,
 		description: `${contest.openTypes.length ? 'Voting open' : 'Voting closed'}${contest.zslVoteEnd ? ` | ZSL deadline ${contest.zslVoteEnd}` : ''}`,
@@ -119,12 +124,16 @@ await initial
 <template>
 	<UContainer class="space-y-6 py-8">
 		<PageHeader eyebrow="Zeepkist Super League" title="Vote for contest levels" />
+		<BallotPlaylist :overview="publicOverview" :round-id="requestedRound ?? snapshot?.roundId"
+			:pending="previewOverview.pending.value" :error="!!previewOverview.error.value" />
 		<LoginPrompt
 			v-if="session.resolved && !session.pending && !session.user"
 			:title="t('auth.loginPrompt.voteTitle')"
 			:description="t('auth.loginPrompt.voteDescription')"
 			@login="login"
 		/>
+		<BallotSubmissions v-if="!session.user" :overview="publicOverview" :pending="previewOverview.pending.value"
+			:error="previewOverview.error.value?.message ?? null" @refresh="previewOverview.refresh()" />
 		<ContestLoading v-else-if="pending" label="Loading vote categories" />
 		<UAlert v-else-if="error && !snapshot" color="error" :title="error" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />
 		<p v-else-if="resolved && !snapshot">No current contest voting period.</p>

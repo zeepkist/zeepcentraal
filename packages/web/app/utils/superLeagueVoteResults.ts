@@ -1,4 +1,11 @@
 import type { SuperLeagueVoteSnapshot } from '~/composables/useSuperLeagueVote'
+import type { SubmissionContest } from './superLeagueSubmission'
+
+export function publishedVoteContests(contests: SubmissionContest[]) {
+	return contests
+		.filter((contest) => contest.resultTypes?.length)
+		.sort((a, b) => b.seasonId - a.seasonId || b.round - a.round)
+}
 
 export type VoteResultLevel = {
 	levelId: number
@@ -15,6 +22,7 @@ export type VoteResultCategory = {
 	deadline: string | null
 	state: 'pending' | 'published' | 'unavailable'
 	totalVotes: number | null
+	uniqueVoters: number | null
 	levels: VoteResultLevel[]
 }
 

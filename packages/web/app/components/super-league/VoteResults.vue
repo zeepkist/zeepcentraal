@@ -4,6 +4,9 @@ import { Zc_ZslRoundBySeasonAndNumberDocument } from '@zeepkist/graphql/generate
 import { superLeagueRoundPath } from '#imports'
 
 const props = defineProps<{ seasonId: number; roundNumber: number }>()
+const route = useRoute()
+const router = useRouter()
+const { data: contests } = useSuperLeagueContests()
 const { t } = useAppI18n()
 const nuxtApp = useNuxtApp()
 const result = useQuery({
@@ -34,6 +37,33 @@ const breadcrumbItems = computed(() => [
 const unavailable = computed(() => !!snapshot.value && snapshot.value.categories.every((category) => category.state === 'unavailable'))
 const loadError = computed(() => result.error.value?.message ?? error.value)
 const categoryNames = computed(() => [t('zsl.voting.zsl'), t('zsl.voting.decoration'), t('zsl.voting.layout')])
+const collapsed = shallowRef(new Set<number>())
+function setOpen(voteType: number, open: boolean) {
+	const next = new Set(collapsed.value)
+	if (open) next.delete(voteType)
+	else next.add(voteType)
+	collapsed.value = next
+}
+watch(() => [props.seasonId, props.roundNumber], () => { collapsed.value = new Set() }, { flush: 'sync' })
+const mounted = shallowRef(false)
+onMounted(() => { mounted.value = true })
+async function revealCategory(hash: string) {
+	const match = /^#vote-category-([123])$/.exec(hash)
+	if (!match || !snapshot.value || pending.value || result.fetching.value || unavailable.value) return
+	setOpen(Number(match[1]), true)
+	await nextTick()
+	const heading = document.getElementById(hash.slice(1))
+	heading?.focus({ preventScroll: true })
+	heading?.scrollIntoView({ block: 'start' })
+}
+watch(() => [mounted.value, route.hash, snapshot.value?.roundId, pending.value, result.fetching.value], () => {
+	if (mounted.value) void revealCategory(route.hash)
+}, { flush: 'post' })
+function jumpToCategory(voteType: number) {
+	const hash = `#vote-category-${voteType}`
+	if (route.hash === hash) void revealCategory(hash)
+	else void router.push({ hash })
+}
 nuxtApp.runWithContext(() => useSeoMeta({
 	title: () => `${t('zsl.voting.resultsTitle')} · ${round.value?.name ?? t('zsl.roundNumber', { round: props.roundNumber })}`,
 	description: () => t('zsl.voting.description'),
@@ -52,9 +82,12 @@ useDiscordComponentEmbed(() => ({
 		<ZslBreadcrumbs :label="t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 		<PageHeader :eyebrow="round?.name" :title="t('zsl.voting.resultsTitle')" :description="t('zsl.voting.description')">
 			<template #actions>
-				<UButton :to="superLeagueRoundPath(seasonId, roundNumber)" variant="outline" color="neutral" icon="i-tabler-chevron-left">
-					{{ t('zsl.voting.backToRound') }}
-				</UButton>
+				<div class="flex max-w-full flex-wrap items-center gap-3">
+					<VoteResultsNavigation :contests="contests ?? []" :current-round-id="roundId" :season-id="seasonId" />
+					<UButton :to="superLeagueRoundPath(seasonId, roundNumber)" variant="outline" color="neutral" size="lg" icon="i-tabler-chevron-left">
+						{{ t('zsl.voting.backToRound') }}
+					</UButton>
+				</div>
 			</template>
 		</PageHeader>
 		<ContestLoading v-if="result.fetching.value || pending" :label="t('common.loading')" />
@@ -62,8 +95,13 @@ useDiscordComponentEmbed(() => ({
 			:actions="[{ label: t('zsl.voting.retry'), onClick: () => { result.executeQuery({ requestPolicy: 'network-only' }); refresh() } }]" />
 		<UAlert v-else-if="unavailable" color="neutral" variant="soft" icon="i-tabler-chart-bar" :title="t('zsl.voting.unavailable')" />
 		<div v-else-if="snapshot" class="space-y-8">
-			<VoteResultsCategory v-for="category in snapshot.categories" :key="category.voteType"
+			<nav class="flex flex-wrap gap-2" :aria-label="t('zsl.voting.categories')">
+				<UButton v-for="category in snapshot.categories" :key="category.voteType" :to="`#vote-category-${category.voteType}`"
+					variant="soft" color="neutral" @click.prevent="jumpToCategory(category.voteType)">{{ categoryNames[category.voteType - 1] }}</UButton>
+			</nav>
+			<VoteResultsCategory v-for="category in snapshot.categories" :key="`${seasonId}-${roundNumber}-${category.voteType}`"
 				:category="category" :title="categoryNames[category.voteType - 1] ?? ''"
+				:open="!collapsed.has(category.voteType)" @update:open="setOpen(category.voteType, $event)"
 				:voted-levels="markers.voted[category.voteType - 1] ?? new Set<number>()" :own-levels="markers.own" />
 		</div>
 		<UAlert v-if="loadError && snapshot" color="error" :title="t('common.error')" :description="loadError"

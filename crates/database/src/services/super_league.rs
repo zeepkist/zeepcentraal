@@ -143,6 +143,7 @@ pub struct VoteResultCategory {
     pub deadline: Option<String>,
     pub state: VoteResultState,
     pub total_votes: Option<i64>,
+    pub unique_voters: Option<i64>,
     pub levels: Vec<VoteResultLevel>,
 }
 
@@ -171,6 +172,8 @@ struct VoteResultRow {
     vote_type: i16,
     #[diesel(sql_type = BigInt)]
     votes: i64,
+    #[diesel(sql_type = BigInt)]
+    unique_voters: i64,
 }
 
 fn vote_result_category(
@@ -193,6 +196,7 @@ fn vote_result_category(
         deadline,
         state,
         total_votes,
+        unique_voters: total_votes,
         levels: Vec::new(),
     }
 }
@@ -300,12 +304,18 @@ impl Database {
                 ORDER BY author.n) AS author_names,\
             coalesce(nullif(i.image_url,''),nullif(other_image.image_url,''),nullif(wi.image_url,'')) AS image_url \
             {CANDIDATES_FROM_SQL} ORDER BY l.id,s.workshop_id,e.position), \
-            tallies AS (SELECT id_level,vote_type,count(*) AS votes \
-                FROM zc_private.level_submission_vote WHERE id_contest=$1 AND vote_type=ANY($2) \
-                GROUP BY id_level,vote_type) \
-            SELECT c.*,t.vote_type,coalesce(v.votes,0)::bigint AS votes \
+            eligible_votes AS (SELECT v.id_level,v.vote_type,v.id_user \
+                FROM zc_private.level_submission_vote v JOIN candidates c ON c.level_id=v.id_level \
+                WHERE v.id_contest=$1 AND v.vote_type=ANY($2)), \
+            tallies AS (SELECT id_level,vote_type,count(*) AS votes FROM eligible_votes \
+                GROUP BY id_level,vote_type), \
+            voters AS (SELECT vote_type,count(DISTINCT id_user) AS unique_voters \
+                FROM eligible_votes GROUP BY vote_type) \
+            SELECT c.*,t.vote_type,coalesce(v.votes,0)::bigint AS votes, \
+                coalesce(p.unique_voters,0)::bigint AS unique_voters \
             FROM candidates c CROSS JOIN unnest($2::smallint[]) t(vote_type) \
             LEFT JOIN tallies v ON v.id_level=c.level_id AND v.vote_type=t.vote_type \
+            LEFT JOIN voters p ON p.vote_type=t.vote_type \
             ORDER BY t.vote_type,votes DESC,coalesce(c.name,c.xx_hash) COLLATE \"C\",c.level_id"
         );
         for row in sql_query(query)
@@ -315,6 +325,7 @@ impl Database {
             .await?
         {
             let category = &mut snapshot.categories[(row.vote_type - 1) as usize];
+            category.unique_voters = Some(row.unique_voters);
             if let Some(total) = &mut category.total_votes {
                 *total += row.votes;
             }
@@ -493,6 +504,7 @@ mod tests {
                 result.total_votes,
                 (expected == VoteResultState::Published).then_some(0)
             );
+            assert_eq!(result.unique_voters, result.total_votes);
             assert!(result.levels.is_empty());
         }
         assert_eq!(
@@ -505,6 +517,7 @@ mod tests {
     fn public_result_serialization_contains_level_counts_and_author_names() {
         let mut category = vote_result_category(1, Some("deadline".into()), true, true, true);
         category.total_votes = Some(4);
+        category.unique_voters = Some(2);
         category.levels.push(VoteResultLevel {
             level_id: 7,
             xx_hash: "hash".into(),
@@ -517,6 +530,7 @@ mod tests {
         let value = serde_json::to_value(&category).unwrap();
         assert_eq!(value["state"], "published");
         assert_eq!(value["totalVotes"], 4);
+        assert_eq!(value["uniqueVoters"], 2);
         let level = value["levels"][0].as_object().unwrap();
         assert_eq!(
             level["authorNames"],

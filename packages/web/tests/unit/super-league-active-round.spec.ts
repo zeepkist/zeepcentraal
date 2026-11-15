@@ -66,7 +66,7 @@ describe('Super League entry redirects', () => {
 				{ redirectCode: 302, replace: true },
 			)
 		}
-		expect(lookup).toHaveBeenCalledWith('https://backend.example.test/super-league/contests', {
+		expect(lookup).toHaveBeenCalledWith('/api/super-league/contests', {
 			credentials: 'omit',
 			cache: 'no-store',
 		})

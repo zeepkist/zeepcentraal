@@ -3,7 +3,7 @@ import LevelCard from '~/components/level/LevelCard.vue'
 import type { SubmissionContest, SubmissionOverview } from '~/utils/superLeagueSubmission'
 import { downloadSubmissionPlaylist } from '~/utils/superLeagueSubmission'
 
-const props = defineProps<{ contest: SubmissionContest; overview: SubmissionOverview | null; error: string | null }>()
+const props = withDefaults(defineProps<{ contest: SubmissionContest; overview: SubmissionOverview | null; error: string | null; showDownload?: boolean }>(), { showDownload: true })
 const cards = computed(() => props.overview?.submissions.map(submission => ({
 	id: submission.id,
 	level: { ...submission.level, authorName: submission.authorNames.join(', ') },
@@ -20,7 +20,7 @@ function download() {
 	<section class="space-y-4" aria-labelledby="valid-submissions-title">
 		<div class="flex flex-wrap items-center justify-between gap-3">
 			<h2 id="valid-submissions-title" class="text-xl font-semibold text-highlighted">Valid submissions<span v-if="overview"> ({{ numberFormat.format(overview.validCount) }})</span></h2>
-			<UButton icon="i-tabler-download" :disabled="!overview?.submissions.length" @click="download">Download .zeeplist</UButton>
+			<UButton v-if="showDownload" icon="i-tabler-download" :disabled="!overview?.submissions.length" @click="download">Download .zeeplist</UButton>
 		</div>
 		<UAlert v-if="error" color="error" :title="error" :actions="[{ label: 'Try again', onClick: () => emit('refresh') }]" />
 		<p v-if="overview && !overview.submissions.length" class="text-muted-foreground">No valid submissions yet.</p>
