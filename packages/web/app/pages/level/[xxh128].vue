@@ -266,6 +266,7 @@
 								/>
 							</section>
 							<LevelWorkshopSection v-if="summary.publiclyVisible" :level-id="summary.id" />
+							<LevelSimilarSection v-if="summary.publiclyVisible" :key="summary.xxHash" :xx-hash="summary.xxHash" :viewer-id="viewerId" />
 						</template>
 
 						<template #telemetry>

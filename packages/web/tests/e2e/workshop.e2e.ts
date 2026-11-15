@@ -73,7 +73,13 @@ function connection<T>(rows: T[], variables: Record<string, unknown>) {
 
 async function mockGraphql(
 	page: Page,
-	options: { error?: boolean; empty?: boolean; unknownDetail?: boolean } = {},
+	options: {
+		error?: boolean
+		empty?: boolean
+		unknownDetail?: boolean
+		similar?: 'empty' | 'error'
+		similarReady?: Promise<void>
+	} = {},
 ) {
 	const requests: Array<{ query: string; variables: Record<string, unknown> }> = []
 	await page.route(
@@ -86,6 +92,7 @@ async function mockGraphql(
 				variables?: Record<string, unknown>
 			}
 			requests.push({ query, variables })
+			if (query.includes('query ZC_SimilarLevels(')) await options.similarReady
 			let data: object = {}
 			if (query.includes('query ZC_Workshops(')) {
 				const filter = variables.filter as
@@ -155,7 +162,7 @@ async function mockGraphql(
 			} else if (query.includes('query ZC_UserSuggestions(')) {
 				data = { users: { nodes: [author] } }
 			} else if (query.includes('query ZC_LevelDetail(')) {
-				const card = levelCard('123', 0)
+				const card = { ...levelCard('123', 0), xxHash: String(variables.xxHash) }
 				data = {
 					levelByXxHash: {
 						...card,
@@ -175,6 +182,15 @@ async function mockGraphql(
 						worldRecordGlobal: null,
 					},
 				}
+			} else if (query.includes('query ZC_SimilarLevels(')) {
+				data = {
+					levels: connection(
+						options.similar === 'empty'
+							? []
+							: Array.from({ length: 14 }, (_, index) => levelCard('123', index + 1)),
+						variables,
+					),
+				}
 			} else if (query.includes('query ZC_LevelRecords(')) {
 				data = { records: connection([], variables) }
 			}
@@ -185,9 +201,11 @@ async function mockGraphql(
 					'access-control-allow-origin': 'http://127.0.0.1:4173',
 				},
 				body: JSON.stringify(
-					options.error && query.includes('query ZC_Workshops(')
-						? { errors: [{ message: 'Workshop unavailable' }] }
-						: { data },
+					options.similar === 'error' && query.includes('query ZC_SimilarLevels(')
+						? { errors: [{ message: 'Similarity unavailable' }] }
+						: options.error && query.includes('query ZC_Workshops(')
+							? { errors: [{ message: 'Workshop unavailable' }] }
+							: { data },
 				),
 			})
 		},
@@ -319,3 +337,90 @@ test('shows unknown and invalid workshop IDs', async ({ page }) => {
 	await page.goto('/workshop/invalid')
 	await expect(page.getByText('Workshop item not found', { exact: true })).toBeVisible()
 })
+
+test('paginates similar levels independently and preserves server order', async ({ page }) => {
+	let release = () => {}
+	const similarReady = new Promise<void>((resolve) => {
+		release = resolve
+	})
+	const requests = await mockGraphql(page, { similarReady })
+	await openExplorer(page)
+	await page.getByRole('heading', { name: 'Workshop Pack 27', exact: true }).click()
+	await page.getByRole('heading', { name: 'Pack Level 1', exact: true }).click()
+	const memberships = page.getByRole('region', { name: 'Workshop items', exact: true })
+	await memberships.scrollIntoViewIfNeeded()
+	await memberships.getByRole('button', { name: 'Next', exact: true }).click()
+	const similar = page.getByRole('region', { name: 'Similar levels', exact: true })
+	await similar.scrollIntoViewIfNeeded()
+	await expect(similar.getByRole('status', { name: 'Loading data', exact: true })).toHaveCount(2)
+	await expect(similar.getByRole('button', { name: 'Next', exact: true })).toBeDisabled()
+	release()
+	const cards = similar.getByRole('heading', { level: 3 })
+	await expect(cards).toHaveText(
+		Array.from({ length: 6 }, (_, index) => `Pack Level ${index + 2}`),
+	)
+	expect(
+		await page.evaluate(() => {
+			const workshop = document.getElementById('level-workshop-heading')
+			const similar = document.getElementById('level-similar-heading')
+			return Boolean(
+				workshop &&
+					similar &&
+					workshop.compareDocumentPosition(similar) & Node.DOCUMENT_POSITION_FOLLOWING,
+			)
+		}),
+	).toBe(true)
+	expect(
+		requests.findLast((request) => request.query.includes('query ZC_SimilarLevels('))
+			?.variables,
+	).toMatchObject({
+		first: 6,
+		maxDistance: 16,
+		xxHash: 'workshop-level-101',
+		includeViewer: false,
+	})
+	await similar.getByRole('button', { name: 'Next', exact: true }).click()
+	await expect(page).toHaveURL(/similarAfter=5/)
+	await expect(cards.first()).toHaveText('Pack Level 8')
+	expect(new URL(page.url()).searchParams.get('workshopAfter')).toBe('23')
+	await page.goBack()
+	await expect(cards.first()).toHaveText('Pack Level 2')
+	await page.goForward()
+	await expect(cards.first()).toHaveText('Pack Level 8')
+	await similar.getByRole('button', { name: 'Previous', exact: true }).click()
+	await expect(cards.first()).toHaveText('Pack Level 2')
+	await similar.getByRole('button', { name: 'Last', exact: true }).click()
+	await expect(cards).toHaveCount(6)
+	await expect(cards.first()).toHaveText('Pack Level 10')
+	await expect(similar.getByRole('button', { name: 'Next', exact: true })).toBeDisabled()
+	await similar.getByRole('button', { name: 'First', exact: true }).click()
+	await expect(cards.first()).toHaveText('Pack Level 2')
+	await cards.first().click()
+	await expect(page).toHaveURL('/level/workshop-level-102')
+	await page.getByRole('region', { name: 'Similar levels', exact: true }).scrollIntoViewIfNeeded()
+	await expect
+		.poll(
+			() =>
+				requests.findLast((request) => request.query.includes('query ZC_SimilarLevels('))
+					?.variables.xxHash,
+		)
+		.toBe('workshop-level-102')
+})
+
+for (const state of ['empty', 'error'] as const) {
+	test(`shows similar levels ${state} state`, async ({ page }) => {
+		await mockGraphql(page, { similar: state })
+		await openExplorer(page)
+		await page.getByRole('heading', { name: 'Workshop Pack 27', exact: true }).click()
+		await page.getByRole('heading', { name: 'Pack Level 1', exact: true }).click()
+		const similar = page.getByRole('region', { name: 'Similar levels', exact: true })
+		await similar.scrollIntoViewIfNeeded()
+		await expect(
+			similar.getByText(
+				state === 'empty' ? 'No similar levels found' : 'Similarity unavailable',
+				{ exact: state === 'empty' },
+			),
+		).toBeVisible()
+		await expect(similar.getByRole('heading', { level: 3 })).toHaveCount(0)
+	})
+}

@@ -1569,6 +1569,11 @@
 		"detail": {
 			"notFound": "Level not found",
 			"seoDescription": "Records, medals, and statistics for {name}.",
+			"similar": {
+				"title": "Similar levels",
+				"description": "Levels with similar block composition, most similar first.",
+				"empty": "No similar levels found"
+			},
 			"tabs": {
 				"label": "Level detail sections",
 				"records": "Records",

@@ -125,6 +125,8 @@ query ZC_SimilarLevels(
 	$maxDistance: Int = 16
 	$first: Int
 	$after: Cursor
+	$last: Int
+	$before: Cursor
 	$filter: LevelFilter
 	$viewerId: Int!
 	$includeViewer: Boolean!
@@ -134,6 +136,8 @@ query ZC_SimilarLevels(
 		maxDistance: $maxDistance
 		first: $first
 		after: $after
+		last: $last
+		before: $before
 		filter: $filter
 	) {
 		edges {
@@ -144,7 +148,9 @@ query ZC_SimilarLevels(
 			}
 		}
 		pageInfo {
+			startCursor
 			endCursor
+			hasPreviousPage
 			hasNextPage
 		}
 		totalCount
