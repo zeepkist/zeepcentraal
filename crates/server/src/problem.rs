@@ -87,6 +87,9 @@ impl Problem {
 
 impl IntoResponse for Problem {
     fn into_response(self) -> Response {
+        if let Some(code) = &self.error_code {
+            crate::mod_telemetry::record_error_code(code);
+        }
         let title = self.status.canonical_reason().unwrap_or("Error");
         let body = Body {
             kind: "about:blank",

@@ -239,6 +239,7 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             crate::readiness::gate,
         ))
         .layer(cors)
+        .layer(middleware::from_fn(crate::mod_telemetry::track_request))
         .layer(middleware::from_fn(zc_telemetry::http::track_request))
         .with_state(state))
 }

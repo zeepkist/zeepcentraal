@@ -10,6 +10,7 @@ import {
 	trace,
 } from '@opentelemetry/api'
 import { getHttpErrorStatus } from './httpError'
+import { getModTraceAttributes } from './mod'
 
 export { SpanKind }
 
@@ -245,6 +246,7 @@ export function startHttpServerSpan<T>(
 					'url.full': input.url,
 					'url.path': new URL(input.url).pathname,
 					...input.attributes,
+					...getModTraceAttributes(input.headers),
 				},
 			},
 			(span) => callback(wrapSpan(span)),

@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, mock, test } from 'bun:test'
 
 const setActiveSpanAttributes = mock()
+const { getModTraceAttributes } = await import('../../../telemetry/src/mod')
 
 mock.module('@zeepkist/telemetry', () => ({
+	getModTraceAttributes,
 	setActiveSpanAttributes,
 }))
 
@@ -24,10 +26,10 @@ describe('collectHeaderMetrics', () => {
 		collectHeaderMetrics(headers)
 
 		expect(setActiveSpanAttributes).toHaveBeenCalledWith({
-			'graphql.header.X-Zeepkist-Version': '1.2.3',
-			'graphql.header.X-Zeepkist-Major-Version': '1',
-			'graphql.header.X-GTR-Version': '2.0.0',
-			'graphql.header.X-Steam-ID': '76561198000000000',
+			'mod.zeepkistVersion': '1.2.3',
+			'mod.zeepkistMajorVersion': '1',
+			'mod.version': '2.0.0',
+			'mod.steamId': '76561198000000000',
 		})
 	})
 

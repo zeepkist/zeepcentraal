@@ -8,6 +8,7 @@ pub mod ghost_validation_routes;
 pub mod kofi;
 pub mod lobby;
 pub mod lobby_runtime;
+mod mod_telemetry;
 pub mod problem;
 pub mod rate_limit;
 pub mod readiness;

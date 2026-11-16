@@ -11,6 +11,9 @@ pub fn user(
     state: &AppState,
     gtr_only: bool,
 ) -> Result<AccessTokenClaims, Problem> {
+    if gtr_only {
+        crate::mod_telemetry::mark_gtr();
+    }
     let bearer = headers
         .get(header::AUTHORIZATION)
         .and_then(|value| value.to_str().ok())
@@ -30,6 +33,9 @@ pub fn user(
         .map_err(|_| Problem::code(StatusCode::UNAUTHORIZED, AUTH_INVALID_TOKEN))?;
     if gtr_only && claims.provider != Provider::Gtr {
         return Err(Problem::code(StatusCode::UNAUTHORIZED, AUTH_INVALID_TOKEN));
+    }
+    if claims.provider == Provider::Gtr {
+        crate::mod_telemetry::mark_gtr();
     }
     Ok(claims)
 }

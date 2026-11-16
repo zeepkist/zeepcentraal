@@ -32,6 +32,9 @@ uuid.workspace = true
 scalar_api_reference.workspace = true
 
 [dev-dependencies]
+opentelemetry.workspace = true
+opentelemetry_sdk = { workspace = true, features = ["testing"] }
+tracing-opentelemetry.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 async-trait.workspace = true
 tokio-postgres = "0.7"

@@ -227,7 +227,9 @@ fn token_body(pair: zc_core::jwt::TokenPair) -> TokenBody {
 }
 
 async fn require_current_mod(state: &AppState, version: &str) -> ApiResult<()> {
-    if state.database.is_mod_outdated(version).await {
+    let outdated = state.database.is_mod_outdated(version).await;
+    crate::mod_telemetry::record_outdated(outdated);
+    if outdated {
         Err(Problem::code(StatusCode::BAD_REQUEST, AUTH_MOD_OUTDATED))
     } else {
         Ok(())

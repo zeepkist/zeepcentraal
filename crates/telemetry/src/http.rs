@@ -22,6 +22,22 @@ struct HttpMetrics {
 
 static HTTP_METRICS: OnceLock<HttpMetrics> = OnceLock::new();
 
+pub fn mod_trace_attributes(headers: &HeaderMap) -> Vec<KeyValue> {
+    [
+        ("x-gtr-version", "mod.version"),
+        ("x-zeepkist-version", "mod.zeepkistVersion"),
+        ("x-zeepkist-major-version", "mod.zeepkistMajorVersion"),
+        ("x-steam-id", "mod.steamId"),
+    ]
+    .into_iter()
+    .filter_map(|(header, attribute)| {
+        let value = headers.get(header)?.to_str().ok()?;
+        (!value.trim().is_empty() && value.bytes().all(|byte| (0x20..=0x7e).contains(&byte)))
+            .then(|| KeyValue::new(attribute, value.to_owned()))
+    })
+    .collect()
+}
+
 pub async fn track_request(request: Request, next: Next) -> Response {
     let method = request.method().to_string();
     let path = request.uri().path().to_owned();
@@ -47,8 +63,13 @@ pub async fn track_request(request: Request, next: Next) -> Response {
         network.protocol.version = protocol,
         http.response.status_code = tracing::field::Empty,
         server.duration_ms = tracing::field::Empty,
+        mod.outdated = tracing::field::Empty,
+        mod.errorCode = tracing::field::Empty,
     );
     let _ = span.set_parent(parent);
+    for attribute in mod_trace_attributes(request.headers()) {
+        span.set_attribute(attribute.key, attribute.value);
+    }
     span.record("otel.name", format_args!("{method} {route}"));
 
     let metrics = metrics();
@@ -154,6 +175,41 @@ mod tests {
         assert_eq!(protocol_version(Version::HTTP_2), "2");
     }
 
+    #[test]
+    fn extracts_only_valid_mod_headers_as_strings() {
+        let mut headers = HeaderMap::new();
+        assert!(mod_trace_attributes(&headers).is_empty());
+        for (header, value) in [
+            ("X-GtR-Version", "2.0.0"),
+            ("X-Zeepkist-Version", "1.2.3"),
+            ("X-Zeepkist-Major-Version", "1"),
+            ("X-Steam-ID", "76561198000000001"),
+            ("authorization", "Bearer fake"),
+        ] {
+            headers.insert(
+                axum::http::HeaderName::from_bytes(header.as_bytes()).unwrap(),
+                value.parse().unwrap(),
+            );
+        }
+        assert_eq!(
+            mod_trace_attributes(&headers),
+            vec![
+                KeyValue::new("mod.version", "2.0.0"),
+                KeyValue::new("mod.zeepkistVersion", "1.2.3"),
+                KeyValue::new("mod.zeepkistMajorVersion", "1"),
+                KeyValue::new("mod.steamId", "76561198000000001"),
+            ]
+        );
+        headers.insert("x-gtr-version", "".parse().unwrap());
+        headers.insert("x-zeepkist-version", "  ".parse().unwrap());
+        headers.insert("x-zeepkist-major-version", "\t".parse().unwrap());
+        headers.insert(
+            "x-steam-id",
+            axum::http::HeaderValue::from_bytes(b"\xff").unwrap(),
+        );
+        assert!(mod_trace_attributes(&headers).is_empty());
+    }
+
     #[tokio::test]
     async fn exports_safe_success_and_failure_spans_and_metrics() {
         let span_exporter = InMemorySpanExporter::default();
@@ -181,6 +237,8 @@ mod tests {
         let ok = HttpRequest::builder()
             .uri("/ok/42?token=super-secret")
             .header("authorization", "Bearer private")
+            .header("X-GTR-Version", "2.0.0")
+            .header("X-Steam-ID", "76561198000000001")
             .header(
                 "traceparent",
                 "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
@@ -225,11 +283,33 @@ mod tests {
         assert!(success_attributes.contains("/ok/42"));
         assert!(!success_attributes.contains("super-secret"));
         assert!(!success_attributes.contains("private"));
+        assert!(
+            success
+                .attributes
+                .contains(&KeyValue::new("mod.version", "2.0.0"))
+        );
+        assert!(
+            success
+                .attributes
+                .contains(&KeyValue::new("mod.steamId", "76561198000000001"))
+        );
+        assert!(
+            !success
+                .attributes
+                .iter()
+                .any(|attribute| attribute.key.as_str().starts_with("graphql.header."))
+        );
         let failure = requests
             .iter()
             .find(|span| span.name == "GET /fail")
             .unwrap();
         assert!(matches!(failure.status, Status::Error { .. }));
+        assert!(
+            !failure
+                .attributes
+                .iter()
+                .any(|attribute| attribute.key.as_str().starts_with("mod."))
+        );
 
         let metrics = format!("{:?}", metric_exporter.get_finished_metrics().unwrap());
         assert!(metrics.contains("http.server.request.duration"));
