@@ -144,11 +144,9 @@ async fn run_lane(
                 let queue = queue.clone();
                 let handler = handler.clone();
                 active.spawn(async move {
-                    zc_telemetry::observe_operation(
-                        "jobs.execute",
-                        execute(queue, handler, job, lane),
-                    )
-                    .await
+                    let operation = job_operation_name(&job.task);
+                    zc_telemetry::observe_operation(operation, execute(queue, handler, job, lane))
+                        .await
                 });
             }
         }
@@ -198,6 +196,12 @@ async fn run_lane(
         }
     }
     Ok(())
+}
+
+fn job_operation_name(task: &str) -> &'static str {
+    TaskIdentifier::parse(task)
+        .map(TaskIdentifier::as_str)
+        .unwrap_or("jobs.execute")
 }
 
 async fn execute(
@@ -284,6 +288,19 @@ mod tests {
     use super::*;
     use std::future::pending;
     use tokio::sync::oneshot;
+
+    #[test]
+    fn job_operations_use_canonical_task_names() {
+        for task in TaskIdentifier::ALL {
+            assert_eq!(job_operation_name(task.as_str()), task.as_str());
+        }
+    }
+
+    #[test]
+    fn unknown_job_operations_use_bounded_fallback() {
+        assert_eq!(job_operation_name("unknownTask"), "jobs.execute");
+        assert_eq!(job_operation_name(""), "jobs.execute");
+    }
 
     struct SignalOnDrop(Option<oneshot::Sender<()>>);
 

@@ -137,6 +137,7 @@ impl ManagedRoomConfig {
 }
 
 /// One supervisor and one physical room for each enabled practice/tournament pair.
+/// Submissions keep their own controller and room key, even for the same round.
 pub fn controller_rooms(rooms: &[ManagedRoomConfig]) -> Result<Vec<ManagedRoomConfig>> {
     let mut paired = HashSet::new();
     let mut result = Vec::new();
@@ -191,6 +192,78 @@ mod tests {
         format!(
             r#"{{"key":"{key}","profile":{{"type":"track-tournament","tournamentType":"weekly"}},"room":{{"name":"Room","isPublic":true,"maxPlayers":64}},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}}"#
         )
+    }
+
+    #[test]
+    fn submissions_coexist_with_practice_and_tournament_in_any_order() -> Result<()> {
+        let make_room = |key: &str, profile: RoomProfile| -> Result<ManagedRoomConfig> {
+            let mut config: ManagedRoomConfig = serde_json::from_str(&room(key))?;
+            config.round_time_seconds = if matches!(profile, RoomProfile::Zsl { .. }) {
+                420
+            } else {
+                900
+            };
+            config.profile = profile;
+            Ok(config)
+        };
+        let practice = make_room(
+            "practice",
+            RoomProfile::ZslPractice {
+                round_id: 50,
+                playlist: "https://example.com/z.zeeplist".into(),
+            },
+        )?;
+        let tournament = make_room(
+            "tournament",
+            RoomProfile::Zsl {
+                round_id: 50,
+                playlist: "https://example.com/z.zeeplist".into(),
+            },
+        )?;
+        let mut submissions =
+            make_room("submissions", RoomProfile::ZslSubmissions { round_id: 50 })?;
+        // Only practice/tournament settings must agree.
+        submissions.room.max_players = 32;
+        submissions.room.is_public = false;
+        for profiles in [
+            vec![practice.clone()],
+            vec![tournament.clone()],
+            vec![practice.clone(), tournament.clone()],
+            vec![tournament.clone(), practice.clone()],
+        ] {
+            for position in 0..=profiles.len() {
+                let mut rooms = profiles.clone();
+                rooms.insert(position, submissions.clone());
+                LobbyHostFileConfig {
+                    version: 1,
+                    rooms: rooms.clone(),
+                }
+                .validate()?;
+                let controllers = controller_rooms(&rooms)?;
+                assert_eq!(controllers.len(), 2);
+                assert_eq!(
+                    controllers.iter().find(|room| room.key == "submissions"),
+                    Some(&submissions)
+                );
+                let event = controllers
+                    .iter()
+                    .find(|room| room.key != "submissions")
+                    .unwrap();
+                assert_eq!(
+                    event.key,
+                    if profiles[0].key == "tournament" && profiles.len() == 1 {
+                        "tournament"
+                    } else {
+                        "practice"
+                    }
+                );
+                assert_eq!(
+                    event.paired_tournament.as_deref(),
+                    (profiles.len() == 2).then_some(&tournament)
+                );
+            }
+        }
+        Ok(())
     }
     #[test]
     fn pairs_one_controller_and_rejects_ambiguous_or_incompatible_rooms() -> Result<()> {

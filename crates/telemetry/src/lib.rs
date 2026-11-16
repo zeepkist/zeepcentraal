@@ -46,6 +46,7 @@ pub async fn observe_operation<T, E>(
 ) -> Result<T, E> {
     let span = tracing::info_span!(
         "service.operation",
+        otel.name = name,
         operation = name,
         otel.status_code = tracing::field::Empty,
     );

@@ -168,6 +168,54 @@ mod tests {
     use super::*;
 
     #[test]
+    fn reloading_zsl_pair_does_not_restart_submissions() -> anyhow::Result<()> {
+        use zc_lobby_host::config::{LobbyHostFileConfig, RoomProfile, controller_rooms};
+
+        let submissions = LobbyHostFileConfig::parse(r#"{"version":1,"rooms":[
+            {"key":"submissions","profile":{"type":"zsl-submissions","roundId":50},"room":{"name":"Submissions","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}]}"#)?.rooms.remove(0);
+        let mut practice = submissions.clone();
+        practice.key = "practice".into();
+        practice.profile = RoomProfile::ZslPractice {
+            round_id: 50,
+            playlist: "https://example.com/z.zeeplist".into(),
+        };
+        let mut tournament = practice.clone();
+        tournament.key = "tournament".into();
+        tournament.round_time_seconds = 420;
+        tournament.profile = RoomProfile::Zsl {
+            round_id: 50,
+            playlist: "https://example.com/z.zeeplist".into(),
+        };
+        let rooms = vec![submissions, practice, tournament];
+        let old = controller_rooms(&rooms)?;
+        for index in 0..rooms.len() {
+            let mut next = rooms.clone();
+            next[index].room.name.push_str(" updated");
+            let next = controller_rooms(&next)?;
+            assert_eq!(
+                changed_room_keys(old.iter(), &next),
+                [if index == 0 {
+                    "submissions"
+                } else {
+                    "practice"
+                }]
+            );
+            let mut next = rooms.clone();
+            next[index].enabled = false;
+            let next = controller_rooms(&next)?;
+            assert_eq!(
+                changed_room_keys(old.iter(), &next),
+                [if index == 0 {
+                    "submissions"
+                } else {
+                    "practice"
+                }]
+            );
+        }
+        Ok(())
+    }
+
+    #[test]
     fn reload_changes_only_modified_or_removed_rooms() -> anyhow::Result<()> {
         let old = zc_lobby_host::config::LobbyHostFileConfig::parse(r#"{"version":1,"rooms":[
             {"key":"weekly","profile":{"type":"track-tournament","tournamentType":"weekly"},"room":{"name":"Weekly","isPublic":true,"maxPlayers":64},"roundTimeSeconds":900,"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000},

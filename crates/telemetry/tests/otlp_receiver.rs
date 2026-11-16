@@ -16,6 +16,7 @@ use opentelemetry_proto::tonic::{
     },
     common::v1::any_value::Value,
     resource::v1::Resource,
+    trace::v1::status::StatusCode,
 };
 use std::sync::{
     Arc, Mutex,
@@ -120,11 +121,48 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
     let telemetry = zc_telemetry::initialize("server")?;
     zc_telemetry::observe_operation("test.operation", async { Ok::<(), anyhow::Error>(()) })
         .await?;
+    zc_telemetry::observe_operation("prepareZslWarmupPlaylist", async {
+        Ok::<(), anyhow::Error>(())
+    })
+    .await?;
+    let error = zc_telemetry::observe_operation("test.error", async {
+        Err::<(), _>(anyhow::anyhow!("test operation failed"))
+    })
+    .await
+    .unwrap_err();
+    assert_eq!(error.to_string(), "test operation failed");
     tracing::error!("OTLP receiver test error event");
     telemetry.force_flush().await?;
 
     {
         let captured = collector.captured.lock().unwrap();
+        let spans = captured
+            .traces
+            .iter()
+            .flat_map(|request| &request.resource_spans)
+            .filter(|resource| has_service_name(resource.resource.as_ref()))
+            .flat_map(|resource| &resource.scope_spans)
+            .flat_map(|scope| &scope.spans)
+            .collect::<Vec<_>>();
+        for name in ["test.operation", "prepareZslWarmupPlaylist", "test.error"] {
+            let matching = spans
+                .iter()
+                .filter(|span| span.name == name)
+                .collect::<Vec<_>>();
+            assert_eq!(matching.len(), 1, "expected one span named {name}");
+            let span = matching[0];
+            assert!(span.attributes.iter().any(|attribute| {
+                attribute.key == "operation"
+                    && matches!(
+                        attribute.value.as_ref().and_then(|value| value.value.as_ref()),
+                        Some(Value::StringValue(value)) if value == name
+                    )
+            }));
+            if name == "test.error" {
+                assert_eq!(span.status.as_ref().unwrap().code, StatusCode::Error as i32);
+            }
+        }
+        assert!(spans.iter().all(|span| span.name != "service.operation"));
         assert!(
             captured
                 .traces
