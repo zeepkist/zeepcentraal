@@ -117,7 +117,8 @@ export function applyMedalFixtures(
 			: hash.startsWith('medal-fixture-level-')
 				? hash.slice('medal-fixture-level-'.length)
 				: ''
-	const headerMedal = headerMedals[headerVariant]
+	const pendingVariant = /^(locked-\d+|settling|calculating)$/.test(headerVariant)
+	const headerMedal = headerMedals[pendingVariant ? 'apex' : headerVariant]
 	if (query.includes('ZC_LevelDetail') && headerMedal)
 		data.levelByXxHash = {
 			...level,
@@ -128,9 +129,17 @@ export function applyMedalFixtures(
 					(item) => ({
 						...item,
 						validationTimeAuthor: 40,
-						validationTimeExpert: 38.251,
-						validationTimeApex: 36.433,
-						medalDueAt: null,
+						validationTimeExpert: pendingVariant ? null : 38.251,
+						validationTimeApex: pendingVariant ? null : 36.433,
+						medalEligiblePbCount: headerVariant.startsWith('locked-')
+							? Number(headerVariant.slice('locked-'.length))
+							: 10,
+						medalDueAt:
+							headerVariant === 'settling'
+								? new Date(Date.now() + 4648 * 60_000).toISOString()
+								: headerVariant === 'calculating'
+									? '2026-01-01T00:00:00Z'
+									: null,
 						medalCalculatedAt: '2026-11-12T00:00:00Z',
 						medalCalculationVersion: 2,
 					}),

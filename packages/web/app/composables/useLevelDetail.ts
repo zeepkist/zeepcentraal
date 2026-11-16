@@ -275,6 +275,7 @@ export function useLevelDetail(xxHash: Ref<string>, viewerId: Ref<number | undef
 						expert: item.validationTimeExpert,
 						apex: item.validationTimeApex,
 						dueAt: item.medalDueAt == null ? null : String(item.medalDueAt),
+						eligiblePbCount: item.medalEligiblePbCount,
 					}
 				: null,
 		}

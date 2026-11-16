@@ -24,6 +24,7 @@ query ZC_LevelDetail($xxHash: String!, $now: Datetime!, $viewerId: Int!, $includ
 				validationTimeExpert
 				validationTimeApex
 				medalDueAt
+				medalEligiblePbCount
 				medalCalculatedAt
 				medalCalculationVersion
 				author {

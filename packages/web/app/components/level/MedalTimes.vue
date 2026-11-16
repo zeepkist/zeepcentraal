@@ -8,19 +8,21 @@
 				width="48"
 				height="48"
 				densities="1x 2x"
-				class="h-12 w-12 object-contain"
+				class="h-12 w-12 shrink-0 object-contain"
 			/>
-			<div>
+			<div class="min-w-0">
 				<p class="text-sm text-muted-foreground">{{ medal.label }}</p>
-				<p class="mt-1 text-xl font-bold tabular-nums">{{ medal.time == null ? t(times.dueAt ? 'medals.settling' : 'medals.unavailable') : formatTime(medal.time) }}</p>
+				<p class="mt-1 text-xl font-bold tabular-nums">{{ medal.time == null ? pendingLabel : formatTime(medal.time) }}</p>
 			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
+import { useMounted } from '@vueuse/core'
+import { useRecordDateNow } from '~/composables/useRecordDateNow'
 import type { MedalTimes } from '~/types/app'
-import { MEDALS } from '~/utils/medals'
+import { formatMedalSettlementDuration, MEDALS } from '~/utils/medals'
 
 const props = defineProps<{
 	times: MedalTimes
@@ -28,6 +30,21 @@ const props = defineProps<{
 }>()
 
 const { t } = useAppI18n()
+const clock = useRecordDateNow()
+const mounted = useMounted()
+// Serialize the server timestamp so the first client render matches SSR across minute boundaries.
+const initialNow = useState('medal-status-now', () => Date.now())
+const pendingLabel = computed(() => {
+	if (!props.times.dueAt) {
+		const count = Math.max(0, 10 - (props.times.eligiblePbCount ?? 0))
+		return t('medals.authorMedalsToUnlock', { count }, count)
+	}
+	const now = mounted.value ? clock.value.getTime() : initialNow.value
+	const remaining = Date.parse(props.times.dueAt) - now
+	return remaining > 0
+		? t('medals.settlesIn', { duration: formatMedalSettlementDuration(remaining) })
+		: t('medals.calculating')
+})
 const medals = computed(() => MEDALS.map(medal => ({
 	...medal,
 	label: medal.key === 'expert' || medal.key === 'apex' ? t(medal.labelKey) : props.labels[medal.key],

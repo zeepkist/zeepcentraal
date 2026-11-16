@@ -31,6 +31,7 @@ export type MedalTimes = {
 	expert?: number | null
 	apex?: number | null
 	dueAt?: string | null
+	eligiblePbCount?: number
 }
 
 export type RecordResultStatus = 'personal-best' | 'world-record'

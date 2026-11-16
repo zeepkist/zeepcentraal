@@ -1889,7 +1889,8 @@
 		"distribution": "Medal distribution",
 		"description": "Highest medal earned on each available level.",
 		"empty": "No eligible personal bests on available levels.",
-		"settling": "Settling",
-		"unavailable": "Not available"
+		"settlesIn": "Settles in {duration}",
+		"calculating": "Calculating",
+		"authorMedalsToUnlock": "{count} Author medals to unlock | {count} Author medal to unlock | {count} Author medals to unlock"
 	}
 }

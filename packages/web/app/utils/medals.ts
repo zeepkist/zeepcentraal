@@ -55,6 +55,14 @@ export const MEDALS = [
 export type MedalKey = (typeof MEDALS)[number]['key']
 export type MedalCounts = Record<MedalKey | 'none', number>
 
+export function formatMedalSettlementDuration(milliseconds: number): string {
+	const totalMinutes = Math.max(0, Math.ceil(milliseconds / 60_000))
+	const days = Math.floor(totalMinutes / 1440)
+	const hours = Math.floor(totalMinutes / 60) % 24
+	const minutes = totalMinutes % 60
+	return `${days ? `${days}d ` : ''}${days || hours ? `${hours}h ` : ''}${minutes}m`
+}
+
 export function mapMedalCounts(
 	value?: {
 		medalApex?: number | null
