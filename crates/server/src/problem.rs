@@ -87,9 +87,6 @@ impl Problem {
 
 impl IntoResponse for Problem {
     fn into_response(self) -> Response {
-        if let Some(code) = &self.error_code {
-            crate::mod_telemetry::record_error_code(code);
-        }
         let title = self.status.canonical_reason().unwrap_or("Error");
         let body = Body {
             kind: "about:blank",
@@ -99,6 +96,7 @@ impl IntoResponse for Problem {
             error_code: self.error_code.as_ref(),
         };
         let mut response = (self.status, Json(body)).into_response();
+        crate::mod_telemetry::record_problem_response(&mut response, self.error_code.as_ref());
         response.headers_mut().insert(
             header::CONTENT_TYPE,
             HeaderValue::from_static("application/problem+json"),

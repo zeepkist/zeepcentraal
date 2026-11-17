@@ -386,6 +386,106 @@ pub struct RecordSubmissionBody {
     mod_version: String,
 }
 
+impl RecordSubmissionBody {
+    pub(super) fn diagnostics(&self) -> crate::mod_telemetry::RecordSubmissionDiagnostics {
+        let mut snapshot = crate::mod_telemetry::RecordSubmissionDiagnostics::new(
+            self.time,
+            self.ghost_data.len(),
+        );
+        for (key, field, value) in [
+            ("record.Level", "Level", Some(self.level.as_str())),
+            ("record.Hash", "Hash", Some(self.hash.as_str())),
+            (
+                "record.WorkshopId",
+                "WorkshopId",
+                self.workshop_id.as_deref(),
+            ),
+            (
+                "record.GameVersion",
+                "GameVersion",
+                Some(self.game_version.as_str()),
+            ),
+            (
+                "record.ModVersion",
+                "ModVersion",
+                Some(self.mod_version.as_str()),
+            ),
+        ] {
+            snapshot.string(key, field, value);
+        }
+        snapshot.array("record.Splits", "Splits", &self.splits);
+        snapshot.array("record.Speeds", "Speeds", &self.speeds);
+        snapshot
+    }
+
+    pub(super) fn decode_ghost(&self) -> ApiResult<Vec<u8>> {
+        let bytes = STANDARD
+            .decode(&self.ghost_data)
+            .map_err(|_| submission_parameter_problem(&["GhostData.invalid_base64"]))?;
+        ensure_submission_ghost_size(bytes.len())?;
+        Ok(bytes)
+    }
+
+    fn parameter_errors(
+        &self,
+        valid_workshop_id: bool,
+        decoded_size: Option<usize>,
+    ) -> Vec<&'static str> {
+        use zc_core::ghosts::MAX_GHOST_COMPRESSED_BYTES;
+        [
+            (self.level.is_empty(), "Level.empty"),
+            (!valid_xxh128(&self.hash), "Hash.invalid"),
+            (!valid_workshop_id, "WorkshopId.invalid"),
+            (!self.time.is_finite() || self.time <= 0.0, "Time.invalid"),
+            (
+                self.splits.iter().any(|value| !value.is_finite()),
+                "Splits.non_finite",
+            ),
+            (
+                self.speeds.iter().any(|value| !value.is_finite()),
+                "Speeds.non_finite",
+            ),
+            (self.ghost_data.is_empty(), "GhostData.empty"),
+            (
+                !self.ghost_data.len().is_multiple_of(4),
+                "GhostData.invalid_base64_length",
+            ),
+            (
+                decoded_size.is_none_or(|size| size > MAX_GHOST_COMPRESSED_BYTES),
+                "GhostData.compressed_size_limit",
+            ),
+            (self.game_version.is_empty(), "GameVersion.empty"),
+            (self.mod_version.is_empty(), "ModVersion.empty"),
+        ]
+        .into_iter()
+        .filter_map(|(invalid, reason)| invalid.then_some(reason))
+        .collect()
+    }
+}
+
+fn submission_parameter_problem(errors: &[&'static str]) -> Problem {
+    crate::mod_telemetry::submission_validation_errors(errors);
+    Problem::code(
+        StatusCode::BAD_REQUEST,
+        crate::problem::RECORD_SUBMIT_MISSING_PARAMS,
+    )
+}
+
+pub(super) fn ensure_submission_ghost_size(length: usize) -> ApiResult<()> {
+    if length > zc_core::ghosts::MAX_GHOST_COMPRESSED_BYTES {
+        return Err(submission_parameter_problem(&[
+            "GhostData.compressed_size_limit",
+        ]));
+    }
+    Ok(())
+}
+
+pub(super) fn submission_ghost_result(
+    result: Result<zc_core::ghosts::ParsedGhost, zc_core::ghosts::GhostError>,
+) -> ApiResult<zc_core::ghosts::ParsedGhost> {
+    result.map_err(|_| submission_parameter_problem(&["GhostData.invalid_ghost"]))
+}
+
 #[utoipa::path(
     post,
     path = "/record/submit",
@@ -397,9 +497,11 @@ pub async fn submit_record(
     headers: HeaderMap,
     Json(body): Json<RecordSubmissionBody>,
 ) -> ApiResult<StatusCode> {
-    use crate::problem::{RECORD_SUBMIT_FAILED, RECORD_SUBMIT_MISSING_PARAMS};
+    use crate::problem::RECORD_SUBMIT_FAILED;
     use sha2::{Digest, Sha256};
-    use zc_core::ghosts::{MAX_GHOST_COMPRESSED_BYTES, calculate_ghost_statistics, parse_ghost};
+    use zc_core::ghosts::{calculate_ghost_statistics, parse_ghost};
+
+    crate::mod_telemetry::capture_submission(|| body.diagnostics());
 
     let workshop_id = body
         .workshop_id
@@ -417,35 +519,13 @@ pub async fn submit_record(
         .checked_mul(3)
         .map(|value| value / 4)
         .and_then(|value| value.checked_sub(padding));
-    if body.level.is_empty()
-        || !valid_xxh128(&body.hash)
-        || !valid_workshop_id
-        || !body.time.is_finite()
-        || body.time <= 0.0
-        || body.splits.iter().any(|value| !value.is_finite())
-        || body.speeds.iter().any(|value| !value.is_finite())
-        || body.ghost_data.is_empty()
-        || body.ghost_data.len() % 4 != 0
-        || decoded_size.is_none_or(|size| size > MAX_GHOST_COMPRESSED_BYTES)
-        || body.game_version.is_empty()
-        || body.mod_version.is_empty()
-    {
-        return Err(Problem::code(
-            StatusCode::BAD_REQUEST,
-            RECORD_SUBMIT_MISSING_PARAMS,
-        ));
+    let parameter_errors = body.parameter_errors(valid_workshop_id, decoded_size);
+    if !parameter_errors.is_empty() {
+        return Err(submission_parameter_problem(&parameter_errors));
     }
     require_current_mod(&state, &body.mod_version).await?;
     let user = authenticated_user(&state, &headers, true).await?;
-    let ghost_bytes = STANDARD
-        .decode(&body.ghost_data)
-        .map_err(|_| Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_MISSING_PARAMS))?;
-    if ghost_bytes.len() > MAX_GHOST_COMPRESSED_BYTES {
-        return Err(Problem::code(
-            StatusCode::BAD_REQUEST,
-            RECORD_SUBMIT_MISSING_PARAMS,
-        ));
-    }
+    let ghost_bytes = body.decode_ghost()?;
 
     let retained_bytes = state
         .record_upload_bytes
@@ -468,8 +548,8 @@ pub async fn submit_record(
     let parser_bytes = ghost_bytes.clone();
     let ghost = tokio::task::spawn_blocking(move || parse_ghost(&parser_bytes))
         .await
-        .map_err(|error| Problem::internal(error.into()))?
-        .map_err(|_| Problem::code(StatusCode::BAD_REQUEST, RECORD_SUBMIT_MISSING_PARAMS))?;
+        .map_err(|error| Problem::internal(error.into()))?;
+    let ghost = submission_ghost_result(ghost)?;
     let checked_at = state
         .database
         .validation_check_timestamp_for_hash(&body.hash)
@@ -1221,6 +1301,73 @@ fn session_cookies(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn record_body() -> RecordSubmissionBody {
+        serde_json::from_value(serde_json::json!({
+            "Level":"level", "Hash":"0123456789ABCDEF0123456789ABCDEF", "Time":42.0,
+            "Splits":[1.0], "Speeds":[2.0], "GhostData":"AAAA", "GameVersion":"1", "ModVersion":"2"
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn identifies_each_record_parameter_failure_without_changing_acceptance() {
+        use zc_core::ghosts::MAX_GHOST_COMPRESSED_BYTES;
+        type ParameterMutation = fn(&mut RecordSubmissionBody);
+        let cases: &[(&str, ParameterMutation)] = &[
+            ("Level.empty", |body| body.level.clear()),
+            ("Hash.invalid", |body| body.hash = "bad".into()),
+            ("Time.invalid", |body| body.time = 0.0),
+            ("Time.invalid", |body| body.time = -1.0),
+            ("Time.invalid", |body| body.time = f32::INFINITY),
+            ("Splits.non_finite", |body| body.splits = vec![f32::NAN]),
+            ("Speeds.non_finite", |body| {
+                body.speeds = vec![f32::INFINITY]
+            }),
+            ("GhostData.empty", |body| body.ghost_data.clear()),
+            ("GhostData.invalid_base64_length", |body| {
+                body.ghost_data = "A".into()
+            }),
+            ("GameVersion.empty", |body| body.game_version.clear()),
+            ("ModVersion.empty", |body| body.mod_version.clear()),
+        ];
+        for (reason, mutate) in cases {
+            let mut body = record_body();
+            mutate(&mut body);
+            assert_eq!(body.parameter_errors(true, Some(3)), vec![*reason]);
+        }
+        let body = record_body();
+        assert!(body.parameter_errors(true, Some(3)).is_empty());
+        assert_eq!(
+            body.parameter_errors(false, Some(3)),
+            vec!["WorkshopId.invalid"]
+        );
+        for size in [None, Some(MAX_GHOST_COMPRESSED_BYTES + 1)] {
+            assert_eq!(
+                body.parameter_errors(true, size),
+                vec!["GhostData.compressed_size_limit"]
+            );
+        }
+        assert!(
+            body.parameter_errors(true, Some(MAX_GHOST_COMPRESSED_BYTES))
+                .is_empty()
+        );
+        assert!(ensure_submission_ghost_size(MAX_GHOST_COMPRESSED_BYTES).is_ok());
+        assert_eq!(
+            ensure_submission_ghost_size(MAX_GHOST_COMPRESSED_BYTES + 1)
+                .unwrap_err()
+                .error_code,
+            Some(crate::problem::RECORD_SUBMIT_MISSING_PARAMS.into())
+        );
+        let mut body = record_body();
+        body.level.clear();
+        body.hash.clear();
+        body.time = 0.0;
+        assert_eq!(
+            body.parameter_errors(true, Some(3)),
+            vec!["Level.empty", "Hash.invalid", "Time.invalid"]
+        );
+    }
 
     #[test]
     fn validates_existing_v1_hash_and_workshop_contracts() {

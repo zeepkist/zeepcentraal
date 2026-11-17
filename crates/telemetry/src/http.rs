@@ -65,6 +65,20 @@ pub async fn track_request(request: Request, next: Next) -> Response {
         server.duration_ms = tracing::field::Empty,
         mod.outdated = tracing::field::Empty,
         mod.errorCode = tracing::field::Empty,
+        record.Level = tracing::field::Empty,
+        record.Hash = tracing::field::Empty,
+        record.WorkshopId = tracing::field::Empty,
+        record.Time = tracing::field::Empty,
+        record.Splits = tracing::field::Empty,
+        record.Speeds = tracing::field::Empty,
+        record.GhostData = tracing::field::Empty,
+        record.GameVersion = tracing::field::Empty,
+        record.ModVersion = tracing::field::Empty,
+        record.GhostDataLength = tracing::field::Empty,
+        record.unsetFields = tracing::field::Empty,
+        record.truncatedFields = tracing::field::Empty,
+        record.originalLengths = tracing::field::Empty,
+        record.validationErrors = tracing::field::Empty,
     );
     let _ = span.set_parent(parent);
     for attribute in mod_trace_attributes(request.headers()) {

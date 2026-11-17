@@ -163,6 +163,41 @@ async fn gtr_errors_and_headers_preserve_http_contracts() -> Result<()> {
             attribute.key.as_str(),
             "mod.outdated" | "mod.version" | "mod.steamId"
         )));
+        if path == "/record/submit" && code == 19 {
+            assert!(span.attributes.contains(&KeyValue::new("record.Level", "")));
+            assert!(span.attributes.contains(&KeyValue::new("record.Time", 0.0)));
+            assert!(
+                span.attributes
+                    .contains(&KeyValue::new("record.GhostData", "[redacted]"))
+            );
+            let reasons = span
+                .attributes
+                .iter()
+                .find(|a| a.key.as_str() == "record.validationErrors")
+                .unwrap();
+            let opentelemetry::Value::String(reasons) = &reasons.value else {
+                panic!("JSON reasons expected")
+            };
+            let reasons: Vec<String> = serde_json::from_str(reasons.as_str())?;
+            assert_eq!(
+                reasons,
+                [
+                    "Level.empty",
+                    "Hash.invalid",
+                    "Time.invalid",
+                    "GhostData.empty",
+                    "GameVersion.empty",
+                    "ModVersion.empty"
+                ]
+            );
+        } else {
+            assert!(
+                !span
+                    .attributes
+                    .iter()
+                    .any(|a| a.key.as_str().starts_with("record."))
+            );
+        }
     }
     for path in ["/healthz", "/missing"] {
         let response = app
