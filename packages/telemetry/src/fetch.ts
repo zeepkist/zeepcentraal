@@ -1,10 +1,7 @@
 import { SpanKind } from '@opentelemetry/api'
 import { getMeter, injectTraceHeaders, withActiveSpan } from './span'
 
-const httpDuration = getMeter('zeepcentraal-http').createHistogram('http.client.request.duration', {
-	description: 'Outbound HTTP request duration',
-	unit: 's',
-})
+let httpDuration: ReturnType<ReturnType<typeof getMeter>['createHistogram']> | undefined
 
 const REDACTED_QUERY_NAMES =
 	/^(?:access[_-]?token|api[_-]?key|auth|authorization|code|key|password|secret|signature|token)$/i
@@ -74,6 +71,10 @@ export async function tracedFetch(
 			},
 		)
 	} finally {
+		httpDuration ??= getMeter('zeepcentraal-http').createHistogram(
+			'http.client.request.duration',
+			{ unit: 's' },
+		)
 		httpDuration.record((performance.now() - started) / 1_000, {
 			'http.request.method': method,
 			...(responseStatus !== undefined

@@ -3,6 +3,7 @@ use reqwest::{Client, Method, Url};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
+use zc_core::telemetry::TracedRequest;
 
 #[derive(Clone)]
 pub struct Backend {
@@ -328,7 +329,7 @@ impl Backend {
             request = request.json(&body);
         }
         let response = request
-            .send()
+            .send_traced()
             .await
             .context("Discord backend unavailable")?;
         let status = response.status();
@@ -349,7 +350,7 @@ impl Backend {
         let response = self
             .client
             .get(self.base_url.join("/healthz")?)
-            .send()
+            .send_traced()
             .await?;
         anyhow::ensure!(
             response.status().is_success(),
@@ -580,7 +581,7 @@ impl Backend {
             .client
             .get(url)
             .bearer_auth(&self.api_token)
-            .send()
+            .send_traced()
             .await
             .context("Discord backend unavailable")?;
         let status = response.status();

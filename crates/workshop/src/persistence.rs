@@ -3,6 +3,7 @@ use anyhow::{Context, Result, ensure};
 use async_trait::async_trait;
 use std::sync::Arc;
 use zc_core::object_storage::ObjectStorage;
+use zc_core::telemetry::TracedRequest;
 use zc_database::{Database, services::workshop::WorkshopLevelInput as DatabaseInput};
 
 const MAX_THUMBNAIL_BYTES: usize = 16 * 1024 * 1024;
@@ -37,7 +38,7 @@ impl DatabaseWorkshopPersistence {
         let mut response = self
             .http
             .get(url)
-            .send()
+            .send_traced()
             .await
             .context("Steam workshop thumbnail request failed")?
             .error_for_status()

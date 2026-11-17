@@ -1,3 +1,4 @@
+use crate::telemetry::TracedRequest;
 use anyhow::{Context, Result, bail};
 use reqwest::Client;
 use serde::Deserialize;
@@ -77,7 +78,7 @@ impl SteamClient {
                 ("appid", app_id.as_str()),
                 ("ticket", ticket),
             ])
-            .send()
+            .send_traced()
             .await
             .context("Steam authentication request failed")?
             .error_for_status()
@@ -103,7 +104,7 @@ impl SteamClient {
             .client
             .get("https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/")
             .query(&[("key", self.api_key.as_str()), ("steamids", steam_id)])
-            .send()
+            .send_traced()
             .await
             .context("Steam user request failed")?
             .error_for_status()

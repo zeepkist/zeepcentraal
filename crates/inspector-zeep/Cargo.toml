@@ -26,7 +26,7 @@ zc-telemetry.workspace = true
 zc-workshop.workspace = true
 
 [dev-dependencies]
-tokio-postgres = "0.7"
+tokio-postgres.workspace = true
 
 [[bin]]
 name = "zeepcentraal-inspector-zeep"

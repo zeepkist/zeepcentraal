@@ -1,9 +1,10 @@
-import { injectTraceCarrier, withActiveSpan } from '@zeepkist/telemetry'
+import { withActiveSpan } from '@zeepkist/telemetry'
 import { createError, getRequestHeader, type RequestEvent, useRuntimeConfig } from 'nuxt/server'
 import { webAuthCookieNames } from '#shared/authCookies'
 import { authRefreshUrl } from '../../app/utils/auth'
 import { mergeRequestCookies } from '../../app/utils/requestCookies'
 import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
+import { readWebResponse, tracedWebFetchRaw } from './tracedFetch'
 
 export type RefreshableSessionCookies = {
 	steamId: string
@@ -102,15 +103,15 @@ export async function refreshWebAuth(event: RequestEvent) {
 		'web.backend.refresh-auth',
 		{ shouldRecordError: shouldRecordWebError },
 		async () => {
-			const response = await $fetch.raw(authRefreshUrl(getBackendBaseUrl()), {
+			const response = await tracedWebFetchRaw(authRefreshUrl(getBackendBaseUrl()), {
 				method: 'POST',
 				headers: {
 					...getForwardedCookieHeaders(event),
-					...injectTraceCarrier(),
 				},
 				credentials: 'include',
 			})
 			const cookies = forwardBackendCookies(event, response.headers)
+			await response.body?.cancel().catch(() => {})
 			return { cookies, refreshAt: accessTokenRefreshAt(cookieHeaderFromSetCookies(cookies)) }
 		},
 	)
@@ -130,49 +131,43 @@ export async function fetchAuthenticatedBackend<T>(
 		{ shouldRecordError: shouldRecordWebError },
 		async () => {
 			let cookie = getRequestHeader(event, 'cookie')
-			let response = await $fetch.raw<T, string, typeof options.method>(
-				new URL(path, getBackendBaseUrl()).toString(),
-				{
+			let response = await tracedWebFetchRaw(new URL(path, getBackendBaseUrl()).toString(), {
+				...options,
+				headers: {
+					...(cookie ? { cookie } : {}),
+					...(getRequestHeader(event, 'origin')
+						? { origin: getRequestHeader(event, 'origin') }
+						: {}),
+				},
+				credentials: 'include',
+				ignoreResponseError: true,
+			})
+			if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
+				await response.body?.cancel().catch(() => {})
+				const refreshed = await refreshWebAuth(event)
+				cookie = mergeRequestCookies(cookie, refreshed.cookies)
+				response = await tracedWebFetchRaw(new URL(path, getBackendBaseUrl()).toString(), {
 					...options,
 					headers: {
 						...(cookie ? { cookie } : {}),
 						...(getRequestHeader(event, 'origin')
 							? { origin: getRequestHeader(event, 'origin') }
 							: {}),
-						...injectTraceCarrier(),
 					},
 					credentials: 'include',
 					ignoreResponseError: true,
-				},
-			)
-			if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
-				const refreshed = await refreshWebAuth(event)
-				cookie = mergeRequestCookies(cookie, refreshed.cookies)
-				response = await $fetch.raw<T, string, typeof options.method>(
-					new URL(path, getBackendBaseUrl()).toString(),
-					{
-						...options,
-						headers: {
-							...(cookie ? { cookie } : {}),
-							...(getRequestHeader(event, 'origin')
-								? { origin: getRequestHeader(event, 'origin') }
-								: {}),
-							...injectTraceCarrier(),
-						},
-						credentials: 'include',
-						ignoreResponseError: true,
-					},
-				)
+				})
 			}
 			forwardBackendCookies(event, response.headers)
+			const data = await readWebResponse<T>(response)
 			if (response.status >= 400) {
 				throw createError({
 					status: response.status,
 					statusText: 'Authenticated backend request failed',
-					data: response._data,
+					data,
 				})
 			}
-			return response._data as T
+			return data
 		},
 	)
 }

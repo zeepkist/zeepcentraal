@@ -3,6 +3,7 @@ use rand::seq::SliceRandom;
 use serde_json::Value;
 use std::{collections::HashSet, time::Duration};
 use zc_core::practice::{PracticeLevel, PracticePlaylist};
+use zc_core::telemetry::TracedRequest;
 
 const QUERY: &str = r#"query ZslWarmup($since: Datetime!) {
   hotLevelsSince(first: 50, since: $since, filter: {
@@ -22,7 +23,7 @@ pub async fn fetch() -> Result<PracticePlaylist> {
     let mut response = client
         .post("https://graphql.zeepki.st")
         .json(&serde_json::json!({"query":QUERY,"variables":{"since":since.to_string()}}))
-        .send()
+        .send_traced()
         .await?
         .error_for_status()?;
     let mut bytes = Vec::new();

@@ -3,6 +3,7 @@ use anyhow::{Context, Result, ensure};
 use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use zc_core::telemetry::TracedRequest;
 
 #[derive(Clone)]
 pub struct RoomBrokerClient {
@@ -66,7 +67,7 @@ impl RoomBrokerClient {
                 join_id,
                 room: &config.room,
             })
-            .send()
+            .send_traced()
             .await?;
         ensure!(
             response.status().is_success(),

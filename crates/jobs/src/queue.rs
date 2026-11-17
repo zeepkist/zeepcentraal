@@ -7,8 +7,25 @@ use diesel::{
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
+use tracing::Instrument;
 
 const MAX_ENQUEUE_BATCH: usize = 100;
+
+async fn trace_enqueue<T>(operation: impl std::future::Future<Output = Result<T>>) -> Result<T> {
+    let span = tracing::info_span!(
+        "jobs.enqueue",
+        otel.kind = "producer",
+        messaging.system = "pgmq",
+        messaging.destination.name = "zeepcentraal",
+        messaging.operation.name = "send",
+        otel.status_code = tracing::field::Empty
+    );
+    let result = operation.instrument(span.clone()).await;
+    if result.is_err() {
+        span.record("otel.status_code", "ERROR");
+    }
+    result
+}
 
 #[cfg(test)]
 mod global_metrics_tests {
@@ -68,6 +85,12 @@ pub struct EnqueueRequest {
 #[derive(Clone, Debug, QueryableByName, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClaimedJob {
+    #[diesel(sql_type = Nullable<Text>)]
+    #[serde(skip)]
+    pub traceparent: Option<String>,
+    #[diesel(sql_type = Nullable<Text>)]
+    #[serde(skip)]
+    pub tracestate: Option<String>,
     #[diesel(sql_type = Text)]
     pub lane: String,
     #[diesel(sql_type = Text)]
@@ -135,6 +158,10 @@ impl Queue {
         .execute(&mut connection)
         .await
         .context("zc_jobs queue schema is missing")?;
+        sql_query("SELECT traceparent,tracestate FROM zc_jobs.job LIMIT 0")
+            .execute(&mut connection)
+            .await
+            .context("queue trace context migration required")?;
         Ok(())
     }
 
@@ -196,39 +223,42 @@ impl Queue {
     }
 
     pub async fn enqueue_many(&self, requests: Vec<EnqueueRequest>) -> Result<Vec<EnqueuedJob>> {
-        ensure!(!requests.is_empty(), "enqueue batch must not be empty");
-        ensure!(
-            requests.len() <= MAX_ENQUEUE_BATCH,
-            "enqueue batch exceeds {MAX_ENQUEUE_BATCH} jobs"
-        );
-        let mut connection = self.partition.connection().await?;
-        let mut jobs = Vec::with_capacity(requests.len());
-        for request in requests {
+        trace_enqueue(async {
+            ensure!(!requests.is_empty(), "enqueue batch must not be empty");
             ensure!(
-                request.task.validate_payload(&request.payload),
-                "Invalid queued task: {}",
-                request.task.as_str()
+                requests.len() <= MAX_ENQUEUE_BATCH,
+                "enqueue batch exceeds {MAX_ENQUEUE_BATCH} jobs"
             );
-            let (derived_key, group) = queue_identity(
-                request.task,
-                &request.payload,
-                request.lane,
-                request.key.as_deref(),
-            );
-            let delay_ms = i64::try_from(request.delay.as_millis())?;
-            let job = sql_query("SELECT zc_jobs.enqueue($1,$2,$3,$4,$5,$6,clock_timestamp()+$7*interval '1 millisecond')::text AS id, $2::text AS task_identifier, 0::integer AS attempts, $6::integer AS max_attempts")
-                .bind::<Text, _>(request.lane.as_str())
-                .bind::<Text, _>(request.task.as_str())
-                .bind::<Jsonb, _>(request.payload)
-                .bind::<Nullable<Text>, _>(derived_key)
-                .bind::<Nullable<Text>, _>(group)
-                .bind::<Integer, _>(request.task.max_attempts())
-                .bind::<BigInt, _>(delay_ms)
-                .get_result(&mut connection)
-                .await?;
-            jobs.push(job);
-        }
-        Ok(jobs)
+            let mut connection = self.partition.connection().await?;
+            let mut jobs = Vec::with_capacity(requests.len());
+            for request in requests {
+                ensure!(
+                    request.task.validate_payload(&request.payload),
+                    "Invalid queued task: {}",
+                    request.task.as_str()
+                );
+                let (derived_key, group) = queue_identity(
+                    request.task,
+                    &request.payload,
+                    request.lane,
+                    request.key.as_deref(),
+                );
+                let delay_ms = i64::try_from(request.delay.as_millis())?;
+                let job = sql_query("SELECT zc_jobs.enqueue($1,$2,$3,$4,$5,$6,clock_timestamp()+$7*interval '1 millisecond')::text AS id, $2::text AS task_identifier, 0::integer AS attempts, $6::integer AS max_attempts")
+                    .bind::<Text, _>(request.lane.as_str())
+                    .bind::<Text, _>(request.task.as_str())
+                    .bind::<Jsonb, _>(request.payload)
+                    .bind::<Nullable<Text>, _>(derived_key)
+                    .bind::<Nullable<Text>, _>(group)
+                    .bind::<Integer, _>(request.task.max_attempts())
+                    .bind::<BigInt, _>(delay_ms)
+                    .get_result(&mut connection)
+                    .await?;
+                jobs.push(job);
+            }
+            Ok(jobs)
+        })
+        .await
     }
 
     /// Children and continuation commit together. A stale parent cannot publish work.
@@ -237,49 +267,52 @@ impl Queue {
         parent: &ClaimedJob,
         requests: Vec<EnqueueRequest>,
     ) -> Result<bool> {
-        ensure!(parent.lane == "bulk", "fan-out parent requires bulk lane");
-        ensure!(
-            !requests.is_empty() && requests.len() <= MAX_ENQUEUE_BATCH + 1,
-            "invalid fan-out page size"
-        );
-        let requests = requests
-            .into_iter()
-            .map(|request| {
-                ensure!(
-                    request.lane == JobLane::Bulk
-                        && request.task.validate_payload(&request.payload),
-                    "invalid fan-out request"
-                );
-                let (key, group) = queue_identity(
-                    request.task,
-                    &request.payload,
-                    request.lane,
-                    request.key.as_deref(),
-                );
-                Ok((request, key, group))
-            })
-            .collect::<Result<Vec<_>>>()?;
-        let id = parent.id.parse::<i64>()?;
-        let generation = parent.generation.parse::<i64>()?;
-        let started = std::time::Instant::now();
-        let mut connection = self.partition.connection().await?;
-        connection.transaction::<bool,anyhow::Error,_>(async move |connection| {
-            sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
-            let acquired=std::time::Instant::now();
-            let live=sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane='bulk' AND id=$1 AND generation=$2 AND running AND lease_until>clock_timestamp()) AS ok")
-                .bind::<BigInt,_>(id).bind::<BigInt,_>(generation).get_result::<BooleanResult>(connection).await?.ok;
-            if !live { return Ok(false); }
-            let count=requests.len();
-            for (request,key,group) in requests {
-                sql_query("SELECT zc_jobs.enqueue('bulk',$1,$2,$3,$4,$5,clock_timestamp()+$6*interval '1 millisecond')")
-                    .bind::<Text,_>(request.task.as_str()).bind::<Jsonb,_>(request.payload)
-                    .bind::<Nullable<Text>,_>(key).bind::<Nullable<Text>,_>(group)
-                    .bind::<Integer,_>(request.task.max_attempts())
-                    .bind::<BigInt,_>(i64::try_from(request.delay.as_millis())?).execute(connection).await?;
-            }
-            tracing::info!(requests=count, queue_lock_wait_ms=acquired.duration_since(started).as_millis(),queue_lock_held_ms=acquired.elapsed().as_millis(),"Eligibility fan-out page enqueued");
-            Ok(true)
-        }).await
+        trace_enqueue(async {
+            ensure!(parent.lane == "bulk", "fan-out parent requires bulk lane");
+            ensure!(
+                !requests.is_empty() && requests.len() <= MAX_ENQUEUE_BATCH + 1,
+                "invalid fan-out page size"
+            );
+            let requests = requests
+                .into_iter()
+                .map(|request| {
+                    ensure!(
+                        request.lane == JobLane::Bulk
+                            && request.task.validate_payload(&request.payload),
+                        "invalid fan-out request"
+                    );
+                    let (key, group) = queue_identity(
+                        request.task,
+                        &request.payload,
+                        request.lane,
+                        request.key.as_deref(),
+                    );
+                    Ok((request, key, group))
+                })
+                .collect::<Result<Vec<_>>>()?;
+            let id = parent.id.parse::<i64>()?;
+            let generation = parent.generation.parse::<i64>()?;
+            let started = std::time::Instant::now();
+            let mut connection = self.partition.connection().await?;
+            connection.transaction::<bool,anyhow::Error,_>(async move |connection| {
+                sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
+                let acquired=std::time::Instant::now();
+                let live=sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane='bulk' AND id=$1 AND generation=$2 AND running AND lease_until>clock_timestamp()) AS ok")
+                    .bind::<BigInt,_>(id).bind::<BigInt,_>(generation).get_result::<BooleanResult>(connection).await?.ok;
+                if !live { return Ok(false); }
+                let count=requests.len();
+                for (request,key,group) in requests {
+                    sql_query("SELECT zc_jobs.enqueue('bulk',$1,$2,$3,$4,$5,clock_timestamp()+$6*interval '1 millisecond')")
+                        .bind::<Text,_>(request.task.as_str()).bind::<Jsonb,_>(request.payload)
+                        .bind::<Nullable<Text>,_>(key).bind::<Nullable<Text>,_>(group)
+                        .bind::<Integer,_>(request.task.max_attempts())
+                        .bind::<BigInt,_>(i64::try_from(request.delay.as_millis())?).execute(connection).await?;
+                }
+                tracing::info!(requests=count, queue_lock_wait_ms=acquired.duration_since(started).as_millis(),queue_lock_held_ms=acquired.elapsed().as_millis(),"Eligibility fan-out page enqueued");
+                Ok(true)
+            }).await
+        })
+        .await
     }
 
     pub async fn enqueue_level_projection(
@@ -287,29 +320,32 @@ impl Queue {
         id_level: i32,
         after_user_id: i32,
     ) -> Result<EnqueuedJob> {
-        ensure!(id_level > 0 && after_user_id >= 0, "invalid level cursor");
-        let key = format!("update-level-contributions:{id_level}");
-        let group = format!("level-maintenance-shard:{}", id_level.rem_euclid(4));
-        let mut connection = self.partition.connection().await?;
-        connection.transaction::<EnqueuedJob, anyhow::Error, _>(async move |connection| {
-            sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
-            let pending = sql_query("SELECT payload FROM zc_jobs.job WHERE lane='bulk' AND job_key=$1 AND NOT running ORDER BY id LIMIT 1")
-                .bind::<Text,_>(&key).get_result::<PendingPayload>(connection).await.optional()?;
-            let cursor = pending.as_ref().and_then(|row|row.payload["afterUserId"].as_i64())
-                .and_then(|value|i32::try_from(value).ok()).map_or(after_user_id, |value| value.min(after_user_id));
-            let payload = serde_json::json!({"idLevel":id_level,"afterUserId":cursor});
-            Ok(sql_query("SELECT zc_jobs.enqueue('bulk',$1,$2,$3,$4,$5,clock_timestamp())::text AS id, $1::text AS task_identifier, 0::integer AS attempts, $5::integer AS max_attempts")
-                .bind::<Text,_>(TaskIdentifier::UpdateLevelContributions.as_str())
-                .bind::<Jsonb,_>(payload).bind::<Text,_>(&key).bind::<Text,_>(&group)
-                .bind::<Integer,_>(TaskIdentifier::UpdateLevelContributions.max_attempts())
-                .get_result(connection).await?)
-        }).await
+        trace_enqueue(async {
+            ensure!(id_level > 0 && after_user_id >= 0, "invalid level cursor");
+            let key = format!("update-level-contributions:{id_level}");
+            let group = format!("level-maintenance-shard:{}", id_level.rem_euclid(4));
+            let mut connection = self.partition.connection().await?;
+            connection.transaction::<EnqueuedJob, anyhow::Error, _>(async move |connection| {
+                sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
+                let pending = sql_query("SELECT payload FROM zc_jobs.job WHERE lane='bulk' AND job_key=$1 AND NOT running ORDER BY id LIMIT 1")
+                    .bind::<Text,_>(&key).get_result::<PendingPayload>(connection).await.optional()?;
+                let cursor = pending.as_ref().and_then(|row|row.payload["afterUserId"].as_i64())
+                    .and_then(|value|i32::try_from(value).ok()).map_or(after_user_id, |value| value.min(after_user_id));
+                let payload = serde_json::json!({"idLevel":id_level,"afterUserId":cursor});
+                Ok(sql_query("SELECT zc_jobs.enqueue('bulk',$1,$2,$3,$4,$5,clock_timestamp())::text AS id, $1::text AS task_identifier, 0::integer AS attempts, $5::integer AS max_attempts")
+                    .bind::<Text,_>(TaskIdentifier::UpdateLevelContributions.as_str())
+                    .bind::<Jsonb,_>(payload).bind::<Text,_>(&key).bind::<Text,_>(&group)
+                    .bind::<Integer,_>(TaskIdentifier::UpdateLevelContributions.max_attempts())
+                    .get_result(connection).await?)
+            }).await
+        })
+        .await
     }
 
     pub async fn claim(&self, lane: JobLane, count: i32) -> Result<Vec<ClaimedJob>> {
         ensure!(count > 0, "Claim count must be positive");
         let mut connection = self.partition.connection().await?;
-        Ok(sql_query("SELECT lane,id::text,task,payload,attempts,max_attempts,generation::text FROM zc_jobs.claim($1,$2,$3)")
+        Ok(sql_query("SELECT lane,id::text,task,payload,attempts,max_attempts,generation::text,traceparent,tracestate FROM zc_jobs.claim($1,$2,$3)")
             .bind::<Text, _>(lane.as_str()).bind::<Integer, _>(count).bind::<Integer, _>(VISIBILITY_SECONDS)
             .load(&mut connection).await?)
     }
@@ -339,25 +375,28 @@ impl Queue {
     }
 
     pub async fn enqueue_ghost_audit_levels(&self, levels: &[i32]) -> Result<()> {
-        ensure!(levels.iter().all(|id| *id > 0), "Invalid audit level");
-        let levels: Vec<_> = levels
-            .iter()
-            .copied()
-            .collect::<std::collections::BTreeSet<_>>()
-            .into_iter()
-            .collect();
-        for chunk in levels.chunks(1000) {
-            let mut connection = self.partition.connection().await?;
-            connection
-                .transaction::<(), anyhow::Error, _>(async |connection| {
-                    zc_database::services::workshop_queue::enqueue_ghost_audit_levels(
-                        connection, chunk,
-                    )
-                    .await
-                })
-                .await?;
-        }
-        Ok(())
+        trace_enqueue(async {
+            ensure!(levels.iter().all(|id| *id > 0), "Invalid audit level");
+            let levels: Vec<_> = levels
+                .iter()
+                .copied()
+                .collect::<std::collections::BTreeSet<_>>()
+                .into_iter()
+                .collect();
+            for chunk in levels.chunks(1000) {
+                let mut connection = self.partition.connection().await?;
+                connection
+                    .transaction::<(), anyhow::Error, _>(async |connection| {
+                        zc_database::services::workshop_queue::enqueue_ghost_audit_levels(
+                            connection, chunk,
+                        )
+                        .await
+                    })
+                    .await?;
+            }
+            Ok(())
+        })
+        .await
     }
     pub async fn heartbeat(&self, job: &ClaimedJob) -> Result<bool> {
         self.finish_call(
@@ -747,5 +786,29 @@ mod tests {
             first.0,
             Some("update-level-contribution-submit:17:2:100".to_owned())
         );
+    }
+}
+
+#[cfg(test)]
+mod trace_metadata_tests {
+    use super::*;
+    #[test]
+    fn claimed_metadata_is_private_and_legacy_json_remains_valid() {
+        let job = ClaimedJob {
+            traceparent: Some("private-trace-context".into()),
+            tracestate: Some("fixture=value".into()),
+            lane: "fast".into(),
+            id: "1".into(),
+            task: "refreshGlobalMetrics".into(),
+            payload: serde_json::json!({}),
+            attempts: 1,
+            max_attempts: 3,
+            generation: "1".into(),
+        };
+        let json = serde_json::to_value(&job).unwrap();
+        assert!(!json.to_string().contains("private-trace-context"));
+        assert!(json.get("traceparent").is_none());
+        let legacy: ClaimedJob = serde_json::from_value(json).unwrap();
+        assert!(legacy.traceparent.is_none() && legacy.tracestate.is_none());
     }
 }

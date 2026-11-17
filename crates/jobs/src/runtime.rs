@@ -11,6 +11,8 @@ use tokio::{
     task::{JoinError, JoinHandle, JoinSet},
     time::MissedTickBehavior,
 };
+use tracing::Instrument;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 
 #[async_trait]
 pub trait JobHandler: Send + Sync {
@@ -145,8 +147,15 @@ async fn run_lane(
                 let handler = handler.clone();
                 active.spawn(async move {
                     let operation = job_operation_name(&job.task);
-                    zc_telemetry::observe_operation(operation, execute(queue, handler, job, lane))
-                        .await
+                    let span = tracing::info_span!("jobs.process", otel.kind = "consumer", otel.name = operation,
+                        messaging.system = "pgmq", messaging.destination.name = "zeepcentraal",
+                        messaging.operation.name = "process", messaging.message.id = %job.id,
+                        job.attempt = job.attempts, otel.status_code = tracing::field::Empty);
+                    let _ = span.set_parent(zc_core::telemetry::remote_context(job.traceparent.as_deref(), job.tracestate.as_deref()));
+                    let result = zc_telemetry::observe_operation(operation, execute(queue, handler, job, lane, span.clone()))
+                        .instrument(span.clone()).await;
+                    if result.is_err() { span.record("otel.status_code", "ERROR"); }
+                    result
                 });
             }
         }
@@ -209,6 +218,7 @@ async fn execute(
     handler: Arc<dyn JobHandler>,
     job: ClaimedJob,
     lane: JobLane,
+    attempt_span: tracing::Span,
 ) -> Result<()> {
     let task = TaskIdentifier::parse(&job.task).ok_or_else(|| anyhow!("invalid job task"));
     let result = match task {
@@ -237,6 +247,9 @@ async fn execute(
         }
         _ => Err(anyhow!("invalid job payload")),
     };
+    if result.is_err() {
+        attempt_span.record("otel.status_code", "ERROR");
+    }
     let database_unavailable = result.as_ref().err().is_some_and(is_unavailable);
     let acknowledged = match result.as_ref() {
         Ok(JobOutcome::Deferred) => queue.defer(&job).await?,

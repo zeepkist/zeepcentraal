@@ -18,6 +18,7 @@ serde_json.workspace = true
 sha2.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+tracing-opentelemetry.workspace = true
 zc-core.workspace = true
 zc-database.workspace = true
 zc-telemetry.workspace = true
@@ -28,4 +29,10 @@ name = "zeepcentraal-jobs"
 path = "src/main.rs"
 
 [dev-dependencies]
+axum.workspace = true
+opentelemetry-proto.workspace = true
+tokio-postgres.workspace = true
+tokio-stream = { workspace = true, features = ["net"] }
+tonic = { workspace = true, features = ["router", "server"] }
+
 url.workspace = true

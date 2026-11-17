@@ -19,6 +19,7 @@ use std::{
 use subtle::ConstantTimeEq;
 use url::Url;
 use zc_core::jwt::Provider;
+use zc_core::telemetry::TracedRequest;
 use zc_database::services::{AuthRecord, discord::DiscordLinkStatus};
 
 const DISCORD_AUTHORIZE_URL: &str = "https://discord.com/api/oauth2/authorize";
@@ -133,7 +134,7 @@ pub async fn discord_callback(
             ("code", code.as_str()),
             ("redirect_uri", redirect_uri.as_str()),
         ])
-        .send()
+        .send_traced()
         .await
     {
         Ok(response) if response.status().is_success() => {
@@ -151,7 +152,7 @@ pub async fn discord_callback(
         .http
         .get(DISCORD_USER_URL)
         .bearer_auth(token)
-        .send()
+        .send_traced()
         .await
     {
         Ok(response) if response.status().is_success() => response.json::<DiscordUser>().await.ok(),
@@ -303,7 +304,13 @@ async fn valid_steam_callback(state: &AppState, query: &HashMap<String, String>)
     }
     let mut form = query.clone();
     form.insert("openid.mode".into(), "check_authentication".into());
-    match state.http.post(STEAM_OPENID_URL).form(&form).send().await {
+    match state
+        .http
+        .post(STEAM_OPENID_URL)
+        .form(&form)
+        .send_traced()
+        .await
+    {
         Ok(response) => response
             .text()
             .await

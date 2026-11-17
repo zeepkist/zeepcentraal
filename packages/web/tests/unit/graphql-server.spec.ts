@@ -2,6 +2,10 @@ import { parse } from 'graphql'
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 import { fetchGraphql } from '../../server/utils/graphql'
 
+vi.mock('../../server/utils/tracedFetch', () => ({
+	tracedWebFetch: (...args: unknown[]) => fetch(...args),
+}))
+
 vi.mock('@zeepkist/telemetry', () => ({
 	injectTraceHeaders: () => ({}),
 	withActiveSpan: (_name: string, _options: unknown, callback: () => unknown) => callback(),

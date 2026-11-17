@@ -189,6 +189,7 @@ impl fmt::Display for FailureCategory {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct DatabaseEndpoint {
+    database: String,
     host: String,
     port: u16,
 }
@@ -203,6 +204,7 @@ impl DatabaseEndpoint {
         Ok(Self {
             host,
             port: parsed.port().unwrap_or(5432),
+            database: parsed.path().trim_start_matches('/').to_owned(),
         })
     }
 }
@@ -475,10 +477,37 @@ impl PoolPartition {
         let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
         let connection = tokio::time::timeout(remaining, self.pool.get_owned()).await;
         match connection {
-            Ok(Ok(connection)) => Ok(PoolConnection {
-                connection,
-                _permit: permit,
-            }),
+            Ok(Ok(mut connection)) => {
+                // Never reuse another lease's context, even when this caller has no span.
+                connection
+                    .set_instrumentation(|_: diesel::connection::InstrumentationEvent<'_>| {});
+                let carrier = zc_core::telemetry::trace_carrier();
+                let setup = sql_query("SELECT set_config('zc.traceparent',$1,false),set_config('zc.tracestate',$2,false)")
+                    .bind::<Text,_>(carrier.get("traceparent").map(String::as_str).unwrap_or(""))
+                    .bind::<Text,_>(carrier.get("tracestate").map(String::as_str).unwrap_or(""))
+                    .execute(&mut connection);
+                match tokio::time::timeout_at(deadline, setup).await {
+                    Ok(Ok(_)) => {}
+                    _ => {
+                        return Err(self
+                            .acquire_error(
+                                Some("trace context setup failed".into()),
+                                Some(PoolFailureStage::SessionSetup),
+                            )
+                            .into());
+                    }
+                }
+                // Install after setup so propagation SQL never becomes a database call span.
+                connection.set_instrumentation(crate::telemetry::DatabaseInstrumentation::new(
+                    self.endpoint.host.clone(),
+                    self.endpoint.port,
+                    self.endpoint.database.clone(),
+                ));
+                Ok(PoolConnection {
+                    connection,
+                    _permit: permit,
+                })
+            }
             Ok(Err(error)) => {
                 let cause = match error {
                     bb8::RunError::TimedOut => "bb8 checkout timed out",
@@ -606,6 +635,14 @@ impl Drop for WaitingGuard {
 pub struct PoolConnection {
     connection: PgConnection,
     _permit: OwnedSemaphorePermit,
+}
+
+impl Drop for PoolConnection {
+    fn drop(&mut self) {
+        // Closing instrumentation also closes a query cancelled before FinishQuery.
+        self.connection
+            .set_instrumentation(|_: diesel::connection::InstrumentationEvent<'_>| {});
+    }
 }
 
 impl Deref for PoolConnection {
@@ -966,6 +1003,7 @@ mod tests {
     async fn generic_transport_failure_is_refined_to_connection_refused() {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
         let endpoint = DatabaseEndpoint {
+            database: "fixture".into(),
             host: "127.0.0.1".to_owned(),
             port: listener.local_addr().unwrap().port(),
         };

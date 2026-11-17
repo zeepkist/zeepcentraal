@@ -7,8 +7,10 @@ pub mod pool;
 pub mod schema;
 pub mod schema_contest;
 pub mod schema_donations;
+pub mod schema_queue;
 pub mod schema_validation;
 pub mod services;
+mod telemetry;
 pub use diesel_adapter::Database;
 pub use pool::{
     DatabasePool, PoolAcquireError, PoolBudget, PoolConnection, PoolFailureCategory,

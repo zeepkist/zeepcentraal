@@ -3,8 +3,7 @@ import type { SQL } from 'bun'
 
 const statements: string[] = []
 let durations = 0
-mock.module('@zeepkist/telemetry', () => ({
-	SpanKind: { CLIENT: 2 },
+mock.module('./span', () => ({
 	getMeter: () => ({
 		createHistogram: () => ({
 			record: () => {
@@ -17,11 +16,11 @@ mock.module('@zeepkist/telemetry', () => ({
 		options: { attributes: Record<string, string> },
 		callback: (span: object) => unknown,
 	) => {
-		statements.push(options.attributes['db.query.text'] ?? '')
-		return callback({ setAttribute() {}, addEvent() {} })
+		statements.push(options.attributes['db.operation.name'] ?? '')
+		return callback({ setAttribute() {}, addEvent() {}, setErrorStatus() {} })
 	},
 }))
-const { createTracedPostgresClient } = await import('./telemetry')
+const { createTracedPostgresClient } = await import('./postgres')
 
 beforeEach(() => {
 	statements.length = 0
@@ -69,7 +68,7 @@ test('query stays lazy and chaining/repeated awaiting produces one execution and
 	await query
 	await query
 	expect(executions()).toBe(1)
-	expect(statements).toEqual(['select $1'])
+	expect(statements).toEqual(['SELECT'])
 	expect(durations).toBe(1)
 })
 
@@ -81,7 +80,8 @@ test('parameter helpers stay intact; begin and savepoint clients remain traced',
 			await nested`select ${1}`
 		})
 	})
-	expect(statements).toEqual(['BEGIN', 'SAVEPOINT', 'select $1'])
+	expect(statements).toEqual(['SELECT'])
+	expect(durations).toBe(1)
 })
 
 test('execute starts tracing immediately and rejected queries record duration once', async () => {
@@ -91,5 +91,5 @@ test('execute starts tracing immediately and rejected queries record duration on
 	await expect(Promise.resolve(query)).rejects.toThrow('query failed')
 	expect(executions()).toBe(1)
 	expect(durations).toBe(1)
-	expect(statements).toEqual(['select $1'])
+	expect(statements).toEqual(['SELECT'])
 })

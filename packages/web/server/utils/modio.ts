@@ -1,9 +1,10 @@
-import { injectTraceHeaders, withActiveSpan } from '@zeepkist/telemetry'
+import { withActiveSpan } from '@zeepkist/telemetry'
 import { createError, useRuntimeConfig } from 'nuxt/server'
 import type { ModDetail, ModSummary } from '../../app/types/mod'
 import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 import { sanitizeModDescription } from './sanitizeModDescription'
 import { getSharedCached } from './sharedCache'
+import { tracedWebFetch } from './tracedFetch'
 
 export const MODIO_GAME_ID = 3213
 
@@ -97,9 +98,8 @@ export async function requestModio<T>(
 				url.searchParams.set('api_key', apiKey)
 
 				try {
-					return (await $fetch<T>(url.toString(), {
+					return (await tracedWebFetch<T>(url.toString(), {
 						timeout: 5_000,
-						headers: injectTraceHeaders(),
 					})) as T
 				} catch (error) {
 					const status = Number(

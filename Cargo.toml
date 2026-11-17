@@ -40,8 +40,10 @@ jwt = "0.16"
 lzma-rs = "0.3"
 opentelemetry = { version = "0.33", features = ["internal-logs"] }
 opentelemetry-appender-tracing = "0.33"
+opentelemetry-proto = { version = "0.33", default-features = false, features = ["gen-tonic", "trace", "metrics", "logs"] }
 opentelemetry-otlp = { version = "0.33", default-features = false, features = ["grpc-tonic", "logs", "metrics", "trace", "tls-ring", "tls-webpki-roots"] }
 opentelemetry_sdk = { version = "0.33", features = ["logs", "metrics", "rt-tokio", "trace"] }
+parry3d-f64 = "0.31.1"
 prost = "0.14"
 pq-sys = { version = "0.7.6", features = ["bundled"] }
 rand = "0.10.3"
@@ -60,6 +62,7 @@ steam-client-rs = "0.2"
 subtle = "2"
 thiserror = "2.0.21"
 tokio = { version = "1", features = ["fs", "macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"] }
+tokio-postgres = "0.7"
 tokio-stream = { version = "0.1", features = ["sync"] }
 tonic = { version = "0.14", default-features = false, features = ["channel", "tls-webpki-roots"] }
 tower = "0.5"

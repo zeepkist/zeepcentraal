@@ -13,6 +13,7 @@ pub mod object_storage;
 pub mod practice;
 pub mod score;
 pub mod steam;
+pub mod telemetry;
 pub mod version;
 pub mod zeepnet;
 

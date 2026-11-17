@@ -20,14 +20,9 @@ afterEach(() => {
 })
 
 function response(status: number, data?: unknown, setCookies: string[] = []) {
-	return {
-		status,
-		_data: data,
-		headers: {
-			get: () => null,
-			getSetCookie: () => setCookies,
-		},
-	}
+	const headers = new Headers({ 'content-type': 'application/json' })
+	for (const value of setCookies) headers.append('set-cookie', value)
+	return new Response(data === undefined ? null : JSON.stringify(data), { status, headers })
 }
 
 describe('web server auth and request guards', () => {
@@ -93,9 +88,10 @@ describe('web server auth and request guards', () => {
 	})
 
 	test('retains JSON mutation body through authenticated refresh retry', async () => {
+		const unauthorized = response(401, { code: 401 })
 		const raw = vi
 			.fn()
-			.mockResolvedValueOnce(response(401))
+			.mockResolvedValueOnce(unauthorized)
 			.mockResolvedValueOnce(
 				response(204, undefined, [
 					'zeepcentral_access_token=next-access; Path=/; HttpOnly',
@@ -104,7 +100,7 @@ describe('web server auth and request guards', () => {
 				]),
 			)
 			.mockResolvedValueOnce(response(204))
-		vi.stubGlobal('$fetch', { raw })
+		vi.stubGlobal('fetch', raw)
 		const body = { hash: '0123456789ABCDEF0123456789ABCDEF' }
 
 		await fetchAuthenticatedBackend(
@@ -118,16 +114,17 @@ describe('web server auth and request guards', () => {
 		)
 
 		expect(raw).toHaveBeenCalledTimes(3)
-		expect(raw.mock.calls[0]?.[1]).toMatchObject({ method: 'POST', body })
-		expect(raw.mock.calls[2]?.[1]).toMatchObject({ method: 'POST', body })
-		expect(raw.mock.calls[2]?.[1]?.headers.cookie).toContain(
+		expect(unauthorized.bodyUsed).toBe(true)
+		expect(raw.mock.calls[0]?.[1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+		expect(raw.mock.calls[2]?.[1]).toMatchObject({ method: 'POST', body: JSON.stringify(body) })
+		expect(new Headers(raw.mock.calls[2]?.[1]?.headers).get('cookie')).toContain(
 			'zeepcentral_access_token=next-access',
 		)
 	})
 
 	test('propagates authenticated backend errors with response data', async () => {
 		const data = { code: 123, message: 'nope' }
-		vi.stubGlobal('$fetch', { raw: vi.fn().mockResolvedValue(response(422, data)) })
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(422, data)))
 		await expect(
 			fetchAuthenticatedBackend(createRequestEvent(), '/favourite/remove', {
 				method: 'POST',
@@ -147,7 +144,7 @@ describe('web server auth and request guards', () => {
 				response(200, undefined, ['zeepcentral_access_token=new; Path=/']),
 			)
 			.mockResolvedValueOnce(response(200, { votes: [[42], [], []] }))
-		vi.stubGlobal('$fetch', { raw })
+		vi.stubGlobal('fetch', raw)
 		const result = await fetchAuthenticatedBackend(
 			createRequestEvent('/', {
 				headers: {
@@ -161,10 +158,12 @@ describe('web server auth and request guards', () => {
 			},
 		)
 		expect(result).toEqual({ votes: [[42], [], []] })
+		expect(new Headers(raw.mock.calls[2]?.[1]?.headers).get('cookie')).toContain(
+			'zeepcentral_access_token=new',
+		)
 		expect(raw.mock.calls[2]?.[1]).toMatchObject({
 			method: 'GET',
-			query: { roundId: '50' },
-			headers: { cookie: expect.stringContaining('zeepcentral_access_token=new') },
 		})
+		expect(raw.mock.calls[2]?.[0]).toBe('https://backend.example/super-league/vote?roundId=50')
 	})
 })

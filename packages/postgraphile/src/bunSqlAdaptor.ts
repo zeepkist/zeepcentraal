@@ -1,4 +1,5 @@
 import { createSqlClient } from '@zeepkist/core/sql'
+import { createTracedPostgresClient } from '@zeepkist/telemetry'
 import type { ReservedSQL, SQL } from 'bun'
 import type {
 	PgAdaptor,
@@ -194,21 +195,27 @@ export function makeBunPgService(
 		idle_in_transaction_session_timeout: poolConfig.idle_in_transaction_session_timeout,
 		...(process.env.DATAPLAN_PG_DONT_DISABLE_JIT !== '1' && { jit_optimize_above_cost: -1 }),
 	}
-	const pool = createSqlClient(options.connectionString, {
-		max: poolConfig.max - (pubsub ? 1 : 0),
-		// Grafast passes pre-serialized JSON parameters, matching pg text encoding.
-		prepare: false,
-		// PostgreSQL statement_timeout bounds active work. Do not expire reserved connections.
-		idleTimeout: 0,
-		connectionTimeout: poolConfig.connectionTimeoutMillis / 1000,
-		connection,
-	})
+	const pool = createTracedPostgresClient(
+		createSqlClient(options.connectionString, {
+			max: poolConfig.max - (pubsub ? 1 : 0),
+			// Grafast passes pre-serialized JSON parameters, matching pg text encoding.
+			prepare: false,
+			// PostgreSQL statement_timeout bounds active work. Do not expire reserved connections.
+			idleTimeout: 0,
+			connectionTimeout: poolConfig.connectionTimeoutMillis / 1000,
+			connection,
+		}),
+		options.connectionString,
+	)
 	const superuserPool = options.superuserConnectionString
-		? createSqlClient(options.superuserConnectionString, {
-				max: 1,
-				prepare: false,
-				connectionTimeout: poolConfig.connectionTimeoutMillis / 1000,
-			})
+		? createTracedPostgresClient(
+				createSqlClient(options.superuserConnectionString, {
+					max: 1,
+					prepare: false,
+					connectionTimeout: poolConfig.connectionTimeoutMillis / 1000,
+				}),
+				options.superuserConnectionString,
+			)
 		: undefined
 	const subscriber = pubsub ? new BunSqlSubscriber(pool) : null
 	let closing: Promise<void> | undefined

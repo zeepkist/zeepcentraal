@@ -1,4 +1,5 @@
 //! Shared practice playlist and published asset contracts.
+use crate::telemetry::TracedRequest;
 use anyhow::{Context, Result, ensure};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashSet, time::Duration};
@@ -159,7 +160,7 @@ pub async fn fetch_playlist(url: &str) -> Result<PracticePlaylist> {
         .timeout(Duration::from_secs(30))
         .redirect(reqwest::redirect::Policy::limited(5))
         .build()?;
-    let mut response = client.get(url).send().await?.error_for_status()?;
+    let mut response = client.get(url).send_traced().await?.error_for_status()?;
     ensure!(
         response
             .content_length()

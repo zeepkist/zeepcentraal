@@ -1,90 +1,21 @@
 use anyhow::Result;
 use opentelemetry_proto::tonic::{
     collector::{
-        logs::v1::{
-            ExportLogsServiceRequest, ExportLogsServiceResponse,
-            logs_service_server::{LogsService, LogsServiceServer},
-        },
-        metrics::v1::{
-            ExportMetricsServiceRequest, ExportMetricsServiceResponse,
-            metrics_service_server::{MetricsService, MetricsServiceServer},
-        },
-        trace::v1::{
-            ExportTraceServiceRequest, ExportTraceServiceResponse,
-            trace_service_server::{TraceService, TraceServiceServer},
-        },
+        logs::v1::logs_service_server::LogsServiceServer,
+        metrics::v1::metrics_service_server::MetricsServiceServer,
+        trace::v1::trace_service_server::TraceServiceServer,
     },
     common::v1::any_value::Value,
     resource::v1::Resource,
     trace::v1::status::StatusCode,
 };
-use std::sync::{
-    Arc, Mutex,
-    atomic::{AtomicBool, Ordering},
-};
+use std::future::IntoFuture;
+use std::sync::atomic::Ordering;
 use tokio_stream::wrappers::TcpListenerStream;
-use tonic::{Request, Response, Status, transport::Server};
-
-#[derive(Default)]
-struct Captured {
-    traces: Vec<ExportTraceServiceRequest>,
-    metrics: Vec<ExportMetricsServiceRequest>,
-    logs: Vec<ExportLogsServiceRequest>,
-}
-
-#[derive(Clone, Default)]
-struct Collector {
-    captured: Arc<Mutex<Captured>>,
-    reject_traces: Arc<AtomicBool>,
-}
-
-#[tonic::async_trait]
-impl TraceService for Collector {
-    async fn export(
-        &self,
-        request: Request<ExportTraceServiceRequest>,
-    ) -> Result<Response<ExportTraceServiceResponse>, Status> {
-        if self.reject_traces.load(Ordering::Relaxed) {
-            return Err(Status::unavailable("test trace receiver unavailable"));
-        }
-        self.captured
-            .lock()
-            .unwrap()
-            .traces
-            .push(request.into_inner());
-        Ok(Response::new(ExportTraceServiceResponse::default()))
-    }
-}
-
-#[tonic::async_trait]
-impl MetricsService for Collector {
-    async fn export(
-        &self,
-        request: Request<ExportMetricsServiceRequest>,
-    ) -> Result<Response<ExportMetricsServiceResponse>, Status> {
-        self.captured
-            .lock()
-            .unwrap()
-            .metrics
-            .push(request.into_inner());
-        Ok(Response::new(ExportMetricsServiceResponse::default()))
-    }
-}
-
-#[tonic::async_trait]
-impl LogsService for Collector {
-    async fn export(
-        &self,
-        request: Request<ExportLogsServiceRequest>,
-    ) -> Result<Response<ExportLogsServiceResponse>, Status> {
-        self.captured
-            .lock()
-            .unwrap()
-            .logs
-            .push(request.into_inner());
-        Ok(Response::new(ExportLogsServiceResponse::default()))
-    }
-}
+use tonic::transport::Server;
+#[path = "support/collector.rs"]
+mod collector;
+use collector::Collector;
 
 fn has_service_name(resource: Option<&Resource>) -> bool {
     resource.is_some_and(|resource| {
@@ -118,6 +49,7 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
         std::env::set_var("OTEL_SDK_DISABLED", "false");
         std::env::remove_var("RUST_LOG");
     }
+    zc_core::environment::initialize()?;
     let telemetry = zc_telemetry::initialize("server")?;
     zc_telemetry::observe_operation("test.operation", async { Ok::<(), anyhow::Error>(()) })
         .await?;
@@ -131,6 +63,80 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
     .await
     .unwrap_err();
     assert_eq!(error.to_string(), "test operation failed");
+    // Exercise actual HTTP transport and middleware, including timeout and cancellation.
+    use zc_core::telemetry::TracedRequest;
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
+    let destination = format!("http://{}", listener.local_addr()?);
+    let http = tokio::spawn(
+        axum::serve(
+            listener,
+            axum::Router::new()
+                .route("/ok", axum::routing::get(|| async { "ok" }))
+                .route(
+                    "/error",
+                    axum::routing::get(|| async { axum::http::StatusCode::INTERNAL_SERVER_ERROR }),
+                )
+                .route(
+                    "/slow",
+                    axum::routing::get(|| async {
+                        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+                        "ok"
+                    }),
+                )
+                .route(
+                    "/redirect",
+                    axum::routing::get(|| async { axum::response::Redirect::temporary("/ok") }),
+                )
+                .layer(axum::middleware::from_fn(zc_telemetry::http::track_request)),
+        )
+        .into_future(),
+    );
+    let client = reqwest::Client::new();
+    zc_telemetry::observe_operation("test.http.parent", async {
+        let response = client
+            .get(format!("{destination}/ok?token=private-token"))
+            .send_traced()
+            .await?;
+        assert_eq!(response.text().await?, "ok");
+        assert_eq!(
+            client
+                .get(format!("{destination}/error"))
+                .send_traced()
+                .await?
+                .status()
+                .as_u16(),
+            500
+        );
+        assert_eq!(
+            client
+                .get(format!("{destination}/redirect"))
+                .send_traced()
+                .await?
+                .text()
+                .await?,
+            "ok"
+        );
+        assert!(
+            client
+                .get(format!("{destination}/slow"))
+                .timeout(std::time::Duration::from_millis(10))
+                .send_traced()
+                .await
+                .unwrap_err()
+                .is_timeout()
+        );
+        assert!(
+            tokio::time::timeout(
+                std::time::Duration::from_millis(10),
+                client.get(format!("{destination}/slow")).send_traced()
+            )
+            .await
+            .is_err()
+        );
+        Ok::<_, anyhow::Error>(())
+    })
+    .await?;
+    http.abort();
     tracing::error!("OTLP receiver test error event");
     telemetry.force_flush().await?;
 
@@ -162,6 +168,25 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
                 assert_eq!(span.status.as_ref().unwrap().code, StatusCode::Error as i32);
             }
         }
+        let client_spans: Vec<_> = spans.iter().filter(|s| s.kind == 3).collect();
+        assert_eq!(client_spans.len(), 5);
+        let parent = spans.iter().find(|s| s.name == "test.http.parent").unwrap();
+        assert!(
+            client_spans
+                .iter()
+                .all(|s| s.trace_id == parent.trace_id && s.parent_span_id == parent.span_id)
+        );
+        let successful_server = spans.iter().find(|s| s.name == "GET /ok").unwrap();
+        assert!(
+            client_spans
+                .iter()
+                .any(|s| s.span_id == successful_server.parent_span_id
+                    && s.trace_id == successful_server.trace_id)
+        );
+        for error in ["timeout", "cancelled"] {
+            assert!(client_spans.iter().any(|s| s.attributes.iter().any(|a|a.key == "error.type" && matches!(a.value.as_ref().and_then(|v|v.value.as_ref()),Some(Value::StringValue(value)) if value == error))));
+        }
+        assert!(!format!("{client_spans:?}").contains("private-token"));
         assert!(spans.iter().all(|span| span.name != "service.operation"));
         assert!(
             captured
@@ -185,6 +210,7 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
             .flat_map(|scope| &scope.metrics)
             .map(|metric| metric.name.as_str())
             .collect::<Vec<_>>();
+        assert!(metric_names.contains(&"http.client.request.duration"));
         assert!(metric_names.contains(&"zc.service.startups"));
         assert!(metric_names.contains(&"zc.service.operation.count"));
         let severities = captured

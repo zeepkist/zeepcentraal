@@ -1,0 +1,26 @@
+name: Verify distributed telemetry
+description: Verify OTLP lineage and queue migration against disposable PostgreSQL
+runs:
+  using: composite
+  steps:
+    - name: Start telemetry database
+      shell: bash
+      run: |
+        docker run --detach --name zc-telemetry-ci \
+          --publish 127.0.0.1:55441:5432 \
+          --env POSTGRES_PASSWORD=telemetry-test-only \
+          ghcr.io/pgmq/pg18-pgmq:v1.12.0
+        for attempt in $(seq 1 60); do
+          if docker exec zc-telemetry-ci pg_isready -U postgres; then break; fi
+          sleep 1
+        done
+        docker exec zc-telemetry-ci createdb -U postgres telemetry_test
+    - name: Verify web API PostgreSQL worker trace
+      shell: bash
+      env:
+        ZC_TEST_DATABASE_URL: postgres://postgres:telemetry-test-only@127.0.0.1:55441/telemetry_test
+      run: timeout 600s cargo test --locked -p zc-jobs --test telemetry_pipeline -- --ignored --exact distributed_pipeline --nocapture
+    - name: Stop telemetry database
+      if: always()
+      shell: bash
+      run: docker rm --force --volumes zc-telemetry-ci

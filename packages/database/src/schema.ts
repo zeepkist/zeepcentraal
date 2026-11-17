@@ -2832,3 +2832,25 @@ export const zslPracticePlaylist = zcPrivate.table(
 		),
 	],
 )
+
+// Private queue mirror. Diesel owns migrations; GraphQL introspects public schema only.
+export const zcJobs = pgSchema('zc_jobs')
+export const queueJob = zcJobs.table(
+	'job',
+	{
+		lane: text().notNull(),
+		id: bigint({ mode: 'bigint' }).notNull(),
+		task: text().notNull(),
+		payload: jsonb().notNull(),
+		jobKey: text('job_key'),
+		lockGroup: text('lock_group'),
+		attempts: integer().notNull().default(0),
+		maxAttempts: integer('max_attempts').notNull(),
+		generation: bigint({ mode: 'bigint' }).notNull().default(0n),
+		running: boolean().notNull().default(false),
+		leaseUntil: timestamp('lease_until', { withTimezone: true, mode: 'string' }),
+		traceparent: text(),
+		tracestate: text(),
+	},
+	(table) => [primaryKey({ columns: [table.lane, table.id] })],
+)

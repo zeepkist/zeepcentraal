@@ -6,6 +6,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use std::{sync::Arc, time::Duration};
+use zc_core::telemetry::TracedRequest;
 
 const SITEVERIFY_URL: &str = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -75,7 +76,7 @@ pub async fn verify_token(
             response: token,
             remoteip: remote_ip.filter(|ip| *ip != "unknown"),
         })
-        .send()
+        .send_traced()
         .await
         .map_err(|_| unavailable())?;
     if !response.status().is_success() {

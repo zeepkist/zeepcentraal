@@ -6,6 +6,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::Mutex;
+use zc_core::telemetry::TracedRequest;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Game {
@@ -193,7 +194,7 @@ impl Twitch {
                 ("client_secret", self.client_secret.as_str()),
                 ("grant_type", "client_credentials"),
             ])
-            .send()
+            .send_traced()
             .await
             .map_err(|_| anyhow::anyhow!("Twitch authentication transport failed"))?;
         ensure!(
@@ -223,7 +224,7 @@ impl Twitch {
                 .header("Client-Id", &self.client_id)
                 .bearer_auth(&token)
                 .query(query)
-                .send()
+                .send_traced()
                 .await
                 .map_err(|_| anyhow::anyhow!("Twitch API transport failed"))?;
             if response.status() == StatusCode::UNAUTHORIZED && attempt == 0 {

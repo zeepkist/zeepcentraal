@@ -19,11 +19,12 @@ diesel_migrations.workspace = true
 pq-sys.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
+opentelemetry.workspace = true
 url.workspace = true
 
 utoipa.workspace = true
 
 [dev-dependencies]
 jiff.workspace = true
-tokio-postgres = "0.7"
+tokio-postgres.workspace = true
 tracing-subscriber.workspace = true

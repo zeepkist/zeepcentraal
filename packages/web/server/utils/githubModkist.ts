@@ -1,4 +1,4 @@
-import { injectTraceHeaders, withActiveSpan } from '@zeepkist/telemetry'
+import { withActiveSpan } from '@zeepkist/telemetry'
 import { createError, useRuntimeConfig } from 'nuxt/server'
 import type {
 	ModkistRelease,
@@ -10,6 +10,7 @@ import type {
 import { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL } from '../../app/types/modkist'
 import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 import { getSharedCached } from './sharedCache'
+import { tracedWebFetch } from './tracedFetch'
 
 export { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL }
 
@@ -174,13 +175,13 @@ async function requestModkistReleases(): Promise<ModkistReleases> {
 				})
 			}
 
-			const response = await $fetch<GitHubGraphqlResponse>(GITHUB_GRAPHQL_URL, {
+			const response = await tracedWebFetch<GitHubGraphqlResponse>(GITHUB_GRAPHQL_URL, {
 				method: 'POST',
-				headers: injectTraceHeaders({
+				headers: {
 					accept: 'application/vnd.github+json',
 					authorization: `Bearer ${token}`,
 					'user-agent': 'ZeepCentraal',
-				}),
+				},
 				body: {
 					query: MODKIST_RELEASE_QUERY,
 					operationName: 'ZeepCentraal_ModkistReleases',

@@ -17,4 +17,4 @@ zc-core.workspace = true
 zc-database.workspace = true
 
 [dev-dependencies]
-tokio-postgres = "0.7"
+tokio-postgres.workspace = true

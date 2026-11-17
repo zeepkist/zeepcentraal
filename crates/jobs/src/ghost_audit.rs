@@ -484,6 +484,8 @@ mod tests {
             .get_or_init(|| tokio::sync::Semaphore::new(2))
             .try_acquire_many(2)?;
         let job = crate::queue::ClaimedJob {
+            traceparent: None,
+            tracestate: None,
             lane: "bulk".into(),
             id: "9".into(),
             task: "auditRecordGhosts".into(),
