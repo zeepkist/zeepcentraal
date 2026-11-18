@@ -671,21 +671,113 @@ async fn daily_recovery_scores_only_eligible_records_inside_period() -> Result<(
 
 #[tokio::test]
 #[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
-async fn daily_percentile_includes_all_cutoff_ties() -> Result<()> {
+async fn selection_percentiles_exclude_used_levels_and_include_cutoff_ties() -> Result<()> {
     let mut connection = fixture().await?;
-    connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) SELECT true,'2026-11-01' FROM generate_series(1,20); INSERT INTO public.level_points SELECT id,CASE WHEN id>=18 THEN 1000 ELSE id END FROM public.level; INSERT INTO public.level_item(id_level,publicly_visible,deleted) SELECT id,true,false FROM public.level").await?;
     let prefix = TRACK_TOURNAMENT_SELECTION_SQL
         .split("INSERT INTO public.track_tournament")
         .next()
         .unwrap();
     let query = format!(
-        "{prefix} SELECT count(*)::integer AS id FROM eligible CROSS JOIN threshold WHERE eligible.points>=threshold.points"
+        "{prefix} SELECT id_level AS id FROM eligible CROSS JOIN threshold
+         WHERE eligible.points >= threshold.points ORDER BY id_level"
     );
-    let count = sql_query(query)
-        .bind::<Integer, _>(2)
-        .bind::<Text, _>("2026-11-02T06:00Z")
-        .get_result::<IdRow>(&mut connection)
+    for (kind, cutoff) in [(2, 1901), (0, 1981), (1, 1999)] {
+        clear_fixture(&mut connection).await?;
+        connection
+            .batch_execute(
+                "INSERT INTO public.level(publicly_visible,date_created)
+                 SELECT true,'2026-10-31' FROM generate_series(1,2002);
+                 INSERT INTO public.level_points
+                 SELECT id,CASE WHEN id=2002 THEN 1000000 ELSE id END FROM public.level;
+                 INSERT INTO public.level_item(id_level,publicly_visible,deleted)
+                 SELECT id,true,false FROM public.level",
+            )
+            .await?;
+        sql_query(
+            "INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at)
+             VALUES ($1,'previous',2002,'2026-10-01T06:00Z','2026-10-02T06:00Z')",
+        )
+        .bind::<Integer, _>(kind)
+        .execute(&mut connection)
         .await?;
-    assert_eq!(count.id, 3, "ties can exceed top 10 percent");
+
+        for first in [cutoff, cutoff - 1] {
+            if first < cutoff {
+                sql_query("UPDATE public.level_points SET points=$1 WHERE id_level=$1-1")
+                    .bind::<Integer, _>(cutoff)
+                    .execute(&mut connection)
+                    .await?;
+            }
+            let rows = sql_query(&query)
+                .bind::<Integer, _>(kind)
+                .bind::<Text, _>("2026-11-03T06:00Z")
+                .load::<IdRow>(&mut connection)
+                .await?;
+            assert_eq!(
+                rows.into_iter().map(|row| row.id).collect::<Vec<_>>(),
+                (first..=2001).collect::<Vec<_>>(),
+                "type {kind}, first eligible level {first}"
+            );
+        }
+    }
+    Ok(())
+}
+
+#[tokio::test]
+#[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
+async fn rotation_falls_back_after_using_recent_levels_for_each_format() -> Result<()> {
+    let mut connection = fixture().await?;
+    connection
+        .batch_execute(
+            "INSERT INTO public.level(publicly_visible,date_created)
+             VALUES (true,'2026-10-31'),(true,'2020-01-01');
+             INSERT INTO public.level_points VALUES (1,10),(2,1000);
+             INSERT INTO public.level_item(id_level,publicly_visible,deleted)
+             SELECT id,true,false FROM public.level",
+        )
+        .await?;
+
+    for (kind, dates) in [
+        (
+            2,
+            [
+                "2026-11-03T06:00Z",
+                "2026-11-05T06:00Z",
+                "2026-11-07T06:00Z",
+            ],
+        ),
+        (
+            0,
+            [
+                "2026-11-02T06:00Z",
+                "2026-11-09T06:00Z",
+                "2026-11-16T06:00Z",
+            ],
+        ),
+        (
+            1,
+            [
+                "2026-11-01T06:00Z",
+                "2026-12-01T06:00Z",
+                "2027-01-01T06:00Z",
+            ],
+        ),
+    ] {
+        for (at, expected) in dates.into_iter().zip([Some(1), Some(2), None]) {
+            let rotation = rotate_track_tournament_at(&mut connection, kind, Some(at)).await?;
+            assert_eq!(rotation.created, expected.is_some(), "type {kind}, {at}");
+            let selected = if let Some(id) = rotation.id_tournament {
+                let row =
+                    sql_query("SELECT id_level AS id FROM public.track_tournament WHERE id=$1")
+                        .bind::<Integer, _>(id)
+                        .get_result::<IdRow>(&mut connection)
+                        .await?;
+                Some(row.id)
+            } else {
+                None
+            };
+            assert_eq!(selected, expected, "type {kind}, {at}");
+        }
+    }
     Ok(())
 }

@@ -38,32 +38,29 @@ WITH period_start AS MATERIALIZED (
     FROM public.level_points points
     JOIN public.level level ON level.id=points.id_level AND level.publicly_visible=true
     CROSS JOIN period
-    WHERE ($1=2 OR level.date_created >= period.window_start_at)
-      AND level.date_created < period.start_at
+    WHERE level.date_created < period.start_at
       AND points.points > 0
       AND EXISTS (
           SELECT 1 FROM public.level_item item
           WHERE item.id_level=level.id AND item.publicly_visible=true AND item.deleted=false
       )
-      AND ($1<>2 OR NOT EXISTS (
+      AND NOT EXISTS (
           SELECT 1 FROM public.track_tournament used
-          WHERE used.type=2 AND used.id_level=level.id
-      ))
+          WHERE used.type=$1 AND used.id_level=level.id
+      )
 ), eligible AS MATERIALIZED (
     SELECT available.* FROM available CROSS JOIN period
-    WHERE $1<>2 OR extract(day FROM period.start_at AT TIME ZONE 'UTC')::integer % 2=0
+    WHERE ($1=2 AND extract(day FROM period.start_at AT TIME ZONE 'UTC')::integer % 2=0)
       OR available.date_created >= period.window_start_at
       OR NOT EXISTS (SELECT 1 FROM available recent WHERE recent.date_created >= period.window_start_at)
 ), threshold AS (
-    SELECT percentile_cont(CASE WHEN $1=2 THEN 0.90 ELSE 0.95 END) WITHIN GROUP (ORDER BY points) AS points FROM eligible
+    SELECT percentile_cont(CASE $1 WHEN 0 THEN 0.99 WHEN 1 THEN 0.999 ELSE 0.95 END)
+        WITHIN GROUP (ORDER BY points) AS points
+    FROM eligible
 ), selected AS (
     SELECT eligible.id_level
     FROM eligible CROSS JOIN threshold
     WHERE eligible.points >= threshold.points
-      AND NOT EXISTS (
-          SELECT 1 FROM public.track_tournament used
-          WHERE used.type=$1 AND used.id_level=eligible.id_level
-      )
     ORDER BY random()
     LIMIT 1
 )
