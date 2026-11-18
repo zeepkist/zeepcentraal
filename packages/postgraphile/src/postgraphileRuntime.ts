@@ -5,6 +5,7 @@ import { createAdmissionController } from './admissionController'
 import { type ElysiaGrafserv, elysiaGrafserv } from './elysiaGrafserv'
 import { createGraphqlHttpHandler } from './graphqlHttp'
 import { readGraphqlJsonResponse } from './graphqlResponse'
+import { createGtrUpdateMessageProvider } from './gtrVersion'
 import { createLiveQueryInvalidationPoller } from './liveQueryInvalidationPoller'
 import { createLiveQueryWebSocketHandlers } from './liveQueryWebSocket'
 import { createQueryCostEvaluator } from './middleware/createQueryCostMiddleware'
@@ -237,6 +238,7 @@ export function createPostGraphileRuntime(
 		config,
 		httpQueryCostEvaluator,
 		httpAdmission,
+		createGtrUpdateMessageProvider(server),
 	)
 
 	let stopped = false

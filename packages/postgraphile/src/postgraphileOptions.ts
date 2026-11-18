@@ -10,6 +10,7 @@ import { makeBunPgService } from './bunSqlAdaptor'
 import { AddCdnToUrlsPlugin } from './plugins/AddCdnToUrlsPlugin'
 import { createBoundedGrafastCachesPlugin } from './plugins/BoundedGrafastCachesPlugin'
 import PgFixForeignKeyNamesPlugin from './plugins/FixForeignKeyNamesPlugin'
+import { GtrUpdateMessagePlugin } from './plugins/GtrUpdateMessagePlugin'
 import { HideAuthOrderByEnumsPlugin } from './plugins/HideAuthOrderByEnumsPlugin'
 import { LiveQueryCompatPlugin } from './plugins/LiveQueryCompatPlugin'
 import { LobbyAggregatesPlugin } from './plugins/LobbyAggregatesPlugin'
@@ -94,6 +95,7 @@ const plugins: GraphileConfig.Plugin[] = [
 	TracePlugin,
 	PaginationLimitsPlugin,
 	AddCdnToUrlsPlugin,
+	GtrUpdateMessagePlugin,
 	SkipByNodeIdFieldsPlugin,
 	HideAuthOrderByEnumsPlugin,
 	LiveQueryCompatPlugin,
@@ -121,6 +123,7 @@ export function createPostGraphilePreset(
 		pgServices: [makeBunPgService(createPostGraphilePgServiceOptions(config))],
 		grafast: {
 			explain: config.allowExplain,
+			context: ({ gtrUpdateMessage }) => ({ gtrUpdateMessage }),
 		},
 		schema: {
 			pgSimplifyAllRows: true,

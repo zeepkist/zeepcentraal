@@ -101,7 +101,11 @@ function responseFromResult(result: Result | null): Response | null {
 }
 
 export class ElysiaGrafserv extends GrafservBase {
-	private createDigest(request: Request, body?: unknown) {
+	private createDigest(
+		request: Request,
+		body?: unknown,
+		requestContext: Partial<Grafast.RequestContext> = {},
+	) {
 		const url = new URL(request.url)
 
 		return normalizeRequest({
@@ -117,13 +121,20 @@ export class ElysiaGrafserv extends GrafservBase {
 			getBody() {
 				return bodyFromRequest(request, body)
 			},
-			requestContext: {},
+			requestContext,
 		})
 	}
 
-	public async handleGraphQLRequest(request: Request, body?: unknown) {
+	public async handleGraphQLRequest(
+		request: Request,
+		body?: unknown,
+		requestContext?: Partial<Grafast.RequestContext>,
+	) {
 		const result = await convertHandlerResultToResult(
-			await this.graphqlHandler(this.createDigest(request, body), this.graphiqlHandler),
+			await this.graphqlHandler(
+				this.createDigest(request, body, requestContext),
+				this.graphiqlHandler,
+			),
 		)
 		return responseFromResult(result)
 	}

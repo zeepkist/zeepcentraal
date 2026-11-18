@@ -4,6 +4,7 @@ import { getOperationAST, parse } from 'postgraphile/graphql'
 import type { AdmissionController } from './admissionController'
 import type { ElysiaGrafserv } from './elysiaGrafserv'
 import { createGraphqlResponse } from './graphqlResponse'
+import type { GtrUpdateMessageProvider } from './gtrVersion'
 import { collectHeaderMetrics } from './middleware/collectHeaderMetrics'
 import {
 	createQueryCostEvaluator,
@@ -79,6 +80,7 @@ export function createGraphqlHttpHandler(
 	config: GraphqlHttpConfig = postgraphileConfig,
 	providedQueryCostEvaluator?: QueryCostEvaluator,
 	admission?: AdmissionController,
+	getGtrUpdateMessage?: GtrUpdateMessageProvider,
 ) {
 	const evaluateQueryCost =
 		providedQueryCostEvaluator ??
@@ -122,7 +124,11 @@ export function createGraphqlHttpHandler(
 			return queryCostResponse
 		}
 
-		const response = await handler.handleGraphQLRequest(request, graphqlBody)
+		const gtrUpdateMessage =
+			request.method === 'POST' ? await getGtrUpdateMessage?.(request.headers) : undefined
+		const response = await handler.handleGraphQLRequest(request, graphqlBody, {
+			gtrUpdateMessage,
+		})
 		if (!response) {
 			return new Response('Not Found', { status: 404 })
 		}
