@@ -16,10 +16,12 @@ async function createRuntime() {
 				typeDefs: `
 						extend type Query {
 							users: [TestUser]!
+							counts: TestCounts
 							broken: String
 							versions(first: Int, orderBy: TestVersionOrder): TestVersions
 						}
-						type TestUser { steamName: String other: String friend: TestUser }
+						type TestUser { steamName: String time: Float other: String friend: TestUser }
+						type TestCounts { time: Int! }
 						extend type Subscription { users: [TestUser]! }
 						type TestVersions { nodes: [TestVersion!]! }
 						type TestVersion { id: Int minimum: String latest: String }
@@ -29,10 +31,16 @@ async function createRuntime() {
 					Query: {
 						users: () =>
 							constant([
-								{ steamName: 'Alice', other: 'keep', friend: { steamName: 'Bob' } },
+								{
+									steamName: 'Alice',
+									time: 42.5,
+									other: 'keep',
+									friend: { steamName: 'Bob', time: 51.25 },
+								},
 								null,
-								{ steamName: null, other: 'also keep', friend: null },
+								{ steamName: null, time: null, other: 'also keep', friend: null },
 							]),
+						counts: () => constant({ time: 4 }),
 						versions: () =>
 							constant({ nodes: [{ id: 1, minimum: '1.10.0', latest: '1.11.0' }] }),
 						broken: () =>
@@ -71,10 +79,12 @@ const body = {
 				... on TestUser { renamed: steamName @include(if: $show) }
 				hidden: steamName @skip(if: $skip)
 				steamName: other
-				friend { ...Names }
+				time: other
+				friend { ...Names time }
 			}
+			counts { time }
 		}
-		fragment Names on TestUser { name: steamName }
+		fragment Names on TestUser { name: steamName duration: time }
 	`,
 	variables: { show: true, skip: true },
 }
@@ -89,10 +99,10 @@ function request(version?: string) {
 	})
 }
 
-test('HTTP names include aliases, fragments, arrays, directives and null values without plan leaks', async () => {
+test('HTTP replacements follow aliases, fragments, arrays and nulls without plan leaks', async () => {
 	const { runtime } = await createRuntime()
 	try {
-		for (const version of ['1.9.0', '1.10.0', undefined, 'invalid', '1.9.0']) {
+		for (const version of ['1.9.0', '1.10.0', '1.11.0', undefined, 'invalid', '1.9.0']) {
 			const response = await runtime.graphqlRoute({ request: request(version), body })
 			expect(response.status).toBe(200)
 			expect(response.headers.get('content-type')).toContain(
@@ -100,20 +110,30 @@ test('HTTP names include aliases, fragments, arrays, directives and null values 
 			)
 			expect(response.headers.get('X-Query-Cost')).not.toBeNull()
 			const message = version === '1.9.0' ? 'Update GTR to 1.11.0' : undefined
+			const updateTime = version === '1.9.0' ? 83.456 : undefined
 			expect(await response.json()).toEqual({
 				data: {
+					counts: { time: 4 },
 					users: [
 						{
 							name: message ?? 'Alice',
+							duration: updateTime ?? 42.5,
 							renamed: message ?? 'Alice',
 							steamName: 'keep',
-							friend: { name: message ?? 'Bob' },
+							time: 'keep',
+							friend: {
+								name: message ?? 'Bob',
+								duration: updateTime ?? 51.25,
+								time: updateTime ?? 51.25,
+							},
 						},
 						null,
 						{
 							name: message ?? null,
+							duration: updateTime ?? null,
 							renamed: message ?? null,
 							steamName: 'also keep',
+							time: 'also keep',
 							friend: null,
 						},
 					],
@@ -151,7 +171,7 @@ test('HTTP replacement preserves GraphQL errors and internal executions ignore c
 	}
 })
 
-test('WebSocket results keep original names even after outdated HTTP request', async () => {
+test('WebSocket results keep original names and times after outdated HTTP request', async () => {
 	const { runtime } = await createRuntime()
 	const sent: { type: string; payload?: unknown }[] = []
 	const ws = {
@@ -170,14 +190,16 @@ test('WebSocket results keep original names even after outdated HTTP request', a
 			JSON.stringify({
 				type: 'subscribe',
 				id: 'names',
-				payload: { query: 'subscription { users { steamName } }' },
+				payload: { query: 'subscription { users { steamName time } }' },
 			}),
 		)
 		for (let i = 0; i < 100 && !sent.some((message) => message.type === 'next'); i++) {
 			await Bun.sleep(1)
 		}
 		expect(sent.find((message) => message.type === 'next')?.payload).toEqual({
-			data: { users: [{ steamName: 'Alice' }, null, { steamName: null }] },
+			data: {
+				users: [{ steamName: 'Alice', time: 42.5 }, null, { steamName: null, time: null }],
+			},
 		})
 	} finally {
 		await runtime.stop()

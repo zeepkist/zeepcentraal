@@ -1,7 +1,5 @@
+import { lt, valid } from 'semver'
 import type { ElysiaGrafserv } from './elysiaGrafserv'
-
-const EXACT_SEMVER =
-	/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/
 
 const versionBody = {
 	operationName: 'ZC_GtrVersions',
@@ -16,8 +14,10 @@ type VersionResponse = {
 
 function parseVersion(input: unknown): string | undefined {
 	if (typeof input !== 'string') return undefined
-	const value = input.trim().replace(/^v/, '')
-	return EXACT_SEMVER.test(value) ? value : undefined
+	const value = input.trim()
+	if (!valid(value)) return undefined
+	// Preserve build metadata in the update message.
+	return value.startsWith('v') ? value.slice(1) : value
 }
 
 export type GtrUpdateMessageProvider = (headers: Headers) => Promise<string | undefined>
@@ -64,8 +64,6 @@ export function createGtrUpdateMessageProvider(
 			})
 			await pending
 		}
-		return cached && Bun.semver.order(current, cached.minimum) < 0
-			? `Update GTR to ${cached.latest}`
-			: undefined
+		return cached && lt(current, cached.minimum) ? `Update GTR to ${cached.latest}` : undefined
 	}
 }
