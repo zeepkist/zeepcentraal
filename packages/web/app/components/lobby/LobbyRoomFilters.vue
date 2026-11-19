@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { lobbyHistoryDurationMinutes } from '~/utils/lobbyAnalytics'
 import { lobbyLabel } from '~/utils/lobbyLabels'
 
 const props = defineProps<{ history?: boolean }>()
@@ -36,16 +37,19 @@ function clearValidation(event:Event) {
 		<fieldset :disabled="!mounted" class="contents">
 		<label class="grid gap-1 text-sm">{{ t('lobby.analytics.search') }}<input name="q" type="search" :value="route.query.q" class="min-w-0 min-h-11 rounded-md border border-border bg-background p-2 text-base" /></label>
 		<label class="grid gap-1 text-sm">{{ t('lobby.table.host') }}<input v-model="hostSearch" name="host" pattern="[0-9]{1,19}" :title="t('lobby.analytics.selectHost')" list="lobby-hosts" :placeholder="t('lobby.analytics.hostPlaceholder')" class="min-w-0 min-h-11 rounded-md border border-border bg-background p-2 text-base" /><datalist id="lobby-hosts"><option v-for="host in hostSuggestions.suggestions.value" :key="host.value" :value="host.value">{{ host.label }}</option></datalist></label>
-		<label class="grid gap-1 text-sm">{{ t('lobby.analytics.visibility') }}<select name="visibility" :value="route.query.visibility ?? (history ? 'public' : 'all')" class="min-h-11 rounded-md border border-border bg-background p-2 text-base"><option value="all">{{ t('lobby.analytics.all') }}</option><option value="public">{{ t('lobby.analytics.public') }}</option><option value="private">{{ t('lobby.analytics.private') }}</option></select></label>
+		<label v-if="history" class="grid gap-1 text-sm">{{ t('lobby.analytics.visibility') }}<select name="visibility" :value="route.query.visibility ?? 'public'" class="min-h-11 rounded-md border border-border bg-background p-2 text-base"><option value="all">{{ t('lobby.analytics.all') }}</option><option value="public">{{ t('lobby.analytics.public') }}</option><option value="private">{{ t('lobby.analytics.private') }}</option></select></label>
 		<label class="grid gap-1 text-sm">{{ t('lobby.analytics.sort') }}<select name="sort" :value="route.query.sort ?? (history ? 'closed' : 'players')" class="min-h-11 rounded-md border border-border bg-background p-2 text-base"><option v-for="sort in sorts" :key="sort" :value="sort">{{ t(lobbyLabel(`sorts.${sort}`)) }}</option></select></label>
 		<template v-if="history">
 			<label v-for="field in ['from','to']" :key="field" class="grid gap-1 text-sm">{{ t(lobbyLabel(field)) }}<input :name="field" type="date" :value="route.query[field]" class="min-w-0 min-h-11 rounded-md border border-border bg-background p-2 text-base" /></label>
-			<label v-for="field in ['minPeak','maxPeak','duration']" :key="field" class="grid gap-1 text-sm">{{ t(lobbyLabel(field)) }}<input :name="field" type="number" min="0" step="1" :value="route.query[field]" class="min-w-0 min-h-11 rounded-md border border-border bg-background p-2 text-base" /></label>
+			<label v-for="field in ['minPeak','maxPeak']" :key="field" class="grid gap-1 text-sm">{{ t(lobbyLabel(field)) }}<input :name="field" type="number" min="0" step="1" :value="route.query[field]" class="min-w-0 min-h-11 rounded-md border border-border bg-background p-2 text-base" /></label>
+			<label class="grid gap-1 text-sm">
+				{{ t('lobby.analytics.duration') }}
+				<input name="duration" type="number" min="1" step="1" required :value="lobbyHistoryDurationMinutes(route.query.duration)" class="min-w-0 min-h-11 rounded-md border border-border bg-background p-2 text-base" />
+			</label>
 			<label class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" name="active" value="1" :checked="route.query.active !== '0'" />{{ t('lobby.analytics.includeActive') }}</label>
 		</template>
-		<template v-else><label v-for="field in ['capacity','populated']" :key="field" class="flex min-h-11 items-center gap-2 text-sm"><input type="checkbox" :name="field" value="1" :checked="route.query[field] === '1'" />{{ t(lobbyLabel(field)) }}</label></template>
 		<p v-if="history" class="text-xs text-muted-foreground">{{ t('lobby.analytics.datePolicy') }}</p>
-		<UButton type="submit" class="justify-center">{{ t('lobby.analytics.apply') }}</UButton>
+		<UButton type="submit" class="min-h-11 justify-center">{{ t('lobby.analytics.apply') }}</UButton>
 		</fieldset>
 	</form>
 </template>

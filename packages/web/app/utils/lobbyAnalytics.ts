@@ -168,6 +168,14 @@ export function lobbyOrderBy(sort: string): LobbyListingsOrderBy[] {
 		)[sort] ?? 'PLAYERS_DESC'
 	return [primary, 'ID_DESC']
 }
+function parseLobbyDurationMinutes(value: unknown): number | undefined {
+	return typeof value === 'string' && /^\d{1,10}$/.test(value) ? Number(value) : undefined
+}
+
+export function lobbyHistoryDurationMinutes(value: unknown): number {
+	return Math.max(1, parseLobbyDurationMinutes(value) ?? 1)
+}
+
 export function buildLobbyFilter(
 	query: Record<string, unknown>,
 	history: boolean,
@@ -199,8 +207,11 @@ export function buildLobbyFilter(
 		)
 			and.push({ peakPlayers: { [field]: Number(query[key]) } })
 	}
-	if (typeof query.duration === 'string' && /^\d{1,10}$/.test(query.duration))
-		and.push({ durationSeconds: { greaterThanOrEqualTo: Number(query.duration) * 60 } })
+	const duration = history
+		? lobbyHistoryDurationMinutes(query.duration)
+		: parseLobbyDurationMinutes(query.duration)
+	if (duration !== undefined)
+		and.push({ durationSeconds: { greaterThanOrEqualTo: duration * 60 } })
 	const date = (value: unknown) =>
 		typeof value === 'string' &&
 		/^\d{4}-\d{2}-\d{2}$/.test(value) &&

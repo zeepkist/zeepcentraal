@@ -111,6 +111,17 @@ describe('lobby analytics semantics', () => {
 		expect(lobbyOrderBy('age')).toEqual(['FIRST_SEEN_ASC', 'ID_DESC'])
 		expect(normalizeLobbyRange('bad')).toBe('24h')
 	})
+	it('defaults history to a one-minute minimum and enforces it for URL filters', () => {
+		for (const duration of [undefined, '', '0', '-1', '0.5', ['2']]) {
+			expect(buildLobbyFilter({ duration }, true).and).toContainEqual({
+				durationSeconds: { greaterThanOrEqualTo: 60 },
+			})
+		}
+		expect(buildLobbyFilter({ duration: '5' }, true).and).toContainEqual({
+			durationSeconds: { greaterThanOrEqualTo: 300 },
+		})
+		expect(buildLobbyFilter({}, false)).toEqual({ and: [{ closedAt: { isNull: true } }] })
+	})
 	it('calculates participation from summed counts, with no fabricated zero denominators', () => {
 		expect(lobbyRatio(140, 440)).toBeCloseTo(0.3181818)
 		expect(lobbyRatio(0, 0)).toBeNull()
