@@ -68,7 +68,7 @@
 		"@types/sanitize-html": "~2.16.1",
 		"@types/sortablejs": "~1.15.9",
 		"@types/three": "~0.186.0",
-		"@vue/test-utils": "~2.5.0",
+		"@vue/test-utils": "~2.6.0",
 		"fake-indexeddb": "~6.2.4",
 		"nuxtseo-devtools-host": "~1.0.0",
 		"unstorage": "~1.17.5",
