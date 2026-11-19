@@ -5,8 +5,8 @@
 	"minimumReleaseAge": "3 days",
 	"prCreation": "not-pending",
 	"internalChecksFilter": "strict",
-	"prConcurrentLimit": 10,
-	"prHourlyLimit": 5,
+	"prConcurrentLimit": 0,
+	"prHourlyLimit": 0,
 	"timezone": "Europe/London",
 	"packageRules": [
 		{
