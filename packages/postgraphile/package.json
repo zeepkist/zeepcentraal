@@ -15,7 +15,7 @@
 		"@graphile/simplify-inflection": "~8.0.0",
 		"@zeepkist/core": "workspace:*",
 		"@zeepkist/telemetry": "workspace:*",
-		"elysia": "~2.0.0-beta.9",
+		"elysia": "~2.0.0-rc.4",
 		"exact-mirror": "^1.2.7",
 		"openapi-types": "^12.1.3",
 		"postgraphile": "~5.2.0",
