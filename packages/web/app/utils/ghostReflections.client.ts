@@ -226,7 +226,7 @@ export class GhostReflectionRenderer {
 	private readonly cube: THREE.WebGLCubeRenderTarget
 	private readonly cubeCamera: THREE.CubeCamera
 	private readonly pmrem: THREE.PMREMGenerator
-	private environment: THREE.WebGLRenderTarget | null = null
+	private environment: THREE.WebGLCubeRenderTarget | null = null
 	private readonly previousEnvironment: THREE.Texture | null
 	private readonly captureBackground: THREE.Scene['background']
 	private pass: MaterialSSRPass | null = null
