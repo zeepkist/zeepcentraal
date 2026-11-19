@@ -116,7 +116,7 @@
         "@nuxtjs/i18n": "~10.6.0",
         "@nuxtjs/seo": "6.0.1",
         "@pinia/nuxt": "~1.0.0",
-        "@tabler/icons-vue": "~3.50.0",
+        "@tabler/icons-vue": "~3.52.0",
         "@takumi-rs/core": "~2.19.0",
         "@unhead/vue": "~3.4.0",
         "@urql/vue": "~2.1.1",
@@ -1363,9 +1363,9 @@
 
     "@szmarczak/http-timer": ["@szmarczak/http-timer@5.0.1", "", { "dependencies": { "defer-to-connect": "^2.0.1" } }, "sha512-+PmQX0PiAYPMeVYe237LJAYvOMYW1j2rH5YROyS3b4CTVJum34HfRvKvAzozHAQG0TnHNdUfY9nCeUyRAs//cw=="],
 
-    "@tabler/icons": ["@tabler/icons@3.50.0", "", {}, "sha512-HflLxyrH1cqC7s7jzQGSjpsTAVIoaf7+/yHjbdM59rJQBMjliibp+LYhDPFxOMcwa1M8DNpOk6ENzQiWn9a1Dg=="],
+    "@tabler/icons": ["@tabler/icons@3.52.0", "", {}, "sha512-dldKlJNfO/gZnGLcIY0X2EFFKIMGwL/rEvTqglvBgAPFiwj9pZOCN5V3Sf0Gyjq6foX4VQmLdOmsS4w5FdWKAw=="],
 
-    "@tabler/icons-vue": ["@tabler/icons-vue@3.50.0", "", { "dependencies": { "@tabler/icons": "3.50.0" }, "peerDependencies": { "vue": ">=3.0.1" } }, "sha512-4ELHNkbNXMyeUEx43FUk+AoRCEz9zqVoxlOwngr1Vx374ySBUCBBCfTuQGYQGctMFhKAVZVlK2yZOnzmJ5Qr5g=="],
+    "@tabler/icons-vue": ["@tabler/icons-vue@3.52.0", "", { "dependencies": { "@tabler/icons": "3.52.0" }, "peerDependencies": { "vue": ">=3.0.1" } }, "sha512-WMbpopRiPEjfQWMZPQUgKN7Xs3pegUV28JQ1TxP7W511blOxazW2IVjDlEgumUIXZwmG9i7nFSqjNDObtrAm+g=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.3.4", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.24.5", "jiti": "^2.7.0", "lightningcss": "1.33.0", "magic-string": "^1.1.0", "source-map-js": "^1.2.1", "tailwindcss": "4.3.4" } }, "sha512-b7QK/QG04v3j04NbpG82XLCedRyulnkuwUDwRa9oK/ypnJIzMapz2Wg+0TltVczjUzDaJJHIa1+jj9aMUOFMTQ=="],
 
