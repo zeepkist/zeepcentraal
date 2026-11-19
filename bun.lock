@@ -28,7 +28,7 @@
         "@lukeed/ms": "~2.0.2",
         "@napi-rs/lzma": "~1.5.1",
         "@zeepkist/telemetry": "workspace:*",
-        "fast-jwt": "~6.3.0",
+        "fast-jwt": "~6.3.7",
         "ms": "^2.1.3",
         "protobufjs": "~8.8.0",
         "xxhash-addon": "~2.1.0",
@@ -2300,7 +2300,7 @@
 
     "fast-glob": ["fast-glob@3.3.3", "", { "dependencies": { "@nodelib/fs.stat": "^2.0.2", "@nodelib/fs.walk": "^1.2.3", "glob-parent": "^5.1.2", "merge2": "^1.3.0", "micromatch": "^4.0.8" } }, "sha512-7MptL8U0cqcFdzIzwOTHoilX9x5BrNqye7Z/LuC7kCMRio1EMSyqRK3BEAUD7sXRq4iT4AzTVuZdhgQ2TCvYLg=="],
 
-    "fast-jwt": ["fast-jwt@6.3.6", "", { "dependencies": { "@lukeed/ms": "^2.0.2", "asn1.js": "^5.4.1", "ecdsa-sig-formatter": "^1.0.11", "mnemonist": "^0.40.0", "safe-regex2": "^5.1.0" } }, "sha512-+4ocTOidYITX4MlC7UUISVj62aaMMMqLGQME1y1/XFSu8PaCVNfAc3oSxQ7EKXu6FF0POH/2ixwXzCgrLaTgWw=="],
+    "fast-jwt": ["fast-jwt@6.3.7", "", { "dependencies": { "@lukeed/ms": "^2.0.2", "asn1.js": "^5.4.1", "ecdsa-sig-formatter": "^1.0.11", "mnemonist": "^0.40.0", "safe-regex2": "^5.1.0" } }, "sha512-Z1yunvhXRD74kttxDTg5NAVq4XexFRVlv78/GzUlkEwt0BRwUCVju2uWJ8TAcy95VA7lXyX93R+AKgZCVPitnQ=="],
 
     "fast-npm-meta": ["fast-npm-meta@2.2.0", "", { "dependencies": { "cac": "^7.0.0" }, "bin": { "fast-npm-meta": "./dist/cli.mjs" } }, "sha512-99jPl8JkCSCa4VlboNU1XuL98ijm74Pm9CGo6H4BoMVoVh1uhguQcvwLgXDT8Vkl2qj/UEQ0J9gD8beHjTFk1w=="],
 
