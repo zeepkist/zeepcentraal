@@ -2,7 +2,8 @@ import { format } from 'node:util'
 import { logs, SeverityNumber } from '@opentelemetry/api-logs'
 import type { TelemetryAttributes } from './span'
 
-const logger = logs.getLogger('zeepcentraal')
+let loggerProvider: ReturnType<typeof logs.getLoggerProvider> | undefined
+let logger: ReturnType<typeof logs.getLogger> | undefined
 const originalConsole = {
 	debug: console.debug.bind(console),
 	info: console.info.bind(console),
@@ -25,6 +26,16 @@ const severity = {
 	error: SeverityNumber.ERROR,
 } as const
 
+function getLogger() {
+	const provider = logs.getLoggerProvider()
+	// A different API instance can register the SDK without updating our early proxy.
+	if (!logger || loggerProvider !== provider) {
+		loggerProvider = provider
+		logger = provider.getLogger('zeepcentraal')
+	}
+	return logger
+}
+
 export function emitTelemetryLog(
 	level: TelemetryLogLevel,
 	message: string,
@@ -32,7 +43,7 @@ export function emitTelemetryLog(
 	options: { printAttributes?: boolean } = {},
 ) {
 	const safeMessage = redactLogMessage(message)
-	logger.emit({
+	getLogger().emit({
 		severityNumber: severity[level],
 		severityText: level.toUpperCase(),
 		body: safeMessage,
@@ -82,7 +93,7 @@ export function installTelemetryConsoleBridge(options: TelemetryConsoleOptions =
 		(...values: unknown[]) => {
 			sink(...values)
 			if (options.shouldExportLog?.(level, values) === false) return
-			logger.emit({
+			getLogger().emit({
 				severityNumber: severity[level],
 				severityText: level.toUpperCase(),
 				body: logBody(values),
