@@ -51,7 +51,7 @@
 		"nuxt-charts": "~3.2.0",
 		"nuxt-og-image": "~7.0.0",
 		"pinia": "~4.1.0",
-		"sanitize-html": "~2.18.0",
+		"sanitize-html": "~2.18.2",
 		"sortablejs": "~1.15.6",
 		"tailwindcss": "~4.3.3",
 		"three": "~0.186.0",
