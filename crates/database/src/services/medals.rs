@@ -37,7 +37,7 @@ impl Database {
         sql_query(
             "SELECT zc_jobs.enqueue('bulk','refreshMedals',jsonb_build_object('idLevel',id_level), \
             'refresh-medals:'||id_level,'medals:'||id_level,3,clock_timestamp()) \
-            FROM public.level_item WHERE medal_due_at<=clock_timestamp() \
+            FROM public.level_item WHERE medal_due_at<=statement_timestamp() \
             GROUP BY id_level ORDER BY min(medal_evaluated_at),id_level LIMIT 100",
         )
         .execute(&mut connection)
