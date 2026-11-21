@@ -315,7 +315,7 @@ impl Database {
         Ok(sql_query(
             "SELECT points.id_level AS id FROM public.level_points points \
              LEFT JOIN LATERAL (SELECT history.* FROM public.level_points_history history \
-                 WHERE history.id_level=points.id_level ORDER BY history.date_created DESC,history.id DESC LIMIT 1) latest ON true \
+                 WHERE history.id_level=points.id_level ORDER BY history.date_created DESC NULLS LAST LIMIT 1) latest ON true \
              WHERE latest.id IS NULL OR ROW(points.points,points.rating,points.modifier_length,points.modifier_evidence,points.modifier_quality,points.modifier_rating,points.complexity_confidence,points.complexity_score,points.field_strength,points.quality_score,points.skill_alignment,points.skill_confidence,points.skill_sample_size,points.skill_score,points.skill_separation) \
                  IS DISTINCT FROM ROW(latest.points,latest.rating,latest.modifier_length,latest.modifier_evidence,latest.modifier_quality,latest.modifier_rating,latest.complexity_confidence,latest.complexity_score,latest.field_strength,latest.quality_score,latest.skill_alignment,latest.skill_confidence,latest.skill_sample_size,latest.skill_score,latest.skill_separation) \
              ORDER BY points.id_level",
