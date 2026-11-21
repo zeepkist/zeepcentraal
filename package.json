@@ -7,7 +7,6 @@
 		"packages/*"
 	],
 	"patchedDependencies": {
-		"nuxtseo-shared@6.0.1": "patches/nuxtseo-shared@6.0.1.patch",
 		"nuxtseo-shared@6.0.3": "patches/nuxtseo-shared@6.0.3.patch",
 		"nuxtseo-devtools-host@1.0.2": "patches/nuxtseo-devtools-host@1.0.2.patch",
 		"nuxt-og-image@7.0.7": "patches/nuxt-og-image@7.0.7.patch",
