@@ -10,7 +10,7 @@ CREATE TABLE public.level(id integer PRIMARY KEY,xx_hash text,publicly_visible b
 CREATE TABLE public.level_item(id integer PRIMARY KEY,id_level integer REFERENCES public.level,validation_time_author real,validation_time_gold real,validation_time_silver real,validation_time_bronze real,updated_at timestamptz DEFAULT now(),deleted boolean NOT NULL DEFAULT false,publicly_visible boolean NOT NULL DEFAULT true);
 CREATE TABLE public.record(id integer PRIMARY KEY,id_user integer REFERENCES public."user",id_level integer REFERENCES public.level,time real,record_eligible boolean NOT NULL DEFAULT true,date_created timestamptz DEFAULT now());
 CREATE TABLE public.personal_best_global(id integer PRIMARY KEY,id_user integer REFERENCES public."user",id_level integer REFERENCES public.level,id_record integer REFERENCES public.record,record_eligible boolean NOT NULL DEFAULT true,UNIQUE(id_user,id_level));
-CREATE TABLE public.user_points(id_user integer PRIMARY KEY REFERENCES public."user",points integer NOT NULL DEFAULT 123);
+CREATE TABLE public.user_points(id_user integer PRIMARY KEY REFERENCES public."user",points integer NOT NULL DEFAULT 123,date_updated timestamptz);
 CREATE VIEW public.record_history_entry AS SELECT id FROM public.record;
 CREATE TABLE zc_jobs.job(task text,payload jsonb,job_key text PRIMARY KEY);
 CREATE FUNCTION zc_jobs.enqueue(text,text,jsonb,text,text,integer,timestamptz) RETURNS void LANGUAGE sql AS $$

@@ -1,0 +1,15 @@
+DROP TRIGGER dirty_level_medal_counts ON public.level;
+DROP TRIGGER dirty_account_medal_counts ON public."user";
+DROP TRIGGER dirty_item_medal_counts_update ON public.level_item;
+DROP TRIGGER dirty_item_medal_counts_delete ON public.level_item;
+DROP TRIGGER dirty_item_medal_counts_insert ON public.level_item;
+DROP TRIGGER dirty_pb_medal_counts_update ON public.personal_best_global;
+DROP TRIGGER dirty_pb_medal_counts_delete ON public.personal_best_global;
+DROP TRIGGER dirty_pb_medal_counts_insert ON public.personal_best_global;
+DROP FUNCTION zc_private.refresh_dirty_user_medal_counts(integer[]);
+DROP FUNCTION zc_private.tg_dirty_account_or_level_medal_counts();
+DROP FUNCTION zc_private.tg_dirty_item_medal_counts();
+DROP FUNCTION zc_private.tg_dirty_pb_medal_counts();
+DROP FUNCTION zc_private.mark_level_medal_counts_dirty(integer[]);
+DROP FUNCTION zc_private.mark_user_medal_counts_dirty(integer[]);
+DROP TABLE zc_private.user_medal_count_dirty;

@@ -8,6 +8,13 @@ pub const DRIZZLE_VIEW_COUNT: usize = 1;
 pub const DRIZZLE_COLUMN_COUNT: usize = 535;
 
 diesel::table! {
+    zc_private.user_medal_count_dirty (id_user) {
+        id_user -> Integer,
+        revision -> BigInt,
+    }
+}
+
+diesel::table! {
     auth (id) {
         id -> Integer,
         id_user -> Nullable<Integer>,

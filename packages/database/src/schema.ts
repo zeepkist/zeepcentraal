@@ -68,6 +68,13 @@ export const adventureLeaderboardEntry = pgView('adventure_leaderboard_entry', {
 
 export const zcPrivate = pgSchema('zc_private')
 
+export const userMedalCountDirty = zcPrivate.table('user_medal_count_dirty', {
+	idUser: integer('id_user')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	revision: bigint({ mode: 'bigint' }).notNull().generatedAlwaysAsIdentity(),
+})
+
 // Streamkist schema is managed only by Diesel migrations.
 export const streamkist = pgSchema('streamkist')
 export const streamkistGuilds = streamkist.table(

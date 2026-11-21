@@ -1355,6 +1355,13 @@ impl JobHandler for ServiceJobHandler {
                 .database
                 .level_record_count_user_page(id_level, after)
                 .await?;
+            // Recheck holders after the visibility transaction commits, including
+            // any PB that was invisible to its trigger's snapshot.
+            if !page.user_ids.is_empty() {
+                self.database
+                    .mark_user_medal_counts_dirty(&page.user_ids)
+                    .await?;
+            }
             let mut requests = player_score_requests(&page.user_ids);
             if let Some(next) = page.next_after_user_id {
                 requests.push(EnqueueRequest {
