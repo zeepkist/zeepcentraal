@@ -1,8 +1,9 @@
 import { useQuery } from '@urql/vue'
 import {
+	Zc_ProfileTelemetrySummaryDocument,
 	Zc_UserPointsHistoryDocument,
 	Zc_UserPointsHistorySecondaryDocument,
-	Zc_UserStatisticsDocument,
+	type Zc_UserStatisticsQuery,
 } from '@zeepkist/graphql/generated'
 import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummary'
 import {
@@ -72,7 +73,7 @@ export function useUserCareer(steamId: Ref<string>, summaryData: UserProfileSumm
 		() => careerSecondaryActive.value && secondaryPointsHistoryQuery.data.value !== undefined,
 	)
 	const statistics = useQuery({
-		query: Zc_UserStatisticsDocument,
+		query: Zc_ProfileTelemetrySummaryDocument,
 		variables: computed(() => ({
 			userId: userId.value ?? 0,
 			daySince: telemetryWindows.value.daySince,
@@ -88,8 +89,9 @@ export function useUserCareer(steamId: Ref<string>, summaryData: UserProfileSumm
 		),
 	})
 	const selectedStatistics = computed(() => {
-		const value = statistics.data.value
-		if (!value) return undefined
+		const summary = statistics.data.value?.profileTelemetrySummary
+		if (!summary) return undefined
+		const value = JSON.parse(summary) as Zc_UserStatisticsQuery
 		if (telemetryPeriod.value === 'today') {
 			return {
 				allStatistics: value.dayStatistics,

@@ -10850,6 +10850,7 @@ type Query implements Node {
   """
   globalMetrics: GlobalMetricSummary
   dashboardTelemetrySummary(daySince: Datetime!, monthSince: Datetime!): String
+  profileTelemetrySummary(profileUserId: Int!, daySince: Datetime!, monthSince: Datetime!, yearSince: Datetime!): String
 
   """Get a single `DiscordActivityEvent`."""
   discordActivityEvent(id: BigInt!): DiscordActivityEvent
@@ -22387,6 +22388,7 @@ type Subscription {
   """
   globalMetrics: GlobalMetricSummary
   dashboardTelemetrySummary(daySince: Datetime!, monthSince: Datetime!): String
+  profileTelemetrySummary(profileUserId: Int!, daySince: Datetime!, monthSince: Datetime!, yearSince: Datetime!): String
 
   """Get a single `DiscordActivityEvent`."""
   discordActivityEvent(id: BigInt!): DiscordActivityEvent

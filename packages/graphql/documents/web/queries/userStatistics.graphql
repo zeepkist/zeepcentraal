@@ -6,6 +6,20 @@ fragment ZC_UserStatisticTotals on RecordStatisticsConnection {
 		}
 	}
 }
+
+query ZC_ProfileTelemetrySummary(
+	$userId: Int!
+	$daySince: Datetime!
+	$monthSince: Datetime!
+	$yearSince: Datetime!
+) {
+	profileTelemetrySummary(
+		profileUserId: $userId
+		daySince: $daySince
+		monthSince: $monthSince
+		yearSince: $yearSince
+	)
+}
 fragment ZC_UserV6StatisticAggregates on RecordStatisticAggregates {
 	sum {
 		distance

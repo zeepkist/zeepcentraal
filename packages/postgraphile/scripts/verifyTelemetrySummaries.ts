@@ -4,6 +4,8 @@ import { print } from 'postgraphile/graphql'
 import {
 	Zc_DashboardStatisticsDocument,
 	Zc_DashboardTelemetrySummaryDocument,
+	Zc_ProfileTelemetrySummaryDocument,
+	Zc_UserStatisticsDocument,
 } from '../../graphql/src/generated/graphql'
 import { elysiaGrafserv } from '../src/elysiaGrafserv'
 import { createPostGraphilePreset } from '../src/postgraphileOptions'
@@ -86,6 +88,19 @@ try {
 		daySince: '2030-01-01T00:00:00Z',
 		monthSince: '2030-01-01T00:00:00Z',
 	})
+	for (const userId of [1, 2, 0]) {
+		await compare(
+			'profileTelemetrySummary',
+			print(Zc_UserStatisticsDocument),
+			print(Zc_ProfileTelemetrySummaryDocument),
+			{
+				userId,
+				daySince: '2026-11-21T00:00:00Z',
+				monthSince: '2026-11-01T00:00:00Z',
+				yearSince: '2026-01-01T00:00:00Z',
+			},
+		)
+	}
 } finally {
 	await instance.release()
 }
