@@ -479,7 +479,9 @@ impl Database {
                     .get_result(connection)
                     .await?;
                     if !matches.value {
-                        return Ok(MaintenanceOutcome::SnapshotChanged);
+                        // PostgreSQL fires statement triggers even when the guarded
+                        // UPDATE finds no rows. Discard their writes on mismatch.
+                        return Err(diesel::result::Error::RollbackTransaction.into());
                     }
                     sql_query(
                         "INSERT INTO public.user_points(id_user,points,total_points,date_created,date_updated) \
@@ -498,7 +500,17 @@ impl Database {
                     Ok(MaintenanceOutcome::Applied(()))
                 })
             .await;
-        contention_outcome(result)
+        match result {
+            Err(error)
+                if matches!(
+                    error.downcast_ref::<diesel::result::Error>(),
+                    Some(diesel::result::Error::RollbackTransaction)
+                ) =>
+            {
+                Ok(MaintenanceOutcome::SnapshotChanged)
+            }
+            result => contention_outcome(result),
+        }
     }
 
     pub async fn reset_inactive_user_scores(&self, ids: &[i32]) -> Result<MaintenanceOutcome<()>> {
