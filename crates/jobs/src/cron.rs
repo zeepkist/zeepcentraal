@@ -143,7 +143,7 @@ async fn run_leader(
         let schedule: ScheduleRow = sql_query(
             "WITH times AS (SELECT timezone('Europe/London',clock_timestamp()) local_time,timezone('UTC',clock_timestamp()) utc_time) SELECT \
              to_char(utc_time,'YYYY-MM-DD HH24:MI') AS minute_key, \
-             floor(extract(epoch FROM utc_time)/30)::bigint::text AS metrics_slot, \
+             floor(extract(epoch FROM utc_time)/300)::bigint::text AS metrics_slot, \
              extract(minute FROM local_time)=0 AS recover, \
              extract(dow FROM local_time)=0 AND extract(hour FROM local_time)=1 AND extract(minute FROM local_time)=0 AS workshop, \
              extract(isodow FROM local_time)=1 AND extract(hour FROM local_time)=1 AND extract(minute FROM local_time)=0 AS level_full, \

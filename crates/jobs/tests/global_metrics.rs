@@ -34,8 +34,8 @@ struct Check {
     valid: bool,
 }
 
-async fn refresh(queue: &Queue, handler: &ServiceJobHandler) -> Result<()> {
-    tokio::time::timeout(Duration::from_secs(40), async {
+async fn refresh(queue: &Queue, handler: &ServiceJobHandler, timeout: Duration) -> Result<()> {
+    tokio::time::timeout(timeout, async {
         loop {
             let jobs = queue.claim(JobLane::Fast, 1).await?;
             if let Some(job) = jobs.as_slice().first() {
@@ -123,12 +123,13 @@ async fn scheduler_startup_and_next_slot_publish_statistics_through_real_handler
         receiver,
     ));
     let result = async {
-        for _ in 0..2 {
-            refresh(&queue,&handler).await?;
+        for (startup, timeout_secs) in [(true, 40), (false, 315)] {
+            refresh(&queue, &handler, Duration::from_secs(timeout_secs)).await?;
             let mut connection = pool.application().connection().await?;
-            let check: Check = sql_query("SELECT count(*)=1 AND bool_and(records=(SELECT count(*) FROM public.record WHERE record_eligible) AND as_of>statement_timestamp()-interval '10 seconds') AS valid FROM public.statistics")
+            let check: Check = sql_query("SELECT count(*)=1 AND bool_and(records=(SELECT count(*) FROM public.record WHERE record_eligible) AND as_of>statement_timestamp()-interval '10 seconds' AND ($1 OR mod(floor(extract(epoch FROM as_of))::bigint,300)<15)) AS valid FROM public.statistics")
+                .bind::<Bool, _>(startup)
                 .get_result(&mut connection).await?;
-            ensure!(check.valid,"Scheduled refresh did not publish exact statistics");
+            ensure!(check.valid,"Scheduled refresh did not publish exact statistics in its expected slot");
             sql_query("UPDATE public.statistics SET records=-8,as_of='2000-01-01Z'").execute(&mut connection).await?;
         }
         Ok::<_,anyhow::Error>(())

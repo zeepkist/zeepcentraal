@@ -583,8 +583,8 @@ impl Database {
             "SELECT ranked.id_user,ranked.points,ranked.rank FROM (SELECT points.id_user,points.points, \
              RANK() OVER(ORDER BY points.points DESC)::integer AS rank FROM public.user_points points \
              JOIN public.\"user\" account ON account.id=points.id_user AND NOT account.banned \
-             WHERE EXISTS(SELECT 1 FROM (SELECT * FROM public.record WHERE record_eligible) record WHERE record.id_user=points.id_user \
-               AND record.date_created>=clock_timestamp()-interval '6 months')) ranked ORDER BY ranked.id_user",
+             WHERE EXISTS(SELECT 1 FROM public.record record WHERE record.id_user=points.id_user \
+               AND record.record_eligible AND record.date_created>=statement_timestamp()-interval '6 months')) ranked ORDER BY ranked.id_user",
         )
         .load(&mut connection)
         .await?)

@@ -7,6 +7,10 @@ const DOWN: &str = include_str!("../migrations/20261019000900_public_statistics/
 const SINGLE_UP: &str = include_str!("../migrations/20261019001000_single_player_statistic/up.sql");
 const SINGLE_DOWN: &str =
     include_str!("../migrations/20261019001000_single_player_statistic/down.sql");
+const SERVE_STALE_UP: &str =
+    include_str!("../migrations/20261121000000_global_metrics_serve_stale/up.sql");
+const SERVE_STALE_DOWN: &str =
+    include_str!("../migrations/20261121000000_global_metrics_serve_stale/down.sql");
 static TEST_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 async fn connect() -> Result<Client> {
@@ -463,11 +467,37 @@ async fn stale_reads_keep_frozen_counts_and_rollover_keeps_matching_labels() -> 
     tx.batch_execute(
         "SELECT zc_private.refresh_global_metrics();
       UPDATE public.statistics SET records_yesterday=71,records_last_month=72,
-       as_of=statement_timestamp()-interval '61 seconds',records=-1;",
+       as_of=statement_timestamp()-interval '10 minutes',records=-1;",
     )
     .await?;
-    let row=tx.query_one("SELECT records=4 AND records_yesterday=71 AND records_last_month=72 FROM public.global_metrics()", &[]).await?;
+    let row=tx.query_one("SELECT records=-1 AND records_yesterday=71 AND records_last_month=72 FROM public.global_metrics()", &[]).await?;
     assert!(row.get::<_, bool>(0));
+    for invalid_snapshot in [
+        "UPDATE public.statistics SET semantics_version=4",
+        "UPDATE public.statistics SET time_zone='UTC'",
+        "UPDATE public.statistics SET as_of=statement_timestamp()+interval '1 hour'",
+        "DELETE FROM public.statistics",
+    ] {
+        tx.batch_execute("SAVEPOINT invalid_snapshot").await?;
+        tx.batch_execute(invalid_snapshot).await?;
+        assert_eq!(
+            tx.query_one("SELECT records FROM public.global_metrics()", &[])
+                .await?
+                .get::<_, i64>(0),
+            4
+        );
+        tx.batch_execute(
+            "ROLLBACK TO SAVEPOINT invalid_snapshot; RELEASE SAVEPOINT invalid_snapshot",
+        )
+        .await?;
+    }
+    tx.batch_execute(SERVE_STALE_DOWN).await?;
+    tx.batch_execute("UPDATE public.statistics SET day_start=date_trunc('day',statement_timestamp(),'Europe/London'),month_start=date_trunc('month',statement_timestamp(),'Europe/London')").await?;
+    let row = tx
+        .query_one("SELECT records=4 FROM public.global_metrics()", &[])
+        .await?;
+    assert!(row.get::<_, bool>(0));
+    tx.batch_execute(SERVE_STALE_UP).await?;
     tx.batch_execute("SELECT zc_private.refresh_global_metrics()")
         .await?;
     assert!(tx.query_one("SELECT records=4 AND records_yesterday=71 AND records_last_month=72 FROM public.statistics", &[]).await?.get::<_,bool>(0));

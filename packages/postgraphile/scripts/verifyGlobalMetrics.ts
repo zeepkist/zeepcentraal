@@ -181,14 +181,17 @@ try {
 				`CREATE OR REPLACE FUNCTION zc_private.compute_global_metrics(p_as_of timestamptz) RETURNS public.global_metric_summary LANGUAGE plpgsql STABLE AS $$ BEGIN RAISE EXCEPTION 'compute called'; END $$`,
 			)
 			assert.equal(Number((await tx`select * from public.global_metrics()`)[0].records), 4)
-			await tx`update public.statistics set as_of=statement_timestamp()-interval '61 seconds'`
+			await tx`update public.statistics set as_of=statement_timestamp()-interval '10 minutes', records=987654`
+			assert.equal(
+				Number((await tx`select * from public.global_metrics()`)[0].records),
+				987654,
+			)
+			await tx`delete from public.statistics`
 			await tx`select * from public.global_metrics()`
 		}),
 		/compute called/,
 	)
 	for (const change of [
-		"as_of=statement_timestamp()-interval '61 seconds'",
-		"day_start=day_start-interval '1 day'",
 		'semantics_version=4',
 		"time_zone='UTC'",
 		"as_of=statement_timestamp()+interval '1 hour'",
