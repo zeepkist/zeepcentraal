@@ -3,7 +3,8 @@ import {
 	Zc_DashboardCriticalDocument,
 	Zc_DashboardHeroSummaryDocument,
 	Zc_DashboardHotLevelsDocument,
-	Zc_DashboardStatisticsDocument,
+	type Zc_DashboardStatisticsQuery,
+	Zc_DashboardTelemetrySummaryDocument,
 	Zc_DashboardViewerLevelsDocument,
 } from '@zeepkist/graphql/generated'
 import type { Ref } from 'vue'
@@ -143,7 +144,7 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		),
 	})
 	const statisticsQuery = useQuery({
-		query: Zc_DashboardStatisticsDocument,
+		query: Zc_DashboardTelemetrySummaryDocument,
 		variables: computed(() => ({
 			daySince: ssrMetricWindows.value.daySince,
 			monthSince: ssrMetricWindows.value.monthSince,
@@ -235,7 +236,10 @@ export function useDashboard(viewerId: Ref<number | undefined>) {
 		popularLevelsQuery,
 		popularLevelsTarget: popularLevelsPrefetch.target,
 		prefetchCritical,
-		statistics: statisticsQuery.data,
+		statistics: computed(() => {
+			const summary = statisticsQuery.data.value?.dashboardTelemetrySummary
+			return summary ? (JSON.parse(summary) as Zc_DashboardStatisticsQuery) : undefined
+		}),
 		statisticsActive: statisticsPrefetch.active,
 		statisticsQuery,
 		statisticsTarget: statisticsPrefetch.target,

@@ -181,6 +181,10 @@ fragment ZC_DashboardV6StatisticAggregates on RecordStatisticAggregates {
 		averageSpeed
 	}
 }
+
+query ZC_DashboardTelemetrySummary($daySince: Datetime!, $monthSince: Datetime!) {
+	dashboardTelemetrySummary(daySince: $daySince, monthSince: $monthSince)
+}
 query ZC_DashboardStatistics($daySince: Datetime!, $monthSince: Datetime!) {
 	allTimeStatistics: recordStatistics(first: 0) {
 		aggregates {

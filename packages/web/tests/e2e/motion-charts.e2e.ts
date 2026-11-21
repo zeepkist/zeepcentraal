@@ -4,7 +4,7 @@ import { test } from '../support/browser'
 test('mounted charts follow live reduced motion while period data changes', async ({ page }) => {
 	await page.emulateMedia({ reducedMotion: 'reduce' })
 	await page.route('**/graphql', async (route) => {
-		if (!String(route.request().postDataJSON()?.query).includes('ZC_DashboardStatistics'))
+		if (!String(route.request().postDataJSON()?.query).includes('ZC_DashboardTelemetrySummary'))
 			return route.fallback()
 		const statistics = (grass: number) => ({
 			aggregates: {
@@ -21,11 +21,13 @@ test('mounted charts follow live reduced motion while period data changes', asyn
 		await route.fulfill({
 			json: {
 				data: {
-					allTimeStatistics: statistics(40),
-					dayStatistics: statistics(40),
-					monthStatistics: statistics(80),
-					v6DayStatistics: statistics(40),
-					v6MonthStatistics: statistics(80),
+					dashboardTelemetrySummary: JSON.stringify({
+						allTimeStatistics: statistics(40),
+						dayStatistics: statistics(40),
+						monthStatistics: statistics(80),
+						v6DayStatistics: statistics(40),
+						v6MonthStatistics: statistics(80),
+					}),
 				},
 			},
 		})

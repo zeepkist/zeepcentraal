@@ -10849,6 +10849,7 @@ type Query implements Node {
   Shared headline counts. Live counts use a 60-second cache with exact fallback. Completed periods freeze until rollover refresh; reads retain the previous coherent snapshot until refresh succeeds. Calendar periods use Europe/London.
   """
   globalMetrics: GlobalMetricSummary
+  dashboardTelemetrySummary(daySince: Datetime!, monthSince: Datetime!): String
 
   """Get a single `DiscordActivityEvent`."""
   discordActivityEvent(id: BigInt!): DiscordActivityEvent
@@ -22385,6 +22386,7 @@ type Subscription {
   Shared headline counts. Live counts use a 60-second cache with exact fallback. Completed periods freeze until rollover refresh; reads retain the previous coherent snapshot until refresh succeeds. Calendar periods use Europe/London.
   """
   globalMetrics: GlobalMetricSummary
+  dashboardTelemetrySummary(daySince: Datetime!, monthSince: Datetime!): String
 
   """Get a single `DiscordActivityEvent`."""
   discordActivityEvent(id: BigInt!): DiscordActivityEvent

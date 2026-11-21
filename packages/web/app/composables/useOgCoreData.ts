@@ -1,7 +1,8 @@
 import { useQuery } from '@urql/vue'
 import {
 	Zc_AdventureSeriesCountsDocument,
-	Zc_DashboardStatisticsDocument,
+	type Zc_DashboardStatisticsQuery,
+	Zc_DashboardTelemetrySummaryDocument,
 	Zc_LevelDetailDocument,
 	Zc_LevelsDocument,
 	Zc_UserProfileDocument,
@@ -14,7 +15,7 @@ export async function useOgDashboardData() {
 	const windows = getDashboardMetricWindows()
 	const metrics = useGlobalMetrics()
 	const statisticsQuery = useQuery({
-		query: Zc_DashboardStatisticsDocument,
+		query: Zc_DashboardTelemetrySummaryDocument,
 		variables: {
 			...windows,
 		},
@@ -24,9 +25,10 @@ export async function useOgDashboardData() {
 	if (!metrics.data.value)
 		throw createError({ statusCode: 503, statusMessage: 'Global metrics unavailable' })
 
+	const summary = statisticsQuery.data.value?.dashboardTelemetrySummary
 	return {
 		critical: metrics.data.value,
-		statistics: statisticsQuery.data.value,
+		statistics: summary ? (JSON.parse(summary) as Zc_DashboardStatisticsQuery) : undefined,
 	}
 }
 

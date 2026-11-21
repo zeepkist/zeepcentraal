@@ -525,7 +525,7 @@ test('dashboard prefetches deferred GraphQL before its section is visible', asyn
 		(url) => url.hostname === 'graphql.zeepki.st' || url.pathname === '/graphql',
 		async (route) => {
 			const body = route.request().postData() ?? ''
-			if (/\bquery\s+ZC_DashboardStatistics\b/.test(body)) {
+			if (/\bquery\s+ZC_DashboardTelemetrySummary\b/.test(body)) {
 				// Capture before the response changes skeleton heights and browser scroll anchoring.
 				prefetchedTop = (
 					await page.locator('[data-prefetch="dashboard-statistics"]').boundingBox()
@@ -551,7 +551,7 @@ test('dashboard prefetches deferred GraphQL before its section is visible', asyn
 			(element) => element.getBoundingClientRect().top + window.scrollY,
 		)
 		const viewportHeight = page.viewportSize()?.height ?? 720
-		if (!requests.some(({ operation }) => operation === 'ZC_DashboardStatistics')) {
+		if (!requests.some(({ operation }) => operation === 'ZC_DashboardTelemetrySummary')) {
 			await page.evaluate(
 				({ top, height }) => window.scrollTo(0, Math.max(0, top - height * 1.5)),
 				{ top: targetTop, height: viewportHeight },
@@ -559,11 +559,13 @@ test('dashboard prefetches deferred GraphQL before its section is visible', asyn
 		}
 
 		await expect
-			.poll(() => requests.some(({ operation }) => operation === 'ZC_DashboardStatistics'))
+			.poll(() =>
+				requests.some(({ operation }) => operation === 'ZC_DashboardTelemetrySummary'),
+			)
 			.toBe(true)
 		await expect.poll(() => prefetchedTop ?? -1).toBeGreaterThanOrEqual(viewportHeight)
 		expect(
-			requests.find(({ operation }) => operation === 'ZC_DashboardStatistics')?.method,
+			requests.find(({ operation }) => operation === 'ZC_DashboardTelemetrySummary')?.method,
 		).toBe('POST')
 	} finally {
 		releaseAbove()
