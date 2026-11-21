@@ -1,14 +1,9 @@
 import assert from 'node:assert/strict'
+import { fileURLToPath } from 'node:url'
 import { postgraphile } from 'postgraphile'
-import { print } from 'postgraphile/graphql'
-import {
-	Zc_DashboardStatisticsDocument,
-	Zc_DashboardTelemetrySummaryDocument,
-	Zc_ProfileTelemetrySummaryDocument,
-	Zc_UserStatisticsDocument,
-} from '../../graphql/src/generated/graphql'
 import { elysiaGrafserv } from '../src/elysiaGrafserv'
 import { createPostGraphilePreset } from '../src/postgraphileOptions'
+import { loadOperationCatalog, printOperation } from './utils/webGraphqlSmoke'
 
 const databaseUrl = process.env.ZC_TEST_DATABASE_URL
 assert.ok(databaseUrl, 'ZC_TEST_DATABASE_URL must identify a disposable telemetry fixture')
@@ -78,8 +73,11 @@ async function compare(
 }
 
 try {
-	const dashboard = print(Zc_DashboardStatisticsDocument)
-	const summary = print(Zc_DashboardTelemetrySummaryDocument)
+	const operations = await loadOperationCatalog(
+		fileURLToPath(new URL('../../graphql/documents/web', import.meta.url)),
+	)
+	const dashboard = printOperation(operations, 'ZC_DashboardStatistics')
+	const summary = printOperation(operations, 'ZC_DashboardTelemetrySummary')
 	await compare('dashboardTelemetrySummary', dashboard, summary, {
 		daySince: '2026-11-21T00:00:00Z',
 		monthSince: '2026-11-01T00:00:00Z',
@@ -88,18 +86,15 @@ try {
 		daySince: '2030-01-01T00:00:00Z',
 		monthSince: '2030-01-01T00:00:00Z',
 	})
+	const profile = printOperation(operations, 'ZC_UserStatistics')
+	const profileSummary = printOperation(operations, 'ZC_ProfileTelemetrySummary')
 	for (const userId of [1, 2, 0]) {
-		await compare(
-			'profileTelemetrySummary',
-			print(Zc_UserStatisticsDocument),
-			print(Zc_ProfileTelemetrySummaryDocument),
-			{
-				userId,
-				daySince: '2026-11-21T00:00:00Z',
-				monthSince: '2026-11-01T00:00:00Z',
-				yearSince: '2026-01-01T00:00:00Z',
-			},
-		)
+		await compare('profileTelemetrySummary', profile, profileSummary, {
+			userId,
+			daySince: '2026-11-21T00:00:00Z',
+			monthSince: '2026-11-01T00:00:00Z',
+			yearSince: '2026-01-01T00:00:00Z',
+		})
 	}
 } finally {
 	await instance.release()
