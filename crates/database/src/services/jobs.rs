@@ -635,7 +635,7 @@ impl Database {
 
     pub async fn level_ids_page(&self, after_id: i32, recent_only: bool) -> Result<Vec<i32>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT level.id FROM public.level level WHERE level.id>$1 AND (NOT $2 OR EXISTS(SELECT 1 FROM (SELECT * FROM public.record WHERE record_eligible) record WHERE record.id_level=level.id AND record.date_created>=clock_timestamp()-interval '1 hour')) ORDER BY level.id LIMIT 200")
+        Ok(sql_query("SELECT level.id FROM public.level level WHERE level.id>$1 AND (NOT $2 OR EXISTS(SELECT 1 FROM (SELECT * FROM public.record WHERE record_eligible) record WHERE record.id_level=level.id AND record.date_created>=statement_timestamp()-interval '1 hour')) ORDER BY level.id LIMIT 200")
             .bind::<Integer,_>(after_id).bind::<Bool,_>(recent_only).load::<IdRow>(&mut connection).await?.into_iter().map(|row|row.id).collect())
     }
 
