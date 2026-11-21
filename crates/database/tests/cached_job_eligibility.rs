@@ -57,7 +57,12 @@ async fn cached_queries_preserve_activity_ranks_repairs_and_score_inputs() -> Re
         SELECT id,100000+id,id=60 FROM generate_series(1,61) id;
       INSERT INTO public.level(id,hash,xx_hash,adventure) OVERRIDING SYSTEM VALUE
         SELECT id,'cached-'||id,md5(id::text),false FROM generate_series(1,3) id;
-      INSERT INTO public.level_item(id_level,deleted) VALUES(1,false),(2,true);
+      INSERT INTO public.workshop_item(workshop_id,author_id,name,image_url,visibility)
+        VALUES(987651,100001,'cached scoring fixture','',0) ON CONFLICT(workshop_id) DO NOTHING;
+      INSERT INTO public.level_item(id_level,workshop_id,author_id,name,image_url,file_author,file_uid,
+        validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze,deleted,created_at,updated_at)
+        VALUES(1,987651,100001,'available','','fixture','available',0,0,0,0,false,now(),now()),
+              (2,987651,100001,'unavailable','','fixture','unavailable',0,0,0,0,true,now(),now());
       INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE
         SELECT id,id,1,((id+1)/2)::real,'test','test' FROM generate_series(1,60) id;
       INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE
@@ -161,5 +166,27 @@ async fn cached_queries_preserve_activity_ranks_repairs_and_score_inputs() -> Re
         )
         .await?;
     assert_eq!((counts.get::<_, i32>(0), counts.get::<_, i32>(1)), (0, 0));
+
+    let stale = database
+        .user_score_sources(&[56])
+        .await?
+        .pop()
+        .expect("fixture score source");
+    assert!(!stale.contributions.is_empty());
+    client
+        .execute(
+            "UPDATE public.user_point_contribution SET level_points=level_points+1 WHERE id_user=56",
+            &[],
+        )
+        .await?;
+    let count_invalidations = "SELECT count(*) FROM public.live_query_invalidations \
+        WHERE schema_name='public' AND table_name='user_point_contribution'";
+    let before: i64 = client.query_one(count_invalidations, &[]).await?.get(0);
+    assert!(matches!(
+        database.recalculate_player_score_from(stale).await?,
+        MaintenanceOutcome::Applied(())
+    ));
+    let after: i64 = client.query_one(count_invalidations, &[]).await?.get(0);
+    assert_eq!(after - before, 1, "only the successful retry invalidates");
     Ok(())
 }

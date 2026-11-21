@@ -382,7 +382,7 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
             .await?,
         MaintenanceOutcome::Applied(_)
     ));
-    // Reconciliation uses SQL enqueueing, so verify it shares the sweep queue group.
+    // Reconciliation queues a paged fan-out instead of a full player-score sweep.
     let mut connection = database.pool_partition().connection().await?;
     connection.batch_execute("INSERT INTO public.level(id,hash,xx_hash,adventure) OVERRIDING SYSTEM VALUE VALUES(2,'eligibility-score-test',repeat('d',32),true)").await?;
     drop(connection);
@@ -390,7 +390,7 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
         database.reconcile_record_eligibility(2).await?,
         MaintenanceOutcome::Applied(())
     );
-    assert_eq!(count(&database,"SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE task='updatePlayerScores' AND lock_group='player-score-sweep'").await?,1);
+    assert_eq!(count(&database,"SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE task='fanOutRecordEligibility' AND lock_group='eligibility-player-fanout'").await?,1);
     for _ in 0..3 {
         for followup in queue.claim(JobLane::Bulk, 10).await? {
             assert!(queue.finish(&followup, None).await?);
