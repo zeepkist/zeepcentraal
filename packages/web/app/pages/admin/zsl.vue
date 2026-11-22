@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import ZslEditor from '~/components/admin/ZslEditor.vue'
 
 useSeoMeta({ title: 'Super League administration', robots: 'noindex, nofollow' })

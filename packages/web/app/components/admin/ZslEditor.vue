@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import ZslPlaylists from './ZslPlaylists.vue'
 import type { Points, Round, Season, ZslDashboard } from './zslTypes'
 import { londonTimestamp, zslError } from './zslTypes'

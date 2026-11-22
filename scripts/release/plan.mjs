@@ -72,7 +72,7 @@ const images = releases.flatMap((release) => {
 			{
 				name: 'postgraphile',
 				version: release.version,
-				dockerfile: 'Dockerfile.postgraphile',
+				dockerfile: 'docker/Dockerfile.postgraphile',
 				artifact: 'package-output-postgraphile',
 				downloadPath: 'dist',
 				expectedPath: 'dist/zeepcentraal-postgraphile',
@@ -81,7 +81,7 @@ const images = releases.flatMap((release) => {
 			{
 				name: 'web',
 				version: release.version,
-				dockerfile: 'Dockerfile.web',
+				dockerfile: 'docker/Dockerfile.web',
 				artifact: 'package-output-web',
 				downloadPath: 'packages/web/.output',
 				expectedPath: 'packages/web/.output/server/index.mjs',

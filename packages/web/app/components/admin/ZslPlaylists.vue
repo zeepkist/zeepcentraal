@@ -1,4 +1,4 @@
-<script setup vapor lang="ts">
+<script setup lang="ts">
 import type { Round } from './zslTypes'
 import { londonTimestamp, zslError } from './zslTypes'
 

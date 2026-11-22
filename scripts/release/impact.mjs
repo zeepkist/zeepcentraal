@@ -54,7 +54,7 @@ async function analyzeCommits(_config, context) {
 			changedPaths(commit.hash, context.cwd ?? process.cwd()).some(
 				(path) =>
 					affects(target, path) &&
-					/(^Dockerfile\.|\/Dockerfile$|^(Cargo|bun)\.lock$)/.test(path),
+					/(^(docker\/)?Dockerfile\.|\/Dockerfile$|^(Cargo|bun)\.lock$)/.test(path),
 			),
 	)
 		? 'patch'

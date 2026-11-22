@@ -8,56 +8,56 @@ const rustTargets = {
 			'vendor/steam-cm-provider/',
 		],
 		binary: 'zeepcentraal-server',
-		dockerfile: 'Dockerfile.server',
+		dockerfile: 'docker/Dockerfile.server',
 	},
 	'zc-jobs': {
 		crate: 'jobs',
 		dependencies: ['jobs', 'workshop', 'database', 'core', 'telemetry'],
 		binary: 'zeepcentraal-jobs',
-		dockerfile: 'Dockerfile.jobs',
+		dockerfile: 'docker/Dockerfile.jobs',
 	},
 	'zc-migrate': {
 		crate: 'migrate',
 		dependencies: ['migrate', 'database', 'core', 'telemetry'],
 		binary: 'zeepcentraal-migrate',
-		dockerfile: 'Dockerfile.migrate',
+		dockerfile: 'docker/Dockerfile.migrate',
 	},
 	'zc-lobby-host': {
 		crate: 'lobby-host',
 		dependencies: ['lobby-host', 'database', 'core', 'telemetry'],
 		binary: 'zeepcentraal-lobby-host',
-		dockerfile: 'Dockerfile.lobby-host',
+		dockerfile: 'docker/Dockerfile.lobby-host',
 	},
 	'zc-discord': {
 		crate: 'discord',
 		dependencies: ['discord', 'core', 'telemetry'],
 		binary: 'zeepcentraal-discord',
-		dockerfile: 'Dockerfile.discord',
+		dockerfile: 'docker/Dockerfile.discord',
 	},
 	'zc-streamkist': {
 		crate: 'streamkist',
 		dependencies: ['streamkist', 'database', 'core', 'telemetry'],
 		binary: 'zeepcentraal-streamkist',
-		dockerfile: 'Dockerfile.streamkist',
+		dockerfile: 'docker/Dockerfile.streamkist',
 	},
 	'zc-inspector-zeep': {
 		crate: 'inspector-zeep',
 		dependencies: ['inspector-zeep', 'workshop', 'database', 'core', 'telemetry'],
 		binary: 'zeepcentraal-inspector-zeep',
-		dockerfile: 'Dockerfile.inspector-zeep',
+		dockerfile: 'docker/Dockerfile.inspector-zeep',
 	},
 	'zc-import-zsl': {
 		crate: 'import-zsl',
 		dependencies: ['import-zsl', 'database', 'core', 'telemetry'],
 		binary: 'zeepcentraal-import-zsl',
-		dockerfile: 'Dockerfile.zsl',
+		dockerfile: 'docker/Dockerfile.zsl',
 		cloneSuperLeague: true,
 	},
 }
 
 function affects(target, path) {
 	if (target === 'ts') {
-		return /^(packages\/(web|postgraphile|core|database|graphql|telemetry)\/|bun\.lock$|package\.json$|Dockerfile\.(web|postgraphile)$)/.test(
+		return /^(packages\/(web|postgraphile|core|database|graphql|telemetry)\/|bun\.lock$|package\.json$|(docker\/)?Dockerfile\.(web|postgraphile)$)/.test(
 			path,
 		)
 	}
@@ -69,6 +69,8 @@ function affects(target, path) {
 		(service.dependencies.includes('database') &&
 			path.startsWith('packages/database/drizzle/')) ||
 		path === service.dockerfile ||
+		// Include root Dockerfiles in commits made before the move.
+		path === service.dockerfile.slice('docker/'.length) ||
 		[
 			'Cargo.toml',
 			'Cargo.lock',

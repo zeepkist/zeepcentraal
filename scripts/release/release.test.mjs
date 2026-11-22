@@ -250,7 +250,7 @@ test('release paths separate retained TypeScript services from Rust services', (
 	assert.equal(Object.keys(rustTargets).length, 8)
 	assert.equal(affects('zc-streamkist', 'crates/streamkist/src/runtime.rs'), true)
 	assert.equal(affects('zc-streamkist', 'crates/database/src/services/streamkist.rs'), true)
-	assert.equal(affects('zc-streamkist', 'Dockerfile.streamkist'), true)
+	assert.equal(affects('zc-streamkist', 'docker/Dockerfile.streamkist'), true)
 	assert.equal(affects('zc-streamkist', 'crates/discord/src/runtime.rs'), false)
 	assert.equal(affects('ts', 'packages/web/app/app.vue'), true)
 	assert.equal(affects('ts', 'packages/postgraphile/src/index.ts'), true)
@@ -277,8 +277,8 @@ test('release paths separate retained TypeScript services from Rust services', (
 	assert.equal(affects('zc-migrate', 'packages/database/drizzle/0001.sql'), true)
 	assert.equal(affects('zc-migrate', 'crates/database/src/adoption.rs'), true)
 	assert.equal(affects('zc-migrate', 'crates/telemetry/src/lib.rs'), true)
-	assert.equal(affects('zc-discord', 'Dockerfile.discord'), true)
-	assert.equal(affects('zc-inspector-zeep', 'Dockerfile.inspector-zeep'), true)
+	assert.equal(affects('zc-discord', 'docker/Dockerfile.discord'), true)
+	assert.equal(affects('zc-inspector-zeep', 'docker/Dockerfile.inspector-zeep'), true)
 	assert.equal(affects('zc-server', 'packages/web/app/app.vue'), false)
 	for (const target of Object.keys(rustTargets)) {
 		assert.equal(affects(target, '.github/workflows/deploy.yml'), true)
@@ -441,6 +441,29 @@ test('GitHub squash title still releases affected Rust services', { timeout: 30_
 		}
 		process.env.RELEASE_TARGET = 'ts'
 		assert.equal(await analyzeCommits({}, context), null)
+
+		mkdirSync(join(root, 'docker'))
+		writeFileSync(join(root, 'docker/Dockerfile.jobs'), 'FROM scratch\n')
+		writeFileSync(join(root, 'docker/Dockerfile.web'), 'FROM scratch\n')
+		git(root, 'add', '.')
+		const message = 'chore(docker): move Dockerfiles'
+		git(
+			root,
+			'-c',
+			'user.name=Release Test',
+			'-c',
+			'user.email=release@example.test',
+			'commit',
+			'-qm',
+			message,
+		)
+		context.commits = [{ hash: git(root, 'rev-parse', 'HEAD'), message }]
+		for (const target of ['zc-jobs', 'ts']) {
+			process.env.RELEASE_TARGET = target
+			assert.equal(await analyzeCommits({}, context), 'patch', target)
+		}
+		process.env.RELEASE_TARGET = 'zc-discord'
+		assert.equal(await analyzeCommits({}, context), null)
 	} finally {
 		if (previousTarget === undefined) delete process.env.RELEASE_TARGET
 		else process.env.RELEASE_TARGET = previousTarget
@@ -465,11 +488,11 @@ test('each Rust image copies its staged service binary', () => {
 		assert.match(dockerfile, /OPENTELEMETRY_SERVICE_VERSION=\$SERVICE_VERSION/)
 	}
 	assert.match(
-		readFileSync('Dockerfile.migrate', 'utf8'),
+		readFileSync('docker/Dockerfile.migrate', 'utf8'),
 		/COPY packages\/database\/drizzle drizzle/,
 	)
 	assert.match(
-		readFileSync('Dockerfile.zsl', 'utf8'),
+		readFileSync('docker/Dockerfile.zsl', 'utf8'),
 		/COPY super_league_data \/data\/super_league_data/,
 	)
 })
