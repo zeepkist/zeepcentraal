@@ -1,2 +1,3 @@
 *.zeeplevel text eol=lf
 .githooks/* text eol=lf
+*.sql linguist-language=PLpgSQL
