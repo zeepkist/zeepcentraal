@@ -1,0 +1,1 @@
+INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2020-01-01'),(true,'2026-09-03T06:00Z'),(true,'2026-09-03T05:59:59Z'); INSERT INTO public.level_points VALUES(1,1000000),(2,1000),(3,10); INSERT INTO public.level_item(id_level,publicly_visible,deleted) SELECT id,true,false FROM public.level

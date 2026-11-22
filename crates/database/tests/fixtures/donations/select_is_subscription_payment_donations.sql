@@ -1,0 +1,1 @@
+SELECT is_subscription_payment FROM public.donations WHERE discord_userid=12345678901234567

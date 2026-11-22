@@ -1,0 +1,1 @@
+DROP TABLE original_tournaments,original_results,once_repaired

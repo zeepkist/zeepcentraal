@@ -29,6 +29,13 @@ use zc_workshop::{
     steamcmd::WorkshopDownload,
 };
 
+const SET_NEXT_ATTEMPT_AT_LEVEL_SUBMISSION_NOTIFICATION: &str =
+    include_str!("fixtures/first_party/set_next_attempt_at_level_submission_notification.sql");
+const SET_NEXT_INSPECTION_AT_LEVEL_SUBMISSIONS: &str =
+    include_str!("fixtures/first_party/set_next_inspection_at_level_submissions.sql");
+const SET_NEXT_FINALIZATION_AT_LEVEL_SUBMISSION_CONTEST: &str =
+    include_str!("fixtures/first_party/set_next_finalization_at_level_submission_contest.sql");
+
 #[derive(Default)]
 struct Storage {
     objects: Mutex<HashMap<String, Vec<u8>>>,
@@ -200,7 +207,13 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
     tokio::spawn(async move {
         let _ = connection.await;
     });
-    let round:i32=client.query_one("INSERT INTO public.zsl_round(id_season,name,round,workshop_id,event_date,submission_start,submission_end,zsl_vote_end,cosmetic_vote_end) VALUES(9000,'Mock integration',2,0,now()+interval '14 days',now()-interval '1 day',now()+interval '1 day',now()+interval '8 days',now()+interval '28 days') RETURNING id",&[]).await?.get(0);
+    let round: i32 = client
+        .query_one(
+            include_str!("fixtures/first_party/insert_zsl_round.sql"),
+            &[],
+        )
+        .await?
+        .get(0);
     let author = "76561198000000001".to_owned();
     let db = Database::connect(&url, 6).await?;
     let config=InspectorConfig::parse(&json!({"version":2,"notificationChannelId":"1553911239275585617","contests":[{"roundId":9000,"rules":{"minBlocks":0,"maxBlocks":3000,"minTime":25,"maxTime":60,"minCheckpoints":3}},{"roundId":round,"rules":{"minBlocks":0,"maxBlocks":3000,"minTime":25,"maxTime":60,"minCheckpoints":3}}]}).to_string())?;
@@ -231,7 +244,14 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
         DatabaseWorkshopPersistence::new(db.clone(), storage.clone(), "mock-thumbnails")?;
     let (discord, feed, task) = discord_mock().await?;
     // Isolate previously exercised fixture outbox. No live data involved.
-    client.execute("UPDATE zc_private.level_submission_notification SET delivered_revision=desired_revision,delivered_validation_id=desired_validation_id",&[]).await?;
+    client
+        .execute(
+            include_str!(
+                "fixtures/first_party/set_delivered_revision_level_submission_notification.sql"
+            ),
+            &[],
+        )
+        .await?;
     let runtime = InspectorRuntime {
         database: &db,
         discord: &discord,
@@ -262,7 +282,9 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
     let contest = db.get_inspector_contest(round).await?.unwrap();
     let first = db.get_inspector_submissions(contest.id).await?[0].latest_validation_id;
     assert!(!db.get_inspector_submissions(contest.id).await?[0].inspection_due);
-    client.execute("UPDATE zc_private.level_submission_notification SET next_attempt_at=now() WHERE id_submission=$1",&[&id]).await?;
+    client
+        .execute(SET_NEXT_ATTEMPT_AT_LEVEL_SUBMISSION_NOTIFICATION, &[&id])
+        .await?;
     run_inspector(&runtime, &config, options).await?;
     assert_eq!(
         feed.lock().await.validation_count(),
@@ -278,10 +300,7 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
         .filter(|(r, _)| r.starts_with("PATCH"))
         .count();
     client
-        .execute(
-            "UPDATE zc_private.level_submissions SET next_inspection_at=now() WHERE id=$1",
-            &[&id],
-        )
+        .execute(SET_NEXT_INSPECTION_AT_LEVEL_SUBMISSIONS, &[&id])
         .await?;
     run_inspector(&runtime, &config, options).await?;
     assert_eq!(
@@ -305,10 +324,7 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
     // Workshop ownership mismatch is a completed validation, not a transient failure.
     metadata.item.lock().await.creator_id = 76561198000000002;
     client
-        .execute(
-            "UPDATE zc_private.level_submissions SET next_inspection_at=now() WHERE id=$1",
-            &[&id],
-        )
+        .execute(SET_NEXT_INSPECTION_AT_LEVEL_SUBMISSIONS, &[&id])
         .await?;
     feed.lock().await.rate_limit_edit = true;
     run_inspector(&runtime, &config, options).await?;
@@ -318,7 +334,9 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
         invalid["validation"]["failures"],
         json!(["workshop-owner-not-listed-as-author"])
     );
-    client.execute("UPDATE zc_private.level_submission_notification SET next_attempt_at=now() WHERE id_submission=$1",&[&id]).await?;
+    client
+        .execute(SET_NEXT_ATTEMPT_AT_LEVEL_SUBMISSION_NOTIFICATION, &[&id])
+        .await?;
     run_inspector(&runtime, &config, options).await?;
     assert_eq!(feed.lock().await.validation_count(), 1);
     db.withdraw_submission(round, &author).await?;
@@ -355,7 +373,7 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
     assert_eq!(feed.lock().await.validation_count(), 1);
     client
         .execute(
-            "UPDATE public.zsl_round SET submission_end=now()-interval '1 second' WHERE id=$1",
+            include_str!("fixtures/first_party/set_submission_end_zsl_round.sql"),
             &[&round],
         )
         .await?;
@@ -366,14 +384,11 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
         "open"
     );
     client
-        .execute(
-            "UPDATE zc_private.level_submissions SET next_inspection_at=now() WHERE id=$1",
-            &[&id],
-        )
+        .execute(SET_NEXT_INSPECTION_AT_LEVEL_SUBMISSIONS, &[&id])
         .await?;
     client
         .execute(
-            "UPDATE zc_private.level_submission_contest SET next_finalization_at=now() WHERE id=$1",
+            SET_NEXT_FINALIZATION_AT_LEVEL_SUBMISSION_CONTEST,
             &[&contest.id],
         )
         .await?;
@@ -385,7 +400,7 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
     );
     client
         .execute(
-            "UPDATE zc_private.level_submission_contest SET next_finalization_at=now() WHERE id=$1",
+            SET_NEXT_FINALIZATION_AT_LEVEL_SUBMISSION_CONTEST,
             &[&contest.id],
         )
         .await?;
@@ -394,7 +409,14 @@ async fn website_validation_feed_archive_and_final_retry() -> Result<()> {
         db.get_inspector_contest(round).await?.unwrap().state,
         "frozen"
     );
-    let archive_row=client.query_one("SELECT archive_object_key,archive_sha256,archive_size FROM zc_private.level_submission_contest WHERE id=$1",&[&contest.id]).await?;
+    let archive_row = client
+        .query_one(
+            include_str!(
+                "fixtures/first_party/select_archive_object_key_level_submission_contest.sql"
+            ),
+            &[&contest.id],
+        )
+        .await?;
     let key: String = archive_row.get(0);
     let archive = storage.objects.lock().await[&key].clone();
     assert_eq!(sha256(&archive), archive_row.get::<_, String>(1));

@@ -1,0 +1,1 @@
+INSERT INTO level_item(id_level,workshop_id,author_id,name,image_url,file_author, file_uid,validation_time_author,validation_time_gold,validation_time_silver, validation_time_bronze,deleted,created_at,updated_at) VALUES($1,$2,$3,'Rust ZSL Level','','',$4,1,2,3,4,false,now(),now())

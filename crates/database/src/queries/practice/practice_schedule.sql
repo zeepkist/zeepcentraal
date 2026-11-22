@@ -1,0 +1,1 @@
+SELECT name, to_char(event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS event_date, to_char(event2_date AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS event2_date FROM public.zsl_round WHERE id=$1

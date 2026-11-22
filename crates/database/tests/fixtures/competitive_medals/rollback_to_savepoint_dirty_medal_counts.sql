@@ -1,0 +1,1 @@
+ROLLBACK TO SAVEPOINT dirty_medal_counts

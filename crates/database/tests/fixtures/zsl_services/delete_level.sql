@@ -1,0 +1,1 @@
+DELETE FROM level WHERE id=$1

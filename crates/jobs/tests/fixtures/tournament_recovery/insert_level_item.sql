@@ -1,0 +1,1 @@
+INSERT INTO public.level_item(id_level,workshop_id,author_id,name,image_url,file_author,file_uid,validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze,deleted,created_at,updated_at) VALUES($1,1,42,'Fixture','','Fixture','fixture',30,40,50,60,false,now(),now())

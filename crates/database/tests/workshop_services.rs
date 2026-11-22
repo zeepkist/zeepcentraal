@@ -1,6 +1,17 @@
 use serde_json::json;
 use zc_database::{Database, services::workshop::WorkshopLevelInput};
 
+const SELECT_SIMHASH_LEVEL: &str =
+    include_str!("fixtures/workshop_services/select_simhash_level.sql");
+const SELECT_XMIN_LEVEL: &str = include_str!("fixtures/workshop_services/select_xmin_level.sql");
+const SELECT_POINTS_LEVEL_POINTS: &str =
+    include_str!("fixtures/workshop_services/select_points_level_points.sql");
+const SELECT_DELETED_LEVEL_ITEM: &str =
+    include_str!("fixtures/workshop_services/select_deleted_level_item.sql");
+const SET_ADVENTURE_LEVEL: &str =
+    include_str!("fixtures/workshop_services/set_adventure_level.sql");
+const COUNT_LEVEL_ITEM: &str = include_str!("fixtures/workshop_services/count_level_item.sql");
+
 #[tokio::test]
 #[ignore = "requires fresh local workshop_incremental_validation_test database with current migrations"]
 async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyhow::Result<()> {
@@ -52,10 +63,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     let first = database.upsert_workshop_level(&input).await?;
     assert!(first.changed_level_ids.contains(&first.id_level));
     let fingerprint = client
-        .query_one(
-            "SELECT simhash FROM public.level WHERE id=$1",
-            &[&first.id_level],
-        )
+        .query_one(SELECT_SIMHASH_LEVEL, &[&first.id_level])
         .await?
         .get::<_, i64>(0);
     assert_eq!(
@@ -66,12 +74,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         )?
     );
     let before = client
-        .query_one(
-            "SELECT level.xmin::text,metadata.xmin::text,item.xmin::text \
-             FROM public.level level JOIN public.level_metadata metadata ON metadata.id_level=level.id \
-             JOIN public.level_item item ON item.id_level=level.id WHERE level.id=$1",
-            &[&first.id_level],
-        )
+        .query_one(SELECT_XMIN_LEVEL, &[&first.id_level])
         .await?;
     let before_versions = (
         before.get::<_, String>(0),
@@ -83,12 +86,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert!(second.changed_level_ids.is_empty());
     assert!(second.validation_level_ids.is_empty());
     let after = client
-        .query_one(
-            "SELECT level.xmin::text,metadata.xmin::text,item.xmin::text \
-             FROM public.level level JOIN public.level_metadata metadata ON metadata.id_level=level.id \
-             JOIN public.level_item item ON item.id_level=level.id WHERE level.id=$1",
-            &[&first.id_level],
-        )
+        .query_one(SELECT_XMIN_LEVEL, &[&first.id_level])
         .await?;
     assert_eq!(
         before_versions,
@@ -112,7 +110,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     );
     client
         .execute(
-            "UPDATE public.level SET simhash=NULL WHERE id=$1",
+            include_str!("fixtures/workshop_services/set_simhash_level.sql"),
             &[&first.id_level],
         )
         .await?;
@@ -120,10 +118,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert!(repaired.changed_level_ids.is_empty());
     assert_eq!(
         client
-            .query_one(
-                "SELECT simhash FROM public.level WHERE id=$1",
-                &[&first.id_level]
-            )
+            .query_one(SELECT_SIMHASH_LEVEL, &[&first.id_level])
             .await?
             .get::<_, i64>(0),
         fingerprint
@@ -138,9 +133,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert_eq!(lighting_update.validation_level_ids, vec![first.id_level]);
     let saved = client
         .query_one(
-            "SELECT metadata.environment::text,metadata.blocks::text,level.hash,level.xx_hash \
-         FROM public.level level JOIN public.level_metadata metadata ON metadata.id_level=level.id \
-         WHERE level.id=$1",
+            include_str!("fixtures/workshop_services/select_environment_level.sql"),
             &[&first.id_level],
         )
         .await?;
@@ -178,10 +171,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     );
     assert_eq!(
         client
-            .query_one(
-                "SELECT points FROM public.level_points WHERE id_level=$1",
-                &[&first.id_level]
-            )
+            .query_one(SELECT_POINTS_LEVEL_POINTS, &[&first.id_level])
             .await?
             .get::<_, i32>(0),
         0
@@ -190,23 +180,17 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert!(restored.changed_level_ids.contains(&restored.id_level));
     assert!(
         !client
-            .query_one(
-                "SELECT deleted FROM public.level_item WHERE id_level=$1",
-                &[&first.id_level]
-            )
+            .query_one(SELECT_DELETED_LEVEL_ITEM, &[&first.id_level])
             .await?
             .get::<_, bool>(0)
     );
 
     client
-        .execute(
-            "UPDATE public.level SET adventure=true WHERE id=$1",
-            &[&first.id_level],
-        )
+        .execute(SET_ADVENTURE_LEVEL, &[&first.id_level])
         .await?;
     client
         .execute(
-            "UPDATE public.level_points SET points=900 WHERE id_level=$1",
+            include_str!("fixtures/workshop_services/set_points_level_points.sql"),
             &[&first.id_level],
         )
         .await?;
@@ -218,10 +202,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     );
     assert_eq!(
         client
-            .query_one(
-                "SELECT points FROM public.level_points WHERE id_level=$1",
-                &[&first.id_level]
-            )
+            .query_one(SELECT_POINTS_LEVEL_POINTS, &[&first.id_level])
             .await?
             .get::<_, i32>(0),
         900
@@ -233,17 +214,14 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
             .is_empty()
     );
     let deleted: bool = client
-        .query_one(
-            "SELECT deleted FROM public.level_item WHERE id_level=$1",
-            &[&first.id_level],
-        )
+        .query_one(SELECT_DELETED_LEVEL_ITEM, &[&first.id_level])
         .await?
         .get(0);
     assert!(!deleted);
 
     client
         .execute(
-            "UPDATE public.level SET adventure=false WHERE id=$1",
+            include_str!("fixtures/workshop_services/set_adventure_level_by_id.sql"),
             &[&first.id_level],
         )
         .await?;
@@ -261,7 +239,12 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
             statistics: &zc_core::ghosts::GhostStatistics::default(),
         })
         .await?;
-    client.execute("INSERT INTO public.user_point_contribution(id_user,id_level,id_record,contribution_rank,level_position,level_points,level_decayed_points,player_decayed_points,date_calculated) VALUES($1,$2,$3,1,1,900,900,900,now())", &[&player.id,&first.id_level,&record.id_record]).await?;
+    client
+        .execute(
+            include_str!("fixtures/workshop_services/insert_user_point_contribution.sql"),
+            &[&player.id, &first.id_level, &record.id_record],
+        )
+        .await?;
     // Reused UID retires old membership and preserves both metadata versions.
     let mut new_version = input.clone();
     new_version.xx_hash = format!("{:032X}", suffix + 1_000_000);
@@ -273,7 +256,9 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert!(
         client
             .query_one(
-                "SELECT deleted FROM public.level_item WHERE workshop_id=$1 AND id_level=$2",
+                include_str!(
+                    "fixtures/workshop_services/select_deleted_level_item_by_workshop_id.sql"
+                ),
                 &[&workshop_id, &first.id_level]
             )
             .await?
@@ -282,19 +267,21 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert!(!changed.validation_level_ids.contains(&first.id_level));
     assert!(changed.validation_level_ids.contains(&changed.id_level));
     assert_eq!(
-        serde_json::from_str::<serde_json::Value>(&client
-            .query_one(
-                "SELECT blocks::text FROM public.level_metadata WHERE id_level=$1 ORDER BY id LIMIT 1",
-                &[&first.id_level]
-            )
-            .await?
-            .get::<_, String>(0))?,
+        serde_json::from_str::<serde_json::Value>(
+            &client
+                .query_one(
+                    include_str!("fixtures/workshop_services/select_blocks_level_metadata.sql"),
+                    &[&first.id_level]
+                )
+                .await?
+                .get::<_, String>(0)
+        )?,
         input.blocks
     );
     assert_eq!(
         client
             .query_one(
-                "SELECT id_level FROM public.level_item WHERE workshop_id=$1 AND file_uid=$2 AND NOT deleted",
+                include_str!("fixtures/workshop_services/select_id_level_level_item.sql"),
                 &[&workshop_id, &input.file_uid]
             )
             .await?
@@ -304,26 +291,20 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert!(
         client
             .query_one(
-                "SELECT to_regclass('zc_private.level_version_lineage') IS NULL",
+                include_str!("fixtures/workshop_services/to_regclass.sql"),
                 &[]
             )
             .await?
             .get::<_, bool>(0)
     );
     let membership_count = client
-        .query_one(
-            "SELECT count(*) FROM public.level_item WHERE workshop_id=$1",
-            &[&workshop_id],
-        )
+        .query_one(COUNT_LEVEL_ITEM, &[&workshop_id])
         .await?
         .get::<_, i64>(0);
     database.upsert_workshop_level(&new_version).await?;
     assert_eq!(
         client
-            .query_one(
-                "SELECT count(*) FROM public.level_item WHERE workshop_id=$1",
-                &[&workshop_id]
-            )
+            .query_one(COUNT_LEVEL_ITEM, &[&workshop_id])
             .await?
             .get::<_, i64>(0),
         membership_count
@@ -333,10 +314,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         .await?;
     assert_eq!(
         client
-            .query_one(
-                "SELECT points FROM public.level_points WHERE id_level=$1",
-                &[&first.id_level]
-            )
+            .query_one(SELECT_POINTS_LEVEL_POINTS, &[&first.id_level])
             .await?
             .get::<_, i32>(0),
         0
@@ -347,7 +325,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM public.user_point_contribution WHERE id_level=$1",
+                include_str!("fixtures/workshop_services/count_user_point_contribution.sql"),
                 &[&first.id_level]
             )
             .await?
@@ -357,7 +335,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM public.record WHERE id=$1",
+                include_str!("fixtures/workshop_services/count_record.sql"),
                 &[&record.id_record]
             )
             .await?
@@ -376,10 +354,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert!(right?.changed_level_ids.is_empty());
     assert_eq!(
         client
-            .query_one(
-                "SELECT count(*) FROM public.level_item WHERE workshop_id=$1",
-                &[&workshop_id]
-            )
+            .query_one(COUNT_LEVEL_ITEM, &[&workshop_id])
             .await?
             .get::<_, i64>(0),
         membership_count
@@ -387,7 +362,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM public.level_item WHERE workshop_id=$1 AND NOT deleted",
+                include_str!("fixtures/workshop_services/count_level_item_by_workshop_id.sql"),
                 &[&workshop_id]
             )
             .await?
@@ -404,10 +379,7 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
         .await?;
     assert!(
         client
-            .query_one(
-                "SELECT points FROM public.level_points WHERE id_level=$1",
-                &[&first.id_level]
-            )
+            .query_one(SELECT_POINTS_LEVEL_POINTS, &[&first.id_level])
             .await?
             .get::<_, i32>(0)
             > 0,
@@ -415,20 +387,14 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
     );
     database.mark_workshop_deleted(alias.workshop_id, 2).await?;
     client
-        .execute(
-            "UPDATE public.level SET adventure=true WHERE id=$1",
-            &[&first.id_level],
-        )
+        .execute(SET_ADVENTURE_LEVEL, &[&first.id_level])
         .await?;
     database
         .update_level_scores(&[first.id_level], false)
         .await?;
     assert!(
         client
-            .query_one(
-                "SELECT points FROM public.level_points WHERE id_level=$1",
-                &[&first.id_level]
-            )
+            .query_one(SELECT_POINTS_LEVEL_POINTS, &[&first.id_level])
             .await?
             .get::<_, i32>(0)
             > 0,

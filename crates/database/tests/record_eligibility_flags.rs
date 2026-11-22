@@ -2,6 +2,19 @@ use anyhow::{Result, ensure};
 use tokio_postgres::{Client, NoTls};
 use zc_database::Database;
 
+const EXISTS_SQL: &str = include_str!("fixtures/record_eligibility_flags/exists.sql");
+const REVERT_ELIGIBILITY_MIGRATION: &str =
+    include_str!("fixtures/record_eligibility_flags/revert_eligibility_migration.sql");
+const COUNT_DISCORD_ACTIVITY_EVENT: &str =
+    include_str!("fixtures/record_eligibility_flags/count_discord_activity_event.sql");
+const APPLY_ELIGIBILITY_MIGRATION: &str =
+    include_str!("fixtures/record_eligibility_flags/apply_eligibility_migration.sql");
+const SELECT_RECORD_COUNT_LEVEL: &str =
+    include_str!("fixtures/record_eligibility_flags/select_record_count_level.sql");
+const SELECT_RECORD_COUNT_LEVEL_BY_ID_4: &str =
+    include_str!("fixtures/record_eligibility_flags/select_record_count_level_by_id_4.sql");
+const DELETE_RECORD: &str = include_str!("fixtures/record_eligibility_flags/delete_record.sql");
+
 const UP: &str = include_str!("../migrations/20261013020000_persist_record_eligibility/up.sql");
 const DOWN: &str = include_str!("../migrations/20261013020000_persist_record_eligibility/down.sql");
 const TABLES: [(&str, &str); 7] = [
@@ -24,7 +37,9 @@ async fn assert_flags(client: &Client, id: i32, expected: bool) -> Result<()> {
     for (table, column) in TABLES {
         let flags = client
             .query(
-                &format!("SELECT record_eligible FROM {table} WHERE {column}=$1"),
+                &include_str!("fixtures/record_eligibility_flags/read_fixture_state.sql")
+                    .replace("{{table}}", table)
+                    .replace("{{column}}", column),
                 &[&id],
             )
             .await?;
@@ -37,7 +52,12 @@ async fn assert_flags(client: &Client, id: i32, expected: bool) -> Result<()> {
 }
 
 async fn set_status(client: &Client, id: i32, status: &str) -> Result<()> {
-    client.execute("INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) SELECT id,id_user,id_level,$2,'{}','fixture' FROM public.record WHERE id=$1 ON CONFLICT(id_record) DO UPDATE SET status=excluded.status", &[&id,&status]).await?;
+    client
+        .execute(
+            include_str!("fixtures/record_eligibility_flags/insert_record_validation.sql"),
+            &[&id, &status],
+        )
+        .await?;
     Ok(())
 }
 
@@ -52,70 +72,92 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
         "Isolated local flag test database required"
     );
     let client = connect(&url).await?;
-    if client.query_one("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='record' AND column_name='record_eligible')", &[]).await?.get::<_,bool>(0) {
-        client.batch_execute(&format!("BEGIN; {DOWN} COMMIT;")).await?;
+    if client.query_one(EXISTS_SQL, &[]).await?.get::<_, bool>(0) {
+        client
+            .batch_execute(&REVERT_ELIGIBILITY_MIGRATION.replace("{{down}}", DOWN))
+            .await?;
     }
     client
         .batch_execute(include_str!("fixtures/record_eligibility_flags.sql"))
         .await?;
     let evidence = client
         .query_one(
-            "SELECT to_jsonb(r)::text FROM public.record r WHERE id=1",
+            include_str!("fixtures/record_eligibility_flags/select_record.sql"),
             &[],
         )
         .await?
         .get::<_, String>(0);
     let notifications = client
-        .query_one("SELECT count(*) FROM public.discord_activity_event", &[])
+        .query_one(COUNT_DISCORD_ACTIVITY_EVENT, &[])
         .await?
         .get::<_, i64>(0);
     client
-        .batch_execute(&format!("BEGIN; {UP} COMMIT;"))
+        .batch_execute(&APPLY_ELIGIBILITY_MIGRATION.replace("{{up}}", UP))
         .await?;
     assert_flags(&client, 1, false).await?;
     for id in 2..=4 {
         assert_flags(&client, id, true).await?;
     }
-    client.batch_execute("UPDATE zc_private.record_validation SET id_record=4,id_user=4,id_level=4 WHERE id_record=1;").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/set_id_record_record_validation.sql"
+        ))
+        .await?;
     assert_flags(&client, 1, true).await?;
     assert_flags(&client, 4, false).await?;
     assert_eq!(
         client
-            .query_one("SELECT record_count FROM public.level WHERE id=1", &[])
+            .query_one(SELECT_RECORD_COUNT_LEVEL, &[])
             .await?
             .get::<_, i64>(0),
         1
     );
     assert_eq!(
         client
-            .query_one("SELECT record_count FROM public.level WHERE id=4", &[])
+            .query_one(SELECT_RECORD_COUNT_LEVEL_BY_ID_4, &[])
             .await?
             .get::<_, i64>(0),
         0
     );
-    client.batch_execute("UPDATE zc_private.record_validation SET id_record=1,id_user=1,id_level=1 WHERE id_record=4;").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/set_id_record_record_validation_by_id_record_4.sql"
+        ))
+        .await?;
     assert_flags(&client, 1, false).await?;
     assert_flags(&client, 4, true).await?;
     assert_eq!(
         client
             .query_one(
-                "SELECT (to_jsonb(r)-'record_eligible')::text FROM public.record r WHERE id=1",
+                include_str!("fixtures/record_eligibility_flags/select_record_by_id_1.sql"),
                 &[]
             )
             .await?
             .get::<_, String>(0),
         evidence
     );
-    assert!(client.query_one("SELECT zc_private.record_is_eligible(NULL) AND zc_private.record_is_eligible(999999) AND NOT zc_private.record_is_eligible(1)", &[]).await?.get::<_,bool>(0));
+    assert!(
+        client
+            .query_one(
+                include_str!("fixtures/record_eligibility_flags/record_is_eligible.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
 
     // Detect unnecessary projection writes as well as changed projection contents.
-    client.batch_execute("CREATE TEMP TABLE history_flag_writes(flag_changed boolean,data_changed boolean); CREATE FUNCTION pg_temp.track_history_flag_writes() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN INSERT INTO history_flag_writes VALUES(OLD.record_eligible IS DISTINCT FROM NEW.record_eligible,(to_jsonb(OLD)-'record_eligible') IS DISTINCT FROM (to_jsonb(NEW)-'record_eligible')); RETURN NULL; END $$; CREATE TRIGGER test_history_flag_writes AFTER UPDATE ON zc_private.record_history_index FOR EACH ROW EXECUTE FUNCTION pg_temp.track_history_flag_writes();").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/create_history_flag_writes.sql"
+        ))
+        .await?;
     set_status(&client, 2, "fail").await?;
     assert_flags(&client, 2, false).await?;
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM history_flag_writes WHERE NOT flag_changed OR data_changed",
+                include_str!("fixtures/record_eligibility_flags/count_history_flag_writes.sql"),
                 &[]
             )
             .await?
@@ -128,33 +170,49 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     }
     client
         .execute(
-            "DELETE FROM zc_private.record_validation WHERE id_record=2",
+            include_str!("fixtures/record_eligibility_flags/delete_record_validation.sql"),
             &[],
         )
         .await?;
     assert_flags(&client, 2, true).await?;
-    client.batch_execute("BEGIN; INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(2,2,2,'fail','{}','fixture'); ROLLBACK;").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/insert_record_validation_2.sql"
+        ))
+        .await?;
     assert_flags(&client, 2, true).await?;
-    client.batch_execute("INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) SELECT id,id_user,id_level,'fail','{}','fixture' FROM public.record WHERE id IN(2,3) ON CONFLICT(id_record) DO UPDATE SET status=excluded.status;").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/insert_record_validation_3.sql"
+        ))
+        .await?;
     assert_flags(&client, 2, false).await?;
     assert_flags(&client, 3, false).await?;
     client
-        .batch_execute("DELETE FROM zc_private.record_validation WHERE id_record IN(2,3);")
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/delete_record_validation_2.sql"
+        ))
         .await?;
     assert_flags(&client, 2, true).await?;
     assert_flags(&client, 3, true).await?;
     client
-        .batch_execute("DROP TRIGGER test_history_flag_writes ON zc_private.record_history_index;")
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/drop_test_history_flag_writes.sql"
+        ))
         .await?;
 
     client
-        .batch_execute("SET ROLE zeepcentraal_graphql")
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/set_role_zeepcentraal_graphql.sql"
+        ))
         .await?;
     for (table, column) in TABLES {
         assert_eq!(
             client
                 .query_one(
-                    &format!("SELECT count(*) FROM {table} WHERE {column}=1"),
+                    &include_str!("fixtures/record_eligibility_flags/count.sql")
+                        .replace("{{table}}", table)
+                        .replace("{{column}}", column),
                     &[]
                 )
                 .await?
@@ -166,7 +224,7 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     assert_eq!(
         client
             .query_one(
-                "SELECT sum(distance)::real FROM public.record_statistic",
+                include_str!("fixtures/record_eligibility_flags/select_record_statistic.sql"),
                 &[]
             )
             .await?
@@ -176,7 +234,7 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM public.track_tournament_result WHERE id_tournament=2",
+                include_str!("fixtures/record_eligibility_flags/count_track_tournament_result.sql"),
                 &[]
             )
             .await?
@@ -186,7 +244,7 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM public.track_tournament_result WHERE id_tournament=1",
+                include_str!("fixtures/record_eligibility_flags/count_track_tournament_result_by_id_tournament_1.sql"),
                 &[]
             )
             .await?
@@ -195,16 +253,25 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     );
     assert!(
         client
-            .query("SELECT report FROM zc_private.record_validation", &[])
+            .query(
+                include_str!(
+                    "fixtures/record_eligibility_flags/select_report_record_validation.sql"
+                ),
+                &[]
+            )
             .await
             .is_err()
     );
     for query in [
-        "SELECT count(*) FROM public.record",
-        "SELECT sum(distance) FROM public.record_statistic",
+        include_str!("fixtures/record_eligibility_flags/count_record.sql"),
+        include_str!("fixtures/record_eligibility_flags/select_record_statistic_2.sql"),
     ] {
         let plan = client
-            .query(&format!("EXPLAIN {query}"), &[])
+            .query(
+                &include_str!("fixtures/record_eligibility_flags/explain_query.sql")
+                    .replace("{{query}}", query),
+                &[],
+            )
             .await?
             .into_iter()
             .map(|r| r.get::<_, String>(0))
@@ -214,17 +281,21 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
             "eligibility still executes read-time validation lookups"
         );
     }
-    client.batch_execute("RESET ROLE").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/reset_role.sql"
+        ))
+        .await?;
     assert_eq!(
         client
-            .query_one("SELECT count(*) FROM public.discord_activity_event", &[])
+            .query_one(COUNT_DISCORD_ACTIVITY_EVENT, &[])
             .await?
             .get::<_, i64>(0),
         notifications
     );
     assert_eq!(
         client
-            .query_one("SELECT record_count FROM public.level WHERE id=1", &[])
+            .query_one(SELECT_RECORD_COUNT_LEVEL, &[])
             .await?
             .get::<_, i64>(0),
         0
@@ -232,7 +303,7 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     assert!(
         client
             .query_one(
-                "SELECT has_records AND publicly_visible FROM public.level WHERE id=1",
+                include_str!("fixtures/record_eligibility_flags/select_has_records_level.sql"),
                 &[]
             )
             .await?
@@ -241,11 +312,19 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
 
     // A child insert holds the composite key stable. Validation retries after lock timeout.
     let concurrent = connect(&url).await?;
-    client.batch_execute("BEGIN; INSERT INTO public.record_media(id_record,ghost_url) VALUES(1,'fixture-ghost') ON CONFLICT(id_record) DO UPDATE SET ghost_url=excluded.ghost_url;").await?;
-    concurrent.batch_execute("SET lock_timeout='100ms'").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/insert_record_media.sql"
+        ))
+        .await?;
+    concurrent
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/set_lock_timeout_100ms.sql"
+        ))
+        .await?;
     let error = concurrent
         .execute(
-            "UPDATE zc_private.record_validation SET status='pass' WHERE id_record=1",
+            include_str!("fixtures/record_eligibility_flags/set_status_record_validation.sql"),
             &[],
         )
         .await
@@ -254,7 +333,9 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
         error.code(),
         Some(&tokio_postgres::error::SqlState::LOCK_NOT_AVAILABLE)
     );
-    client.batch_execute("COMMIT").await?;
+    client
+        .batch_execute(include_str!("fixtures/record_eligibility_flags/commit.sql"))
+        .await?;
     assert_flags(&client, 1, false).await?;
     set_status(&concurrent, 1, "pass").await?;
     assert_flags(&client, 1, true).await?;
@@ -262,23 +343,31 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     assert_flags(&client, 1, false).await?;
 
     // Child rows inserted after failure and changed references use current flags.
-    client.batch_execute("DELETE FROM public.record_media WHERE id_record=1; INSERT INTO public.record_media(id_record,ghost_url,record_eligible) VALUES(1,'fixture-ghost',true); DELETE FROM public.record_media WHERE id_record=4; UPDATE public.record_media SET id_record=4 WHERE id_record=1;").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/delete_record_media.sql"
+        ))
+        .await?;
     assert!(
         client
             .query_one(
-                "SELECT record_eligible FROM public.record_media WHERE id_record=4",
+                include_str!(
+                    "fixtures/record_eligibility_flags/select_record_eligible_record_media.sql"
+                ),
                 &[]
             )
             .await?
             .get::<_, bool>(0)
     );
     client
-        .batch_execute("UPDATE public.record_media SET id_record=1 WHERE id_record=4;")
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/set_id_record_record_media.sql"
+        ))
         .await?;
     assert!(
         !client
             .query_one(
-                "SELECT record_eligible FROM public.record_media WHERE id_record=1",
+                include_str!("fixtures/record_eligibility_flags/select_record_eligible_record_media_by_id_record_1.sql"),
                 &[]
             )
             .await?
@@ -290,7 +379,7 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM public.personal_best_global WHERE id_level=1",
+                include_str!("fixtures/record_eligibility_flags/count_personal_best_global.sql"),
                 &[]
             )
             .await?
@@ -298,25 +387,37 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
         0
     );
     client
-        .batch_execute(&format!("BEGIN; {DOWN} COMMIT;"))
+        .batch_execute(&REVERT_ELIGIBILITY_MIGRATION.replace("{{down}}", DOWN))
         .await?;
     client
-        .batch_execute(&format!("BEGIN; {UP} ROLLBACK;"))
+        .batch_execute(
+            &include_str!(
+                "fixtures/record_eligibility_flags/apply_and_roll_back_eligibility_migration.sql"
+            )
+            .replace("{{up}}", UP),
+        )
         .await?;
-    assert!(!client.query_one("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='record' AND column_name='record_eligible')",&[]).await?.get::<_,bool>(0));
+    assert!(!client.query_one(EXISTS_SQL, &[]).await?.get::<_, bool>(0));
     client
-        .batch_execute(&format!("BEGIN; {UP} COMMIT;"))
+        .batch_execute(&APPLY_ELIGIBILITY_MIGRATION.replace("{{up}}", UP))
         .await?;
     assert!(
         !client
-            .query_one("SELECT record_eligible FROM public.record WHERE id=1", &[])
+            .query_one(
+                include_str!("fixtures/record_eligibility_flags/select_record_eligible_record.sql"),
+                &[]
+            )
             .await?
             .get::<_, bool>(0)
     );
-    client.batch_execute("INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE VALUES(5,4,4,30,'fixture','fixture');").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/record_eligibility_flags/insert_record.sql"
+        ))
+        .await?;
     set_status(&client, 4, "fail").await?;
     let error = client
-        .execute("DELETE FROM public.record WHERE id=4", &[])
+        .execute(DELETE_RECORD, &[])
         .await
         .expect_err("audit evidence still prevents deleting audited record");
     assert_eq!(
@@ -325,16 +426,16 @@ async fn flags_follow_validation_backfill_references_concurrency_and_rollback() 
     );
     client
         .execute(
-            "DELETE FROM zc_private.record_validation WHERE id_record=4",
+            include_str!(
+                "fixtures/record_eligibility_flags/delete_record_validation_by_id_record_4.sql"
+            ),
             &[],
         )
         .await?;
-    client
-        .execute("DELETE FROM public.record WHERE id=4", &[])
-        .await?;
+    client.execute(DELETE_RECORD, &[]).await?;
     assert_eq!(
         client
-            .query_one("SELECT record_count FROM public.level WHERE id=4", &[])
+            .query_one(SELECT_RECORD_COUNT_LEVEL_BY_ID_4, &[])
             .await?
             .get::<_, i64>(0),
         1,

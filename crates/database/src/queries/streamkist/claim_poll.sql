@@ -1,0 +1,1 @@
+INSERT INTO streamkist.poll_lease(id,owner,expires_at) VALUES(true,$1,now()+interval '3 minutes') ON CONFLICT(id) DO UPDATE SET owner=EXCLUDED.owner,expires_at=EXCLUDED.expires_at WHERE streamkist.poll_lease.expires_at<=now()

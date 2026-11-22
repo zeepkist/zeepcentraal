@@ -1,0 +1,1 @@
+SELECT (to_jsonb(v)-'checked_metadata_at') || jsonb_build_object('id',v.id::text,'id_level',v.id_level::text,'level_xx_hash',l.xx_hash,'report',v.report || jsonb_build_object('status',v.status,'validatorVersion',v.validator_version)) AS data FROM zc_private.record_validation v JOIN public.level l ON l.id=v.id_level WHERE v.id_record=$1

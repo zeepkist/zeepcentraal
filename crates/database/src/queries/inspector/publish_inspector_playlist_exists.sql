@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM zc_private.level_submission_validation v JOIN zc_private.level_submissions s ON s.id=v.id_submission WHERE v.id=$1 AND v.valid AND s.id_contest=$2 AND s.state='selected' AND s.latest_validation_id=v.id AND s.revision=v.submission_revision AND s.workshop_id=$3 AND s.level_hash IS NOT NULL) AS value

@@ -1,0 +1,1 @@
+SELECT jsonb_array_length(changes) FROM zc_private.discord_rank_batch_state

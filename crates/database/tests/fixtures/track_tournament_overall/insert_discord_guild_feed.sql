@@ -1,0 +1,1 @@
+RESET ROLE; INSERT INTO zc_private.discord_guild_feed VALUES('totd'),('totw'); INSERT INTO zc_private.discord_watch VALUES('tournament','totd'),('tournament','100'),('tournament','2026-01-01'),('tournament','totw')

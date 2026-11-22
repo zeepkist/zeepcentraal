@@ -1,0 +1,1 @@
+SELECT zc_private.medal_milliseconds(validation_time_expert),zc_private.medal_milliseconds(validation_time_apex),coalesce(medal_calculation_version,0),medal_qualified_at IS NOT NULL,medal_due_at IS NULL FROM public.level_item WHERE id=1

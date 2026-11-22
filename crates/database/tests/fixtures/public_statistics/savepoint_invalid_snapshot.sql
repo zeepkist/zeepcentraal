@@ -1,0 +1,1 @@
+SAVEPOINT invalid_snapshot

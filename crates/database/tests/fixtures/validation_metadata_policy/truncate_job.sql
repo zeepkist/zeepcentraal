@@ -1,0 +1,1 @@
+TRUNCATE zc_jobs.job,pgmq.q_zeepcentraal_bulk; INSERT INTO public.level_item(id_level,workshop_id) VALUES(1,123); UPDATE public.level_item SET name='rename',deleted=true; UPDATE public.level_item SET deleted=false,id_level=2; DELETE FROM public.level_item

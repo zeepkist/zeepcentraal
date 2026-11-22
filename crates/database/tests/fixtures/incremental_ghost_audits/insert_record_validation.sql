@@ -1,0 +1,1 @@
+INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version,checked_at) SELECT id,id_user,id_level,CASE WHEN id%3=0 THEN 'pass' WHEN id%3=1 THEN 'fail' ELSE 'uncertain' END,'{"reasons":[]}'::jsonb,$1,'epoch' FROM public.record WHERE id NOT IN (2500001,3000001)

@@ -1,0 +1,1 @@
+SELECT p.id,p.digest,p.valid_count,p.object_key, floor(extract(epoch FROM p.date_created))::bigint AS date_created_epoch FROM zc_private.level_submission_contest c JOIN zc_private.level_submission_playlist p ON p.id=c.current_playlist_id WHERE c.id_zsl_round=$1 ORDER BY c.id DESC LIMIT 1

@@ -30,7 +30,7 @@ async fn tournament_locks_ranks_publication_and_rollback() -> Result<()> {
     });
     ensure!(
         client
-            .query_one("SELECT to_regclass('public.zsl_round') IS NULL", &[])
+            .query_one(include_str!("fixtures/zsl_tournament/to_regclass.sql"), &[])
             .await?
             .get::<_, bool>(0),
         "Empty test database required"
@@ -38,21 +38,29 @@ async fn tournament_locks_ranks_publication_and_rollback() -> Result<()> {
     client
         .batch_execute(include_str!("fixtures/zsl_tournament.sql"))
         .await?;
-    client.batch_execute("BEGIN").await?;
+    client
+        .batch_execute(include_str!("fixtures/zsl_tournament/begin.sql"))
+        .await?;
     client.batch_execute(UP).await?;
     client.batch_execute(DOWN).await?;
     assert!(
         client
             .query_one(
-                "SELECT to_regclass('zc_private.zsl_tournament_state') IS NULL",
+                include_str!("fixtures/zsl_tournament/to_regclass_2.sql"),
                 &[]
             )
             .await?
             .get::<_, bool>(0)
     );
-    client.batch_execute("ROLLBACK").await?;
+    client
+        .batch_execute(include_str!("fixtures/zsl_tournament/rollback.sql"))
+        .await?;
     client.batch_execute(UP).await?;
-    client.batch_execute("INSERT INTO zsl_points_structure VALUES(1,'Test',ARRAY[100,80,60],5,4); INSERT INTO zsl_season(id,id_points_structure,name) VALUES(1,1,'Season 1'); INSERT INTO zsl_round(id,id_season,name,round,event_date,event2_date) SELECT i,1,'Round',i,now()+interval '1 day',now()+interval '2 days' FROM generate_series(1,6) i; INSERT INTO level(id,hash,xx_hash) SELECT i,'legacy-'||i,lpad(i::text,32,'0') FROM generate_series(1,3) i;").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/zsl_tournament/insert_zsl_points_structure.sql"
+        ))
+        .await?;
     let database = zc_database::Database::connect(&url, 5).await?;
     let users = database
         .upsert_zsl_users(
@@ -205,12 +213,17 @@ async fn tournament_locks_ranks_publication_and_rollback() -> Result<()> {
     database.close_zsl_level(1, "host-a", 2, 0).await?;
     database.close_zsl_level(1, "host-a", 2, 2).await?;
     database.close_zsl_level(1, "host-a", 2, 3).await?;
-    client.execute("INSERT INTO zsl_round_result(id_round,id_user,points,position) SELECT r,$1,r*100,1 FROM generate_series(2,6) r",&[&user(1)]).await?;
+    client
+        .execute(
+            include_str!("fixtures/zsl_tournament/insert_zsl_round_result.sql"),
+            &[&user(1)],
+        )
+        .await?;
     database.publish_zsl_results(1, "host-a", 3).await?;
     database.publish_zsl_results(1, "host-a", 3).await?;
     let standings = client
         .query(
-            "SELECT position,points FROM zsl_level_result WHERE id_level=$1 ORDER BY time,id_user",
+            include_str!("fixtures/zsl_tournament/select_position_zsl_level_result.sql"),
             &[&levels[0]],
         )
         .await?;
@@ -231,7 +244,7 @@ async fn tournament_locks_ranks_publication_and_rollback() -> Result<()> {
     assert_eq!(
         client
             .query_one(
-                "SELECT points FROM zsl_round_result WHERE id_round=1 AND id_user=$1",
+                include_str!("fixtures/zsl_tournament/select_points_zsl_round_result.sql"),
                 &[&user(1)]
             )
             .await?
@@ -241,7 +254,7 @@ async fn tournament_locks_ranks_publication_and_rollback() -> Result<()> {
     assert_eq!(
         client
             .query_one(
-                "SELECT points FROM zsl_season_result WHERE id_season=1 AND id_user=$1",
+                include_str!("fixtures/zsl_tournament/select_points_zsl_season_result.sql"),
                 &[&user(1)]
             )
             .await?
@@ -250,7 +263,10 @@ async fn tournament_locks_ranks_publication_and_rollback() -> Result<()> {
     );
     assert_eq!(
         client
-            .query_one("SELECT count(*) FROM zsl_level WHERE id_round=1", &[])
+            .query_one(
+                include_str!("fixtures/zsl_tournament/count_zsl_level.sql"),
+                &[]
+            )
             .await?
             .get::<_, i64>(0),
         3

@@ -1,0 +1,1 @@
+SELECT date_trunc('month',date_created,'UTC'),avg(players),avg(players_in_rooms),avg(rooms),sum(players),sum(players_in_rooms),sum(rooms),max(players),max(players_in_rooms),max(rooms),count(DISTINCT id) FROM public.lobby_stats GROUP BY 1

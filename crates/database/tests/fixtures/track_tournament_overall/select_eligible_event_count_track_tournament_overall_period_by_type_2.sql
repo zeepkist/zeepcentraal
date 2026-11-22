@@ -1,0 +1,1 @@
+SELECT eligible_event_count FROM public.track_tournament_overall_period WHERE type=2

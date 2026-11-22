@@ -67,7 +67,7 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
     tokio::spawn(async move { connection.await.expect("PostgreSQL connection") });
     let row = client
         .query_one(
-            "SELECT players,peak_players,closed_at IS NOT NULL FROM public.lobby WHERE master_id=$1",
+            include_str!("fixtures/lobby_services/select_players_lobby.sql"),
             &[&master_id],
         )
         .await?;
@@ -76,7 +76,7 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
     assert!(row.get::<_, bool>(2));
     let changes = client
         .query(
-            "SELECT history.change_type FROM public.lobby_history history JOIN public.lobby value ON value.id=history.lobby_id WHERE value.master_id=$1 ORDER BY history.id",
+            include_str!("fixtures/lobby_services/select_change_type_lobby_history.sql"),
             &[&master_id],
         )
         .await?
@@ -86,7 +86,7 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
     assert_eq!(changes, ["opened", "updated", "closed"]);
     let stats: i64 = client
         .query_one(
-            "SELECT count(*) FROM public.lobby_stats WHERE players=5 AND rooms=1 AND players_in_rooms=3",
+            include_str!("fixtures/lobby_services/count_lobby_stats.sql"),
             &[],
         )
         .await?
@@ -150,10 +150,7 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
     ] {
         let rows = client
             .query(
-                "SELECT l.room_name, h.room_name, l.host_id, h.host_id, u.steam_name \
-                 FROM public.lobby l JOIN public.lobby_history h ON h.lobby_id=l.id \
-                 JOIN public.\"user\" u ON u.steam_id=h.host_id \
-                 WHERE l.master_id=$1 ORDER BY h.id",
+                include_str!("fixtures/lobby_services/select_room_name_lobby.sql"),
                 &[&entry.id],
             )
             .await?;
@@ -169,19 +166,19 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
 
     client
         .execute(
-            "DELETE FROM public.lobby_stats WHERE players=5 AND rooms=1 AND players_in_rooms=3",
+            include_str!("fixtures/lobby_services/delete_lobby_stats.sql"),
             &[],
         )
         .await?;
     client
         .execute(
-            "DELETE FROM public.lobby WHERE master_id=ANY($1)",
+            include_str!("fixtures/lobby_services/delete_lobby.sql"),
             &[&vec![master_id, private.id, public.id, inferred.id]],
         )
         .await?;
     client
         .execute(
-            "DELETE FROM public.\"user\" WHERE steam_id=$1",
+            include_str!("fixtures/lobby_services/delete_user.sql"),
             &[&steam_id],
         )
         .await?;

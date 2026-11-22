@@ -201,50 +201,15 @@ fn vote_result_category(
     }
 }
 
-const ROUND_SQL: &str = "SELECT r.id,c.id AS contest_id, \
-    r.submission_start::text AS submission_start,r.submission_end::text AS submission_end, \
-    r.zsl_vote_end::text AS zsl_vote_end,r.cosmetic_vote_end::text AS cosmetic_vote_end, \
-    coalesce((clock_timestamp()>=r.submission_start AND clock_timestamp()<r.submission_end),false) AS submissions_open, \
-    coalesce((clock_timestamp()>=r.submission_end AND clock_timestamp()<r.zsl_vote_end),false) AS zsl_open, \
-    coalesce((clock_timestamp()>=r.submission_end AND clock_timestamp()<r.cosmetic_vote_end),false) AS cosmetic_open, \
-    coalesce(clock_timestamp()>=r.zsl_vote_end,false) AS zsl_closed, \
-    coalesce(clock_timestamp()>=r.cosmetic_vote_end,false) AS cosmetic_closed, \
-    coalesce((c.state='frozen' AND c.finalized_at IS NOT NULL AND c.current_playlist_id IS NOT NULL),false) AS finalized \
-    FROM public.zsl_round r LEFT JOIN LATERAL \
-    (SELECT * FROM zc_private.level_submission_contest WHERE id_zsl_round=r.id ORDER BY id DESC LIMIT 1) c ON true \
-    WHERE ($1::integer IS NOT NULL AND r.id=$1) OR ($1::integer IS NULL AND r.submission_start<=clock_timestamp() \
-    AND r.cosmetic_vote_end>clock_timestamp()) ORDER BY r.submission_end DESC LIMIT 1";
+const ROUND_SQL: &str = include_str!("../queries/super_league/round.sql");
 
 fn candidates_sql() -> String {
-    format!(
-        "SELECT DISTINCT l.id AS level_id,s.workshop_id, \
-    coalesce(to_jsonb(s.authors),'null'::jsonb) AS authors,l.xx_hash,l.adventure, \
-    l.date_created::text AS date_created,coalesce(i.name,v.payload->>'name') AS name, \
-    coalesce(nullif(i.image_url,''),nullif(other_image.image_url,''),nullif(wi.image_url,'')) AS image_url, \
-    coalesce(u.steam_name,v.payload->>'author') AS author_name, \
-    p.points,p.rating, \
-    (SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) r WHERE r.id_level=l.id) AS record_count, \
-    (SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb WHERE pb.id_level=l.id) AS personal_best_count, \
-    (SELECT count(*) FROM public.vote vote WHERE vote.id_level=l.id) AS vote_count \
-    {CANDIDATES_FROM_SQL} ORDER BY level_id,workshop_id"
-    )
+    include_str!("../queries/super_league/candidates_sql_select_record.sql")
+        .replace("{{candidates_from_sql}}", CANDIDATES_FROM_SQL.trim_end())
 }
 
 // Both ballot reads and public tallies use the finalized playlist's candidate set.
-const CANDIDATES_FROM_SQL: &str = "FROM zc_private.level_submission_contest c \
-    JOIN zc_private.level_submission_playlist_entry e ON e.id_playlist=c.current_playlist_id \
-    JOIN zc_private.level_submission_validation v ON v.id=e.id_validation AND v.valid \
-    JOIN zc_private.level_submissions s ON s.id=v.id_submission AND s.state='selected' \
-    JOIN public.level l ON l.xx_hash=s.level_hash \
-    LEFT JOIN LATERAL (SELECT name,image_url,author_id FROM public.level_item \
-        WHERE id_level=l.id AND workshop_id=s.workshop_id ORDER BY id DESC LIMIT 1) i ON true \
-    LEFT JOIN LATERAL (SELECT image_url FROM public.level_item \
-        WHERE id_level=l.id AND deleted=false AND image_url<>'' \
-        ORDER BY updated_at DESC,id DESC LIMIT 1) other_image ON true \
-    LEFT JOIN public.workshop_item wi ON wi.workshop_id=s.workshop_id \
-    LEFT JOIN public.\"user\" u ON u.steam_id=i.author_id \
-    LEFT JOIN public.level_points p ON p.id_level=l.id \
-    WHERE c.id=$1";
+const CANDIDATES_FROM_SQL: &str = include_str!("../queries/super_league/candidates_from.sql");
 
 impl Database {
     pub async fn super_league_vote_results(
@@ -293,31 +258,8 @@ impl Database {
         let Some(contest_id) = round.contest_id.filter(|_| !published.is_empty()) else {
             return Ok(Some(snapshot));
         };
-        let query = format!(
-            "WITH candidates AS (\
-            SELECT DISTINCT ON (l.id) l.id AS level_id,l.xx_hash,\
-            coalesce(i.name,v.payload->>'name') AS name,\
-            s.authors AS author_ids,\
-            ARRAY(SELECT coalesce(author_user.steam_name,author.id) \
-                FROM unnest(s.authors) WITH ORDINALITY author(id,n) \
-                LEFT JOIN public.\"user\" author_user ON author_user.steam_id::text=author.id \
-                ORDER BY author.n) AS author_names,\
-            coalesce(nullif(i.image_url,''),nullif(other_image.image_url,''),nullif(wi.image_url,'')) AS image_url \
-            {CANDIDATES_FROM_SQL} ORDER BY l.id,s.workshop_id,e.position), \
-            eligible_votes AS (SELECT v.id_level,v.vote_type,v.id_user \
-                FROM zc_private.level_submission_vote v JOIN candidates c ON c.level_id=v.id_level \
-                WHERE v.id_contest=$1 AND v.vote_type=ANY($2)), \
-            tallies AS (SELECT id_level,vote_type,count(*) AS votes FROM eligible_votes \
-                GROUP BY id_level,vote_type), \
-            voters AS (SELECT vote_type,count(DISTINCT id_user) AS unique_voters \
-                FROM eligible_votes GROUP BY vote_type) \
-            SELECT c.*,t.vote_type,coalesce(v.votes,0)::bigint AS votes, \
-                coalesce(p.unique_voters,0)::bigint AS unique_voters \
-            FROM candidates c CROSS JOIN unnest($2::smallint[]) t(vote_type) \
-            LEFT JOIN tallies v ON v.id_level=c.level_id AND v.vote_type=t.vote_type \
-            LEFT JOIN voters p ON p.vote_type=t.vote_type \
-            ORDER BY t.vote_type,votes DESC,coalesce(c.name,c.xx_hash) COLLATE \"C\",c.level_id"
-        );
+        let query = include_str!("../queries/super_league/super_league_vote_results.sql")
+            .replace("{{candidates_from_sql}}", CANDIDATES_FROM_SQL.trim_end());
         for row in sql_query(query)
             .bind::<BigInt, _>(contest_id)
             .bind::<Array<SmallInt>, _>(&published)
@@ -414,10 +356,9 @@ impl Database {
                     });
                 }
             }
-            for row in sql_query(
-                "SELECT id_level AS level_id,vote_type FROM zc_private.level_submission_vote \
-                WHERE id_contest=$1 AND id_user=$2 ORDER BY vote_type,id_level",
-            )
+            for row in sql_query(include_str!(
+                "../queries/super_league/super_league_vote_snapshot.sql"
+            ))
             .bind::<BigInt, _>(contest_id)
             .bind::<Integer, _>(user_id)
             .load::<VoteRow>(&mut connection)
@@ -455,33 +396,73 @@ impl Database {
             return Ok(false);
         }
         let mut connection = self.connection().await?;
-        connection.transaction::<bool, anyhow::Error, _>(async move |connection| {
-            let locked = sql_query("SELECT id FROM public.\"user\" WHERE id=$1 FOR UPDATE")
-                .bind::<Integer, _>(user_id).get_result::<UserLock>(connection).await.optional()?;
-            if locked.as_ref().is_none_or(|user| user.id != user_id) { return Ok(false); }
-            let round = sql_query(ROUND_SQL).bind::<Nullable<Integer>, _>(Some(round_id))
-                .get_result::<RoundRow>(connection).await.optional()?;
-            let Some(round) = round else { return Ok(false) };
-            if !round.finalized || !(if vote_type == 1 { round.zsl_open } else { round.cosmetic_open }) { return Ok(false); }
-            let Some(contest_id) = round.contest_id else { return Ok(false) };
-            let candidates = sql_query(candidates_sql()).bind::<BigInt, _>(contest_id)
-                .load::<CandidateRow>(connection).await?;
-            if level_ids.iter().any(|id| !candidates.iter().any(|candidate| candidate.level_id == *id)
-                || candidates.iter().any(|candidate| candidate.level_id == *id
-                    && candidate.authors.as_array().is_some_and(|authors| authors.iter().any(|author| author.as_str() == Some(steam_id))))) {
-                return Ok(false);
-            }
-            sql_query("DELETE FROM zc_private.level_submission_vote WHERE id_contest=$1 AND id_user=$2 AND vote_type=$3")
-                .bind::<BigInt, _>(contest_id).bind::<Integer, _>(user_id).bind::<SmallInt, _>(vote_type)
-                .execute(connection).await?;
-            for level_id in level_ids {
-                sql_query("INSERT INTO zc_private.level_submission_vote (id_contest,id_user,vote_type,id_level) VALUES($1,$2,$3,$4)")
-                    .bind::<BigInt, _>(contest_id).bind::<Integer, _>(user_id)
-                    .bind::<SmallInt, _>(vote_type).bind::<Integer, _>(*level_id)
-                    .execute(connection).await?;
-            }
-            Ok(true)
-        }).await
+        connection
+            .transaction::<bool, anyhow::Error, _>(async move |connection| {
+                let locked = sql_query(include_str!("../queries/super_league/select_id_user.sql"))
+                    .bind::<Integer, _>(user_id)
+                    .get_result::<UserLock>(connection)
+                    .await
+                    .optional()?;
+                if locked.as_ref().is_none_or(|user| user.id != user_id) {
+                    return Ok(false);
+                }
+                let round = sql_query(ROUND_SQL)
+                    .bind::<Nullable<Integer>, _>(Some(round_id))
+                    .get_result::<RoundRow>(connection)
+                    .await
+                    .optional()?;
+                let Some(round) = round else { return Ok(false) };
+                if !round.finalized
+                    || !(if vote_type == 1 {
+                        round.zsl_open
+                    } else {
+                        round.cosmetic_open
+                    })
+                {
+                    return Ok(false);
+                }
+                let Some(contest_id) = round.contest_id else {
+                    return Ok(false);
+                };
+                let candidates = sql_query(candidates_sql())
+                    .bind::<BigInt, _>(contest_id)
+                    .load::<CandidateRow>(connection)
+                    .await?;
+                if level_ids.iter().any(|id| {
+                    !candidates.iter().any(|candidate| candidate.level_id == *id)
+                        || candidates.iter().any(|candidate| {
+                            candidate.level_id == *id
+                                && candidate.authors.as_array().is_some_and(|authors| {
+                                    authors
+                                        .iter()
+                                        .any(|author| author.as_str() == Some(steam_id))
+                                })
+                        })
+                }) {
+                    return Ok(false);
+                }
+                sql_query(include_str!(
+                    "../queries/super_league/delete_level_submission_vote.sql"
+                ))
+                .bind::<BigInt, _>(contest_id)
+                .bind::<Integer, _>(user_id)
+                .bind::<SmallInt, _>(vote_type)
+                .execute(connection)
+                .await?;
+                for level_id in level_ids {
+                    sql_query(include_str!(
+                        "../queries/super_league/insert_level_submission_vote.sql"
+                    ))
+                    .bind::<BigInt, _>(contest_id)
+                    .bind::<Integer, _>(user_id)
+                    .bind::<SmallInt, _>(vote_type)
+                    .bind::<Integer, _>(*level_id)
+                    .execute(connection)
+                    .await?;
+                }
+                Ok(true)
+            })
+            .await
     }
 }
 

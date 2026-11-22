@@ -22,8 +22,11 @@ struct Retired {
 impl Database {
     pub async fn history_optimization(&self, operation: &str, qualified: bool) -> Result<Value> {
         let mut connection = self.connection().await?;
-        let retired: Retired = sql_query("SELECT to_regclass('zc_private.history_fact_rollout') IS NULL AND to_regclass('zc_private.record_history_fact') IS NOT NULL AS retired")
-            .get_result(&mut connection).await?;
+        let retired: Retired = sql_query(include_str!(
+            "../queries/history_optimization/history_optimization_to_regclass.sql"
+        ))
+        .get_result(&mut connection)
+        .await?;
         if retired.retired {
             ensure!(
                 operation != "rollback",
@@ -48,13 +51,13 @@ impl Database {
                     .transaction::<(), anyhow::Error, _>(async |connection| {
                         connection
                             .batch_execute(
-                                "SET LOCAL statement_timeout='60s'; SET LOCAL lock_timeout='5s'",
+                                include_str!("../queries/history_optimization/history_optimization.sql"),
                             )
                             .await?;
                         sql_query(if operation == "cutover" {
-                            "SELECT zc_private.cutover_history_fact(true,true)"
+                            include_str!("../queries/history_optimization/history_optimization_cutover_history_fact.sql")
                         } else {
-                            "SELECT zc_private.rollback_history_fact()"
+                            include_str!("../queries/history_optimization/history_optimization_rollback_history_fact.sql")
                         })
                         .execute(connection)
                         .await?;
@@ -65,7 +68,11 @@ impl Database {
             "status" => {}
             _ => anyhow::bail!("Unknown history operation"),
         }
-        Ok(sql_query("SELECT to_jsonb(state)-'original_view' || jsonb_build_object('dirty_records',(SELECT count(*) FROM zc_private.history_fact_dirty)) AS value FROM zc_private.history_fact_rollout state")
-            .get_result::<Status>(&mut connection).await?.value)
+        Ok(sql_query(include_str!(
+            "../queries/history_optimization/select_history_fact_dirty.sql"
+        ))
+        .get_result::<Status>(&mut connection)
+        .await?
+        .value)
     }
 }

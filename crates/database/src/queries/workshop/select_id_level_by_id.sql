@@ -1,0 +1,1 @@
+SELECT level.id AS id_level FROM public.level level WHERE level.id=ANY($1) AND NOT level.adventure AND NOT EXISTS(SELECT 1 FROM public.level_item item WHERE item.id_level=level.id AND item.publicly_visible AND NOT item.deleted) ORDER BY level.id

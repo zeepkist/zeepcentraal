@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submission_contest c SET next_finalization_at=now()+interval '60 seconds' FROM public.zsl_round r WHERE c.id_zsl_round=r.id AND r.id=$1 AND c.state='open' AND r.submission_end<=now()

@@ -1,5 +1,8 @@
 use anyhow::{Result, ensure};
 
+const SELECT_ADVENTURE_LEVEL_MEMBERSHIP: &str =
+    include_str!("fixtures/adventure_level_items/select_adventure_level_membership.sql");
+
 const BASE: &str = include_str!("../migrations/20261108020000_adventure_leaderboards/up.sql");
 const UP: &str = include_str!("../migrations/20261108030000_adventure_level_items/up.sql");
 const DOWN: &str = include_str!("../migrations/20261108030000_adventure_level_items/down.sql");
@@ -18,30 +21,64 @@ async fn exact_active_alias_permissions_and_rollback() -> Result<()> {
     let tx = client.transaction().await?;
     tx.batch_execute(include_str!("fixtures/adventure_leaderboards.sql"))
         .await?;
-    tx.batch_execute(
-        "ALTER TABLE public.level_item ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now()",
-    )
+    tx.batch_execute(include_str!(
+        "fixtures/adventure_level_items/alter_level_item.sql"
+    ))
     .await?;
     tx.batch_execute(BASE).await?;
     tx.batch_execute(UP).await?;
-    tx.batch_execute("SET LOCAL ROLE zeepcentraal_graphql")
-        .await?;
-    assert_eq!(tx.query_one("SELECT (public.adventure_level_membership_level_item(m)).id FROM public.adventure_level_membership m WHERE series='a' AND id_level=1", &[]).await?.get::<_,i32>(0),2);
-    assert_eq!(tx.query_one("SELECT (public.adventure_level_membership_level_item(m)).id FROM public.adventure_level_membership m WHERE series='b' AND id_level=1", &[]).await?.get::<_,i32>(0),4);
+    tx.batch_execute(include_str!(
+        "fixtures/adventure_level_items/set_local_role_zeepcentraal_graphql.sql"
+    ))
+    .await?;
+    assert_eq!(
+        tx.query_one(SELECT_ADVENTURE_LEVEL_MEMBERSHIP, &[])
+            .await?
+            .get::<_, i32>(0),
+        2
+    );
+    assert_eq!(
+        tx.query_one(
+            include_str!(
+                "fixtures/adventure_level_items/select_adventure_level_membership_by_series_b.sql"
+            ),
+            &[]
+        )
+        .await?
+        .get::<_, i32>(0),
+        4
+    );
     assert!(
         !tx.query_one(
-            "SELECT has_table_privilege(current_user,'public.level_item','UPDATE')",
+            include_str!("fixtures/adventure_level_items/has_table_privilege.sql"),
             &[]
         )
         .await?
         .get::<_, bool>(0)
     );
-    tx.batch_execute("RESET ROLE; UPDATE public.level_item SET deleted=true WHERE id=2")
-        .await?;
-    assert_eq!(tx.query_one("SELECT (public.adventure_level_membership_level_item(m)).id FROM public.adventure_level_membership m WHERE series='a' AND id_level=1", &[]).await?.get::<_,i32>(0),1);
-    tx.batch_execute("UPDATE public.level SET publicly_visible=false WHERE id=1")
-        .await?;
-    assert!(tx.query_one("SELECT (public.adventure_level_membership_level_item(ROW('a',1)::public.adventure_level_membership)).id", &[]).await?.get::<_,Option<i32>>(0).is_none());
+    tx.batch_execute(include_str!(
+        "fixtures/adventure_level_items/set_deleted_level_item.sql"
+    ))
+    .await?;
+    assert_eq!(
+        tx.query_one(SELECT_ADVENTURE_LEVEL_MEMBERSHIP, &[])
+            .await?
+            .get::<_, i32>(0),
+        1
+    );
+    tx.batch_execute(include_str!(
+        "fixtures/adventure_level_items/set_publicly_visible_level.sql"
+    ))
+    .await?;
+    assert!(
+        tx.query_one(
+            include_str!("fixtures/adventure_level_items/read_fixture_state.sql"),
+            &[]
+        )
+        .await?
+        .get::<_, Option<i32>>(0)
+        .is_none()
+    );
     tx.batch_execute(DOWN).await?;
     tx.batch_execute(UP).await?;
     tx.rollback().await?;

@@ -1,0 +1,1 @@
+UPDATE streamkist.channels SET minimum_viewers=COALESCE($4,minimum_viewers),allow_category_switches=COALESCE($5,allow_category_switches) WHERE guild_id=$1 AND channel_id=$2 AND game_id=$3 AND deleted_at IS NULL

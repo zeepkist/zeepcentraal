@@ -11,6 +11,13 @@ use zc_core::object_storage::{DownloadConstraints, ObjectStorage};
 use zc_inspector_zeep::{
     discord::DiscordRest, playlist_publication::deliver_playlist_notifications,
 };
+const SET_NEXT_ATTEMPT_AT_LEVEL_SUBMISSION_PLAYLIST_NOTIFICATION: &str = include_str!(
+    "fixtures/playlist_publication/set_next_attempt_at_level_submission_playlist_notification.sql"
+);
+const SELECT_DELIVERED_PLAYLIST_ID_LEVEL_SUBMISSION_PLAYLIST_NOTIFICATION: &str = include_str!(
+    "fixtures/playlist_publication/select_delivered_playlist_id_level_submission_playlist_notification.sql"
+);
+
 #[derive(Default)]
 struct Storage {
     objects: Mutex<HashMap<String, Vec<u8>>>,
@@ -169,10 +176,18 @@ async fn publish(
     storage
         .upload(&key, serde_json::to_vec(&artifact)?, "application/json")
         .await?;
-    let id:i64=client.query_one("INSERT INTO zc_private.level_submission_playlist(id_contest,digest,valid_count,object_key) VALUES($1,$2,$3,$4) RETURNING id",&[&contest,&digest,&count,&key]).await?.get(0);
+    let id: i64 = client
+        .query_one(
+            include_str!("fixtures/playlist_publication/insert_level_submission_playlist.sql"),
+            &[&contest, &digest, &count, &key],
+        )
+        .await?
+        .get(0);
     client
         .execute(
-            "UPDATE zc_private.level_submission_contest SET current_playlist_id=$2 WHERE id=$1",
+            include_str!(
+                "fixtures/playlist_publication/set_current_playlist_id_level_submission_contest.sql"
+            ),
             &[&contest, &id],
         )
         .await?;
@@ -198,17 +213,21 @@ async fn replacement_empty_retry_recovery_and_channels() -> Result<()> {
     tokio::spawn(async move {
         let _ = connection.await;
     });
-    client.batch_execute("INSERT INTO public.zsl_round(id,id_season,name,round,event_date) VALUES(30,1,'Discord fixture',30,now()),(31,1,'Other Discord fixture',31,now());").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/playlist_publication/insert_zsl_round.sql"
+        ))
+        .await?;
     let contest: i64 = client
         .query_one(
-            "INSERT INTO zc_private.level_submission_contest(id_zsl_round) VALUES(30) RETURNING id",
+            include_str!("fixtures/playlist_publication/insert_level_submission_contest.sql"),
             &[],
         )
         .await?
         .get(0);
     let other: i64 = client
         .query_one(
-            "INSERT INTO zc_private.level_submission_contest(id_zsl_round) VALUES(31) RETURNING id",
+            include_str!("fixtures/playlist_publication/insert_level_submission_contest_2.sql"),
             &[],
         )
         .await?
@@ -243,11 +262,21 @@ async fn replacement_empty_retry_recovery_and_channels() -> Result<()> {
         1,
         "Failed deletion preserves existing post"
     );
-    client.execute("UPDATE zc_private.level_submission_playlist_notification SET next_attempt_at=now() WHERE id_contest=$1",&[&contest]).await?;
+    client
+        .execute(
+            SET_NEXT_ATTEMPT_AT_LEVEL_SUBMISSION_PLAYLIST_NOTIFICATION,
+            &[&contest],
+        )
+        .await?;
     feed.lock().await.uncertain = true;
     deliver().await?;
     assert_eq!(feed.lock().await.messages.len(), 1);
-    client.execute("UPDATE zc_private.level_submission_playlist_notification SET next_attempt_at=now() WHERE id_contest=$1",&[&contest]).await?;
+    client
+        .execute(
+            SET_NEXT_ATTEMPT_AT_LEVEL_SUBMISSION_PLAYLIST_NOTIFICATION,
+            &[&contest],
+        )
+        .await?;
     let posts = feed
         .lock()
         .await
@@ -267,7 +296,13 @@ async fn replacement_empty_retry_recovery_and_channels() -> Result<()> {
             .count(),
         "Recover uncertain POST without duplicate"
     );
-    let current:i64=client.query_one("SELECT delivered_playlist_id FROM zc_private.level_submission_playlist_notification WHERE id_contest=$1",&[&contest]).await?.get(0);
+    let current: i64 = client
+        .query_one(
+            SELECT_DELIVERED_PLAYLIST_ID_LEVEL_SUBMISSION_PLAYLIST_NOTIFICATION,
+            &[&contest],
+        )
+        .await?
+        .get(0);
     assert_ne!(first, current);
     // Channel move deletes old tracked post and creates new post.
     deliver_playlist_notifications(&database, &discord, &storage, "456", &[30]).await?;
@@ -280,7 +315,16 @@ async fn replacement_empty_retry_recovery_and_channels() -> Result<()> {
     storage.objects.lock().await.clear();
     deliver_playlist_notifications(&database, &discord, &storage, "456", &[30]).await?;
     assert_eq!(feed.lock().await.messages.len(), 1);
-    assert_ne!(client.query_one("SELECT delivered_playlist_id FROM zc_private.level_submission_playlist_notification WHERE id_contest=$1",&[&contest]).await?.get::<_,i64>(0),missing);
+    assert_ne!(
+        client
+            .query_one(
+                SELECT_DELIVERED_PLAYLIST_ID_LEVEL_SUBMISSION_PLAYLIST_NOTIFICATION,
+                &[&contest]
+            )
+            .await?
+            .get::<_, i64>(0),
+        missing
+    );
     // Last entry removal deletes post. Missing Discord message is accepted.
     publish(&client, &storage, contest, 0, "empty-final").await?;
     feed.lock().await.messages.clear();
@@ -293,7 +337,12 @@ async fn replacement_empty_retry_recovery_and_channels() -> Result<()> {
         feed.lock().await.messages.is_empty(),
         "Rate-limited upload remains pending"
     );
-    client.execute("UPDATE zc_private.level_submission_playlist_notification SET next_attempt_at=now() WHERE id_contest=$1", &[&contest]).await?;
+    client
+        .execute(
+            SET_NEXT_ATTEMPT_AT_LEVEL_SUBMISSION_PLAYLIST_NOTIFICATION,
+            &[&contest],
+        )
+        .await?;
     deliver_playlist_notifications(&database, &discord, &storage, "456", &[30]).await?;
     assert_eq!(
         feed.lock().await.messages.len(),

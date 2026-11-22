@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submission_playlist_notification SET message_id=$2,channel_id=$3,delivered_playlist_id=CASE WHEN $2 IS NOT NULL THEN attempt_playlist_id ELSE NULL END,attempt_playlist_id=NULL,attempt_channel_id=NULL,attempt_started_at=NULL WHERE id_contest=$1

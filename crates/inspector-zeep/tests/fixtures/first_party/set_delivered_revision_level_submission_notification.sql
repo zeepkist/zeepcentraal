@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submission_notification SET delivered_revision=desired_revision,delivered_validation_id=desired_validation_id

@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submissions SET state='withdrawn',revision=revision+1,inspection_started_at=NULL,retry_category=NULL,date_updated=now() WHERE id_contest=$1 AND $2=ANY(authors) AND state='selected' RETURNING id

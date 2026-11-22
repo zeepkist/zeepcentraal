@@ -1,0 +1,1 @@
+UPDATE streamkist.streams SET message_id=$2,snapshot=$3,peak_viewers=GREATEST(peak_viewers,$4),is_live=($5='active'),tracking_state=$5,policy_watch_id=$6,activation_pending=false,updated_at=now() WHERE id=$1

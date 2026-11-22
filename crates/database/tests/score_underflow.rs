@@ -12,12 +12,7 @@ async fn guarded_player_decay_avoids_postgresql_underflow() -> Result<()> {
 
     let row = client
         .query_one(
-            "SELECT (CASE \
-               WHEN LN(GREATEST(1000::double precision,1.401298464324817e-45)) \
-                    +(100000-1)*LN(0.95)<LN(1.401298464324817e-45) \
-               THEN 0 \
-               ELSE 1000::double precision*POWER(0.95,100000-1) \
-             END)::real",
+            include_str!("fixtures/score_underflow/read_fixture_state.sql"),
             &[],
         )
         .await?;

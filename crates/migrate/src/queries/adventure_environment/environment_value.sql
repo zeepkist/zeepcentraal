@@ -1,0 +1,1 @@
+	({{hash}}, {{uid}}, {{environment}}::jsonb)

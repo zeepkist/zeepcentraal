@@ -1,0 +1,1 @@
+INSERT INTO zc_private.level_submission_contest(id_zsl_round,rules,rules_hash) VALUES($1,$2,$3) ON CONFLICT(id_zsl_round) DO UPDATE SET rules=EXCLUDED.rules,rules_hash=EXCLUDED.rules_hash,date_updated=now() WHERE level_submission_contest.state='open'

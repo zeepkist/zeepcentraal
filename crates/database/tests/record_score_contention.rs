@@ -8,6 +8,12 @@ use zc_database::{
     },
 };
 
+const PG_ADVISORY_XACT_LOCK_2: &str =
+    include_str!("fixtures/record_score_contention/pg_advisory_xact_lock_2.sql");
+const DELETE_LEVEL: &str = include_str!("fixtures/record_score_contention/delete_level.sql");
+const SELECT_DATE_UPDATED_LEVEL_POINTS: &str =
+    include_str!("fixtures/record_score_contention/select_date_updated_level_points.sql");
+
 #[tokio::test]
 #[ignore = "requires disposable PostgreSQL cloned from current Drizzle schema"]
 async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Result<()> {
@@ -37,8 +43,7 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
     tokio::spawn(async move { connection.await.expect("PostgreSQL connection") });
     client
         .execute(
-            "INSERT INTO public.user_points(id_user,points,total_points,rank,world_records) \
-             VALUES($1,0,0,-1,0) ON CONFLICT(id_user) DO NOTHING",
+            include_str!("fixtures/record_score_contention/insert_user_points.sql"),
             &[&user.id],
         )
         .await?;
@@ -46,15 +51,18 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
     let blocker = client.transaction().await?;
     blocker
         .execute(
-            "UPDATE public.user_points SET points=points WHERE id_user=$1",
+            include_str!("fixtures/record_score_contention/set_points_user_points.sql"),
             &[&user.id],
         )
         .await?;
     blocker
-        .execute("SELECT pg_advisory_xact_lock(1861284954,$1)", &[&level.id])
+        .execute(
+            include_str!("fixtures/record_score_contention/pg_advisory_xact_lock.sql"),
+            &[&level.id],
+        )
         .await?;
     blocker
-        .execute("SELECT pg_advisory_xact_lock(-1861284952,$1)", &[&user.id])
+        .execute(PG_ADVISORY_XACT_LOCK_2, &[&user.id])
         .await?;
 
     let statistics = zc_core::ghosts::GhostStatistics::default();
@@ -84,7 +92,7 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
     blocker.rollback().await?;
     let user_score_blocker = client.transaction().await?;
     user_score_blocker
-        .execute("SELECT pg_advisory_xact_lock(-1861284952,$1)", &[&user.id])
+        .execute(PG_ADVISORY_XACT_LOCK_2, &[&user.id])
         .await?;
     assert_eq!(
         database.update_level_scores(&[level.id], false).await?,
@@ -116,7 +124,7 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
     );
     let world_records: i32 = client
         .query_one(
-            "SELECT world_records FROM public.user_points WHERE id_user=$1",
+            include_str!("fixtures/record_score_contention/select_world_records_user_points.sql"),
             &[&user.id],
         )
         .await?
@@ -142,10 +150,7 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
     assert!(slower.world_record_user_ids.is_empty());
     let persisted = client
         .query_one(
-            "SELECT count(*)::bigint, \
-             (SELECT id_record FROM public.personal_best_global WHERE id_user=$1 AND id_level=$2), \
-             (SELECT id_record FROM public.world_record_global WHERE id_level=$2) \
-             FROM public.record WHERE id_user=$1 AND id_level=$2",
+            include_str!("fixtures/record_score_contention/count_personal_best_global.sql"),
             &[&user.id, &level.id],
         )
         .await?;
@@ -153,11 +158,12 @@ async fn score_locks_and_user_points_row_do_not_block_record_submission() -> Res
     assert_eq!(persisted.get::<_, i32>(1), submitted.id_record);
     assert_eq!(persisted.get::<_, i32>(2), submitted.id_record);
 
+    client.execute(DELETE_LEVEL, &[&level.id]).await?;
     client
-        .execute("DELETE FROM public.level WHERE id=$1", &[&level.id])
-        .await?;
-    client
-        .execute("DELETE FROM public.\"user\" WHERE id=$1", &[&user.id])
+        .execute(
+            include_str!("fixtures/record_score_contention/delete_user.sql"),
+            &[&user.id],
+        )
         .await?;
     Ok(())
 }
@@ -236,11 +242,9 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
     );
     let fast = client
         .query_one(
-            "SELECT contribution.level_position,contribution.level_points, \
-             contribution.contribution_rank,contribution.player_decayed_points,points.points \
-             FROM public.user_point_contribution contribution \
-             JOIN public.level_points points ON points.id_level=contribution.id_level \
-             WHERE contribution.id_level=$1 AND contribution.id_user=$2",
+            include_str!(
+                "fixtures/record_score_contention/select_level_position_user_point_contribution.sql"
+            ),
             &[&level.id, &submitter],
         )
         .await?;
@@ -251,7 +255,7 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
     assert!(fast.get::<_, f32>(3) > 0.0);
     let before_cursor: i64 = client
         .query_one(
-            "SELECT count(*) FROM public.user_point_contribution WHERE id_level=$1",
+            include_str!("fixtures/record_score_contention/count_user_point_contribution.sql"),
             &[&level.id],
         )
         .await?
@@ -261,10 +265,7 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
     let busy_user = user_ids[0];
     let blocker = client.transaction().await?;
     blocker
-        .execute(
-            "SELECT pg_advisory_xact_lock(-1861284952,$1)",
-            &[&busy_user],
-        )
+        .execute(PG_ADVISORY_XACT_LOCK_2, &[&busy_user])
         .await?;
     let first_page = database
         .level_contribution_user_page(level.id, 0, 50)
@@ -328,8 +329,9 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
     assert!(pages >= 5);
     let converged: i64 = client
         .query_one(
-            "SELECT count(*) FROM public.user_point_contribution \
-             WHERE id_level=$1 AND contribution_rank=1 AND player_decayed_points>0",
+            include_str!(
+                "fixtures/record_score_contention/count_user_point_contribution_by_id_level.sql"
+            ),
             &[&level.id],
         )
         .await?
@@ -345,10 +347,7 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
     )
     .await?;
     let date_updated: String = client
-        .query_one(
-            "SELECT date_updated::text FROM public.level_points WHERE id_level=$1",
-            &[&level.id],
-        )
+        .query_one(SELECT_DATE_UPDATED_LEVEL_POINTS, &[&level.id])
         .await?
         .get(0);
     assert_eq!(
@@ -359,10 +358,7 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
         })
     );
     let unchanged_date_updated: String = client
-        .query_one(
-            "SELECT date_updated::text FROM public.level_points WHERE id_level=$1",
-            &[&level.id],
-        )
+        .query_one(SELECT_DATE_UPDATED_LEVEL_POINTS, &[&level.id])
         .await?
         .get(0);
     assert_eq!(date_updated, unchanged_date_updated);
@@ -447,11 +443,12 @@ async fn submitter_projection_precedes_popular_level_cursor() -> Result<()> {
             projection_needed: false,
         })
     );
+    client.execute(DELETE_LEVEL, &[&level.id]).await?;
     client
-        .execute("DELETE FROM public.level WHERE id=$1", &[&level.id])
-        .await?;
-    client
-        .execute("DELETE FROM public.\"user\" WHERE id=ANY($1)", &[&user_ids])
+        .execute(
+            include_str!("fixtures/record_score_contention/delete_user_by_id.sql"),
+            &[&user_ids],
+        )
         .await?;
     Ok(())
 }
@@ -464,10 +461,9 @@ async fn assert_level_positions(
 ) -> Result<()> {
     let rows = client
         .query(
-            "SELECT contribution.id_user,contribution.id_record,contribution.level_position, \
-             pb.id_record FROM public.user_point_contribution contribution \
-             JOIN public.personal_best_global pb USING(id_user,id_level) \
-             WHERE contribution.id_level=$1 ORDER BY contribution.id_user",
+            include_str!(
+                "fixtures/record_score_contention/select_id_user_user_point_contribution.sql"
+            ),
             &[&id_level],
         )
         .await?;

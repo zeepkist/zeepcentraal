@@ -77,8 +77,13 @@ struct Cache {
 impl Database {
     pub async fn record_eligibility_level_current(&self, level: i32) -> Result<bool> {
         let mut c = self.connection().await?;
-        let bad=sql_query("SELECT EXISTS(SELECT 1 FROM public.personal_best_global pb JOIN zc_private.record_validation v ON v.id_record=pb.id_record WHERE pb.id_level=$1 AND v.status='fail' UNION ALL SELECT 1 FROM public.world_record_global wr JOIN zc_private.record_validation v ON v.id_record=wr.id_record WHERE wr.id_level=$1 AND v.status='fail') AS value")
-            .bind::<Integer,_>(level).get_result::<Lock>(&mut c).await?.value;
+        let bad = sql_query(include_str!(
+            "../queries/record_eligibility/record_eligibility_level_current.sql"
+        ))
+        .bind::<Integer, _>(level)
+        .get_result::<Lock>(&mut c)
+        .await?
+        .value;
         Ok(!bad && !super::jobs::level_contribution_drift(&mut c, level).await?)
     }
     pub async fn record_eligibility_scores_current(&self) -> Result<bool> {
@@ -90,8 +95,12 @@ impl Database {
             }
             let ids: Vec<_> = page.iter().map(|u| u.id_user).collect();
             let sources = self.user_score_sources(&ids).await?;
-            let cached=sql_query("SELECT expected.id_user,coalesce(p.points,0) AS points,coalesce(p.total_points,0) AS total_points,coalesce(p.world_records,0)::integer AS world_records,expected.world_records AS expected_world_records,coalesce(p.personal_bests,0)::integer AS personal_bests,expected.personal_bests AS expected_personal_bests FROM zc_private.user_record_counts($1) expected LEFT JOIN public.user_points p ON p.id_user=expected.id_user")
-                .bind::<Array<Integer>,_>(&ids).load::<Cache>(&mut self.connection().await?).await?;
+            let cached = sql_query(include_str!(
+                "../queries/record_eligibility/select_id_user_user_record_counts.sql"
+            ))
+            .bind::<Array<Integer>, _>(&ids)
+            .load::<Cache>(&mut self.connection().await?)
+            .await?;
             for row in cached {
                 let active = page.iter().any(|u| u.id_user == row.id_user && u.active);
                 let score = zc_core::score::calculate_player_points(
@@ -120,77 +129,89 @@ impl Database {
             after = *ids.last().expect("nonempty user page");
         }
         let ranks = serde_json::to_value(self.player_rank_snapshot().await?)?;
-        Ok(!sql_query("SELECT EXISTS(SELECT 1 FROM jsonb_to_recordset($1::jsonb) expected(id_user integer,rank integer) LEFT JOIN public.user_points p ON p.id_user=expected.id_user WHERE p.rank IS DISTINCT FROM expected.rank) AS value")
-            .bind::<Jsonb,_>(ranks).get_result::<Lock>(&mut self.connection().await?).await?.value)
+        Ok(!sql_query(include_str!(
+            "../queries/record_eligibility/record_eligibility_scores_current_exists.sql"
+        ))
+        .bind::<Jsonb, _>(ranks)
+        .get_result::<Lock>(&mut self.connection().await?)
+        .await?
+        .value)
     }
     pub async fn failed_record_level_page(&self, after: i32, through: i32) -> Result<Vec<i32>> {
-        Ok(sql_query("SELECT l.id FROM public.level l WHERE l.id>$1 AND l.id<=$2 AND EXISTS(SELECT 1 FROM public.record r JOIN zc_private.record_validation v ON v.id_record=r.id WHERE r.id_level=l.id AND v.status='fail') ORDER BY l.id LIMIT 100")
-            .bind::<Integer,_>(after).bind::<Integer,_>(through).load::<Id>(&mut self.connection().await?).await?
-            .into_iter().map(|r|r.id).collect())
+        Ok(sql_query(include_str!(
+            "../queries/record_eligibility/failed_record_level_page.sql"
+        ))
+        .bind::<Integer, _>(after)
+        .bind::<Integer, _>(through)
+        .load::<Id>(&mut self.connection().await?)
+        .await?
+        .into_iter()
+        .map(|r| r.id)
+        .collect())
     }
     pub async fn eligibility_level_upper_bound(&self) -> Result<i32> {
-        Ok(
-            sql_query("SELECT coalesce(max(id),0) AS id FROM public.level")
-                .get_result::<Id>(&mut self.connection().await?)
-                .await?
-                .id,
-        )
+        Ok(sql_query(include_str!(
+            "../queries/record_eligibility/eligibility_level_upper_bound.sql"
+        ))
+        .get_result::<Id>(&mut self.connection().await?)
+        .await?
+        .id)
     }
 
     pub async fn reconcile_record_eligibility(&self, level: i32) -> Result<MaintenanceOutcome<()>> {
         let mut connection = self.connection().await?;
         let result=connection.transaction::<MaintenanceOutcome<RepairStats>, anyhow::Error,_>(async move |connection| {
-            sql_query("SELECT set_config('zc.validation_correction','on',true)").execute(connection).await?;
-            sql_query("SELECT set_config('lock_timeout','100ms',true)").execute(connection).await?;
-            if !sql_query("SELECT pg_try_advisory_xact_lock($1,$2) AS value").bind::<Integer,_>(LEVEL_LOCK_NAMESPACE).bind::<Integer,_>(level).get_result::<Lock>(connection).await?.value { return Ok(MaintenanceOutcome::Contended); }
-            sql_query("SELECT id FROM public.level WHERE id=$1 FOR NO KEY UPDATE")
+            sql_query(include_str!("../queries/record_eligibility/reconcile_record_eligibility_set_config.sql")).execute(connection).await?;
+            sql_query(include_str!("../queries/record_eligibility/set_reconcile_lock_timeout.sql")).execute(connection).await?;
+            if !sql_query(include_str!("../queries/record_eligibility/reconcile_record_eligibility_pg_try_advisory_xact_lock.sql")).bind::<Integer,_>(LEVEL_LOCK_NAMESPACE).bind::<Integer,_>(level).get_result::<Lock>(connection).await?.value { return Ok(MaintenanceOutcome::Contended); }
+            sql_query(include_str!("../queries/record_eligibility/select_id_level.sql"))
                 .bind::<Integer,_>(level).execute(connection).await?;
             // Finalization takes the exclusive counterpart of this level lock.
-            if !sql_query("SELECT pg_try_advisory_xact_lock_shared(0,$1) AS value").bind::<Integer,_>(level).get_result::<Lock>(connection).await?.value { return Ok(MaintenanceOutcome::Contended); }
-            let users = sql_query("SELECT id_user AS id FROM public.personal_best_global WHERE id_level=$1 UNION SELECT id_user FROM public.world_record_global WHERE id_level=$1 UNION SELECT id_user FROM public.user_point_contribution WHERE id_level=$1 UNION SELECT id_user FROM public.record WHERE id_level=$1 ORDER BY id")
+            if !sql_query(include_str!("../queries/record_eligibility/reconcile_record_eligibility_pg_try_advisory_xact_lock_shared.sql")).bind::<Integer,_>(level).get_result::<Lock>(connection).await?.value { return Ok(MaintenanceOutcome::Contended); }
+            let users = sql_query(include_str!("../queries/record_eligibility/select_id_user_personal_best_global.sql"))
                 .bind::<Integer,_>(level).load::<Id>(connection).await?;
             let user_ids:Vec<_>=users.iter().map(|u|u.id).collect();
-            if !sql_query("SELECT coalesce(bool_and(pg_try_advisory_xact_lock(-1861284952,id)),true) AS value FROM (SELECT id FROM unnest($1::integer[]) id ORDER BY id) targets")
+            if !sql_query(include_str!("../queries/record_eligibility/reconcile_record_eligibility_select_unnest.sql"))
                 .bind::<Array<Integer>,_>(&user_ids).get_result::<Lock>(connection).await?.value { return Ok(MaintenanceOutcome::Contended); }
             // Keep one snapshot for selecting winners. New validation changes enqueue
             // a follow-up; public RLS hides failures even before that job runs.
-            sql_query("CREATE TEMP TABLE eligible_record_winners ON COMMIT DROP AS SELECT DISTINCT ON(r.id_user) r.id_user,r.id,r.time,r.date_created FROM public.record r JOIN public.\"user\" u ON u.id=r.id_user WHERE r.id_level=$1 AND NOT u.banned AND r.record_eligible ORDER BY r.id_user,r.time,r.date_created,r.id")
+            sql_query(include_str!("../queries/record_eligibility/reconcile_record_eligibility_create_eligible_record_winners.sql"))
                 .bind::<Integer,_>(level).execute(connection).await?;
-            sql_query("INSERT INTO public.personal_best_global(id_user,id_level,id_record,date_created,date_updated) SELECT id_user,$1,id,clock_timestamp(),clock_timestamp() FROM eligible_record_winners ON CONFLICT(id_user,id_level) DO UPDATE SET id_record=excluded.id_record,date_updated=clock_timestamp() WHERE personal_best_global.id_record IS DISTINCT FROM excluded.id_record")
+            sql_query(include_str!("../queries/record_eligibility/insert_personal_best_global.sql"))
                 .bind::<Integer,_>(level).execute(connection).await?;
-            sql_query("DELETE FROM public.personal_best_global pb WHERE pb.id_level=$1 AND NOT EXISTS(SELECT 1 FROM eligible_record_winners w WHERE w.id_user=pb.id_user)")
+            sql_query(include_str!("../queries/record_eligibility/delete_personal_best_global.sql"))
                 .bind::<Integer,_>(level).execute(connection).await?;
-            sql_query("INSERT INTO public.world_record_global(id_user,id_level,id_record,date_created,date_updated) SELECT id_user,$1,id,clock_timestamp(),clock_timestamp() FROM eligible_record_winners ORDER BY time,date_created,id LIMIT 1 ON CONFLICT(id_level) DO UPDATE SET id_user=excluded.id_user,id_record=excluded.id_record,date_updated=clock_timestamp() WHERE ROW(world_record_global.id_user,world_record_global.id_record) IS DISTINCT FROM ROW(excluded.id_user,excluded.id_record)")
+            sql_query(include_str!("../queries/record_eligibility/insert_world_record_global.sql"))
                 .bind::<Integer,_>(level).execute(connection).await?;
-            sql_query("DELETE FROM public.world_record_global WHERE id_level=$1 AND NOT EXISTS(SELECT 1 FROM eligible_record_winners)").bind::<Integer,_>(level).execute(connection).await?;
-            let tournaments = sql_query("SELECT id FROM public.track_tournament WHERE id_level=$1 AND finalized_at IS NULL ORDER BY id FOR UPDATE")
+            sql_query(include_str!("../queries/record_eligibility/delete_world_record_global.sql")).bind::<Integer,_>(level).execute(connection).await?;
+            let tournaments = sql_query(include_str!("../queries/record_eligibility/select_id_track_tournament.sql"))
                 .bind::<Integer,_>(level).load::<Id>(connection).await?;
             for tournament in tournaments {
-                sql_query("SELECT pg_advisory_xact_lock(1953744432,$1)").bind::<Integer,_>(tournament.id).execute(connection).await?;
-                sql_query("CREATE TEMP TABLE eligible_tournament_winners ON COMMIT DROP AS SELECT DISTINCT ON(r.id_user) r.id_user,r.id,r.time FROM public.record r JOIN public.\"user\" u ON u.id=r.id_user JOIN public.track_tournament t ON t.id=$1 WHERE r.id_level=t.id_level AND ((r.date_created>=t.start_at AND r.date_created<t.end_at) OR EXISTS(SELECT 1 FROM public.track_tournament_result accepted WHERE accepted.id_tournament=t.id AND accepted.id_record=r.id)) AND NOT u.banned AND r.record_eligible ORDER BY r.id_user,r.time,r.date_created,r.id")
+                sql_query(include_str!("../queries/record_eligibility/reconcile_record_eligibility_pg_advisory_xact_lock.sql")).bind::<Integer,_>(tournament.id).execute(connection).await?;
+                sql_query(include_str!("../queries/record_eligibility/reconcile_record_eligibility_create_eligible_tournament_winners.sql"))
                     .bind::<Integer,_>(tournament.id).execute(connection).await?;
-                sql_query("INSERT INTO public.track_tournament_result(id_tournament,id_user,id_record,time,rank,points,date_created,date_updated) SELECT $1,id_user,id,time,1,1000,clock_timestamp(),clock_timestamp() FROM eligible_tournament_winners ON CONFLICT(id_tournament,id_user) DO UPDATE SET id_record=excluded.id_record,time=excluded.time,date_updated=clock_timestamp() WHERE ROW(track_tournament_result.id_record,track_tournament_result.time) IS DISTINCT FROM ROW(excluded.id_record,excluded.time)")
+                sql_query(include_str!("../queries/record_eligibility/insert_track_tournament_result.sql"))
                     .bind::<Integer,_>(tournament.id).execute(connection).await?;
-                sql_query("DELETE FROM public.track_tournament_result result WHERE id_tournament=$1 AND NOT EXISTS(SELECT 1 FROM eligible_tournament_winners w WHERE w.id_user=result.id_user)")
+                sql_query(include_str!("../queries/record_eligibility/delete_track_tournament_result.sql"))
                     .bind::<Integer,_>(tournament.id).execute(connection).await?;
                 super::record::rerank_tournament(connection,tournament.id).await?;
-                sql_query("DROP TABLE eligible_tournament_winners").execute(connection).await?;
+                sql_query(include_str!("../queries/record_eligibility/reconcile_record_eligibility_drop_eligible_tournament_winners.sql")).execute(connection).await?;
             }
-            sql_query("UPDATE public.level SET record_count=(SELECT count(*) FROM public.record r WHERE r.id_level=$1 AND r.record_eligible) WHERE id=$1")
+            sql_query(include_str!("../queries/record_eligibility/set_record_count_level.sql"))
                 .bind::<Integer,_>(level).execute(connection).await?;
             // Recompute affected players from current eligible PBs. Delta updates
             // cannot safely infer whether a concurrent full refresh saw a failure.
-            let changed_skills = sql_query("WITH levels AS MATERIALIZED(SELECT DISTINCT id_level FROM public.personal_best_global WHERE id_user=ANY($1)), ranked AS MATERIALIZED(SELECT pb.id_user,RANK() OVER(PARTITION BY pb.id_level ORDER BY r.time) AS place,COUNT(*) OVER(PARTITION BY pb.id_level) AS field FROM public.personal_best_global pb JOIN levels USING(id_level) JOIN public.record r ON r.id=pb.id_record JOIN public.\"user\" u ON u.id=pb.id_user WHERE NOT u.banned AND r.time>0 AND r.record_eligible), totals AS(SELECT id_user,sum(1-(place-1)::double precision/(field-1)) AS placement_sum,count(*)::integer AS eligible_level_count FROM ranked WHERE field>=20 AND id_user=ANY($1) GROUP BY id_user) INSERT INTO public.player_skill_aggregate(id_user,placement_sum,eligible_level_count,skill,date_updated) SELECT id,coalesce(t.placement_sum,0),coalesce(t.eligible_level_count,0),(5.0+coalesce(t.placement_sum,0))/(10+coalesce(t.eligible_level_count,0)),clock_timestamp() FROM unnest($1::integer[]) id LEFT JOIN totals t ON t.id_user=id ON CONFLICT(id_user) DO UPDATE SET placement_sum=excluded.placement_sum,eligible_level_count=excluded.eligible_level_count,skill=excluded.skill,date_updated=excluded.date_updated WHERE ROW(player_skill_aggregate.placement_sum,player_skill_aggregate.eligible_level_count,player_skill_aggregate.skill) IS DISTINCT FROM ROW(excluded.placement_sum,excluded.eligible_level_count,excluded.skill) RETURNING id_user AS id")
+            let changed_skills = sql_query(include_str!("../queries/record_eligibility/select_personal_best_global.sql"))
                 .bind::<Array<Integer>,_>(&user_ids).load::<Id>(connection).await?;
             let changed_skill_users: Vec<_> = changed_skills.into_iter().map(|user| user.id).collect();
             // Use the queue in this same transaction: crashes cannot lose scoring.
-            sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelScore',jsonb_build_object('idLevel',$1::integer),'update-level-score:'||$1,'level-maintenance-shard:'||($1%4),3,clock_timestamp())")
+            sql_query(include_str!("../queries/record_eligibility/enqueue_level_score.sql"))
                 .bind::<Integer,_>(level).execute(connection).await?;
-            sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelContributions',jsonb_build_object('idLevel',$1::integer,'afterUserId',0),'update-level-contributions:'||$1,'level-maintenance-shard:'||($1%4),3,clock_timestamp())")
+            sql_query(include_str!("../queries/record_eligibility/enqueue_level_contributions.sql"))
                 .bind::<Integer,_>(level).execute(connection).await?;
             // Skill changes never invalidate other levels. Player repairs are paged
             // outside this transaction so the lane lock covers only three requests.
-            sql_query("SELECT zc_jobs.enqueue('bulk','fanOutRecordEligibility',jsonb_build_object('operationId',pg_current_xact_id()::text,'userIds',$1::integer[],'afterUserId',0),'eligibility-fanout:'||pg_current_xact_id()::text||':0','eligibility-player-fanout',3,clock_timestamp())")
+            sql_query(include_str!("../queries/record_eligibility/enqueue_eligibility_fanout.sql"))
                 .bind::<Array<Integer>,_>(&user_ids).execute(connection).await?;
             Ok(MaintenanceOutcome::Applied(RepairStats {
                 affected_users: user_ids.len(),

@@ -1,5 +1,11 @@
 use anyhow::{Context, Result, ensure};
 
+const SET_LOCAL_ROLE_ZEEPCENTRAAL_GRAPHQL: &str =
+    include_str!("fixtures/lobby_dashboard/set_local_role_zeepcentraal_graphql.sql");
+const SELECT_LOBBY_OCCUPANCY_TIMELINE: &str =
+    include_str!("fixtures/lobby_dashboard/select_lobby_occupancy_timeline.sql");
+const RESET_ROLE: &str = include_str!("fixtures/lobby_dashboard/reset_role.sql");
+
 #[tokio::test]
 #[ignore = "requires disposable local zc_lobby_dashboard_test"]
 async fn lobby_projection_timeline_permissions_plans_and_rollback() -> Result<()> {
@@ -16,31 +22,41 @@ async fn lobby_projection_timeline_permissions_plans_and_rollback() -> Result<()
     let down = include_str!("../migrations/20261108040000_lobby_dashboard/down.sql");
     tx.batch_execute(down).await?;
     tx.batch_execute(up).await?;
-    tx.batch_execute("TRUNCATE public.lobby_history,public.lobby_stats,public.lobby CASCADE")
-        .await?;
+    tx.batch_execute(include_str!(
+        "fixtures/lobby_dashboard/truncate_lobby_history.sql"
+    ))
+    .await?;
     tx.batch_execute(include_str!("fixtures/lobby_dashboard.sql"))
         .await?;
-    tx.batch_execute("SET LOCAL ROLE zeepcentraal_graphql")
+    tx.batch_execute(SET_LOCAL_ROLE_ZEEPCENTRAAL_GRAPHQL)
         .await?;
     assert!(
         !tx.query_one(
-            "SELECT has_column_privilege(current_user,'public.lobby','master_id','SELECT')",
+            include_str!("fixtures/lobby_dashboard/has_column_privilege.sql"),
             &[]
         )
         .await?
         .get::<_, bool>(0)
     );
-    let row = tx.query_one("SELECT occupancy,available_capacity,duration_seconds FROM public.lobby_listing WHERE id=1001", &[]).await?;
-    assert_eq!(row.get::<_, f64>(0), 0.25);
-    assert!(row.get::<_, bool>(1));
-    assert_eq!(row.get::<_, f64>(2), 86400.0);
-    assert_eq!(tx.query_one("SELECT count(*) FROM public.lobby_listing WHERE NOT is_public AND first_seen<'2001-01-03Z' AND coalesce(closed_at,last_seen)>='2001-01-02Z'", &[]).await?.get::<_,i64>(0),1);
-    let rows = tx
-        .query(
-            "SELECT * FROM public.lobby_occupancy_timeline(1001,200)",
+    let row = tx
+        .query_one(
+            include_str!("fixtures/lobby_dashboard/select_occupancy_lobby_listing.sql"),
             &[],
         )
         .await?;
+    assert_eq!(row.get::<_, f64>(0), 0.25);
+    assert!(row.get::<_, bool>(1));
+    assert_eq!(row.get::<_, f64>(2), 86400.0);
+    assert_eq!(
+        tx.query_one(
+            include_str!("fixtures/lobby_dashboard/count_lobby_listing.sql"),
+            &[]
+        )
+        .await?
+        .get::<_, i64>(0),
+        1
+    );
+    let rows = tx.query(SELECT_LOBBY_OCCUPANCY_TIMELINE, &[]).await?;
     assert!(rows.len() <= 201);
     assert_eq!(
         rows.iter().map(|r| r.get::<_, i32>("max_players")).max(),
@@ -52,30 +68,49 @@ async fn lobby_projection_timeline_permissions_plans_and_rollback() -> Result<()
     );
     let gaps = tx
         .query(
-            "SELECT has_gap,has_closure,has_reopening FROM public.lobby_occupancy_timeline(1003,1)",
+            include_str!("fixtures/lobby_dashboard/select_has_gap_lobby_occupancy_timeline.sql"),
             &[],
         )
         .await?;
     assert!(gaps.iter().any(|r| r.get::<_, bool>(0)));
     assert!(gaps.iter().any(|r| r.get::<_, bool>(1)));
     assert!(gaps.iter().any(|r| r.get::<_, bool>(2)));
-    tx.batch_execute("RESET ROLE").await?;
-    assert_eq!(tx.query_one("SELECT count(*) FROM pg_trigger WHERE tgname='trg__live_query_invalidate' AND tgrelid IN ('public.lobby'::regclass,'public.lobby_history'::regclass,'public.lobby_stats'::regclass)",&[]).await?.get::<_,i64>(0),3);
-    assert!(tx.query_one("SELECT count(*) FROM public.live_query_invalidations WHERE table_name IN ('lobby','lobby_history','lobby_stats')",&[]).await?.get::<_,i64>(0)>0);
+    tx.batch_execute(RESET_ROLE).await?;
+    assert_eq!(
+        tx.query_one(
+            include_str!("fixtures/lobby_dashboard/count_pg_trigger.sql"),
+            &[]
+        )
+        .await?
+        .get::<_, i64>(0),
+        3
+    );
+    assert!(
+        tx.query_one(
+            include_str!("fixtures/lobby_dashboard/count_live_query_invalidations.sql"),
+            &[]
+        )
+        .await?
+        .get::<_, i64>(0)
+            > 0
+    );
     tx.batch_execute(down).await?;
     assert!(
-        tx.query_one("SELECT to_regclass('public.lobby_listing')::text", &[])
-            .await?
-            .get::<_, Option<String>>(0)
-            .is_none()
+        tx.query_one(
+            include_str!("fixtures/lobby_dashboard/to_regclass.sql"),
+            &[]
+        )
+        .await?
+        .get::<_, Option<String>>(0)
+        .is_none()
     );
     tx.batch_execute(up).await?;
     verify_growth_plans(&tx).await?;
     tx.rollback().await?;
     client
-        .batch_execute(
-            "ANALYZE public.lobby_stats; ANALYZE public.lobby; ANALYZE public.lobby_history",
-        )
+        .batch_execute(include_str!(
+            "fixtures/lobby_dashboard/analyze_lobby_stats.sql"
+        ))
         .await?;
     Ok(())
 }
@@ -83,36 +118,36 @@ async fn lobby_projection_timeline_permissions_plans_and_rollback() -> Result<()
 async fn verify_growth_plans(tx: &tokio_postgres::Transaction<'_>) -> Result<()> {
     tx.batch_execute(include_str!("fixtures/lobby_dashboard_growth.sql"))
         .await?;
-    tx.batch_execute("SET LOCAL ROLE zeepcentraal_graphql")
+    tx.batch_execute(SET_LOCAL_ROLE_ZEEPCENTRAAL_GRAPHQL)
         .await?;
     let queries = [
         (
             "monthly",
-            "SELECT date_trunc('month',date_created,'UTC'),avg(players),avg(players_in_rooms),avg(rooms),sum(players),sum(players_in_rooms),sum(rooms),max(players),max(players_in_rooms),max(rooms),count(DISTINCT id) FROM public.lobby_stats GROUP BY 1",
+            include_str!("fixtures/lobby_dashboard/select_date_trunc_lobby_stats.sql"),
         ),
         (
             "peak",
-            "SELECT players,date_created FROM public.lobby_stats ORDER BY players DESC,date_created,id LIMIT 1",
+            include_str!("fixtures/lobby_dashboard/select_players_lobby_stats.sql"),
         ),
         (
             "history",
-            "SELECT * FROM public.lobby_listing WHERE closed_at IS NOT NULL AND first_seen<'2020-04-01Z' AND coalesce(closed_at,last_seen)>='2020-03-01Z' ORDER BY closed_at DESC,id DESC LIMIT 25",
+            include_str!("fixtures/lobby_dashboard/select_lobby_listing.sql"),
         ),
         (
             "search",
-            "SELECT * FROM public.lobby_listing WHERE room_name ILIKE '%room 99%' ORDER BY duration_seconds DESC,id DESC LIMIT 25",
+            include_str!("fixtures/lobby_dashboard/select_lobby_listing_2.sql"),
         ),
-        (
-            "timeline",
-            "SELECT * FROM public.lobby_occupancy_timeline(1001,200)",
-        ),
+        ("timeline", SELECT_LOBBY_OCCUPANCY_TIMELINE),
     ];
     for (name, query) in queries {
         let mut times = Vec::new();
         let mut buffers = serde_json::Value::Null;
         for _ in 0..20 {
             let messages = tx
-                .simple_query(&format!("EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) {query}"))
+                .simple_query(
+                    &include_str!("fixtures/lobby_dashboard/explain_query.sql")
+                        .replace("{{query}}", query),
+                )
                 .await?;
             let json = messages
                 .iter()
@@ -144,6 +179,6 @@ async fn verify_growth_plans(tx: &tokio_postgres::Transaction<'_>) -> Result<()>
             "{name} exceeds 500 ms SQL budget: {p95_ms} ms"
         );
     }
-    tx.batch_execute("RESET ROLE").await?;
+    tx.batch_execute(RESET_ROLE).await?;
     Ok(())
 }

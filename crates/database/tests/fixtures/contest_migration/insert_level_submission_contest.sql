@@ -1,0 +1,1 @@
+INSERT INTO zc_private.level_submission_contest(thread_id,guild_id,forum_id,title,theme,season_number,round_number,id_zsl_round,mapping_source,rules,rules_hash) VALUES('duplicate','2','3','Duplicate','Duplicate',8,1,9000,'manual','{}','rules')

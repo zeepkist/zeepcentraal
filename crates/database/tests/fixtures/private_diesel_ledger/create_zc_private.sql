@@ -1,0 +1,1 @@
+CREATE SCHEMA zc_private; CREATE TABLE public.__diesel_schema_migrations (version varchar(50) PRIMARY KEY NOT NULL, run_on timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP); INSERT INTO public.__diesel_schema_migrations(version) VALUES ('20260919000000'),('20260927010000')

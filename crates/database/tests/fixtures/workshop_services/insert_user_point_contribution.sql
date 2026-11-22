@@ -1,0 +1,1 @@
+INSERT INTO public.user_point_contribution(id_user,id_level,id_record,contribution_rank,level_position,level_points,level_decayed_points,player_decayed_points,date_calculated) VALUES($1,$2,$3,1,1,900,900,900,now())

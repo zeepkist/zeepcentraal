@@ -1,0 +1,1 @@
+ALTER TABLE public.level_points DROP CONSTRAINT catalog_zero_failure

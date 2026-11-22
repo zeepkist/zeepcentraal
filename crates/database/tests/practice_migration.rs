@@ -17,35 +17,58 @@ async fn practice_migration_seed_nullable_schedule_and_rollback() -> Result<()> 
     });
     ensure!(
         client
-            .query_one("SELECT to_regclass('public.zsl_round') IS NULL", &[])
+            .query_one(
+                include_str!("fixtures/practice_migration/to_regclass.sql"),
+                &[]
+            )
             .await?
             .get::<_, bool>(0),
         "Empty test database required"
     );
-    client.batch_execute("BEGIN; CREATE SCHEMA zc_private; CREATE TABLE public.zsl_round (id integer PRIMARY KEY); INSERT INTO public.zsl_round VALUES (50),(51);").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/practice_migration/create_zc_private.sql"
+        ))
+        .await?;
     client.batch_execute(UP).await?;
-    assert!(client.query_one("SELECT event2_date='2026-10-11T23:00:00Z'::timestamptz FROM public.zsl_round WHERE id=50", &[]).await?.get::<_,bool>(0));
     assert!(
         client
             .query_one(
-                "SELECT event2_date IS NULL FROM public.zsl_round WHERE id=51",
+                include_str!("fixtures/practice_migration/select_event2_date_zsl_round.sql"),
                 &[]
             )
             .await?
             .get::<_, bool>(0)
     );
-    client.batch_execute("INSERT INTO zc_private.zsl_practice_playlist (id_zsl_round,playlist_url,object_key,content_sha256,byte_size) VALUES (50,'https://example.com/p','manifest',repeat('a',64),100);").await?;
+    assert!(
+        client
+            .query_one(
+                include_str!(
+                    "fixtures/practice_migration/select_event2_date_zsl_round_by_id_51.sql"
+                ),
+                &[]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
+    client
+        .batch_execute(include_str!(
+            "fixtures/practice_migration/insert_zsl_practice_playlist.sql"
+        ))
+        .await?;
     client.batch_execute(DOWN).await?;
     assert!(
         client
             .query_one(
-                "SELECT to_regclass('zc_private.zsl_practice_playlist') IS NULL",
+                include_str!("fixtures/practice_migration/to_regclass_2.sql"),
                 &[]
             )
             .await?
             .get::<_, bool>(0)
     );
     client.batch_execute(UP).await?;
-    client.batch_execute("ROLLBACK").await?;
+    client
+        .batch_execute(include_str!("fixtures/practice_migration/rollback.sql"))
+        .await?;
     Ok(())
 }

@@ -1,0 +1,1 @@
+INSERT INTO public.personal_best_global(id_user,id_level,id_record,date_created,date_updated) SELECT id_user,$1,id,clock_timestamp(),clock_timestamp() FROM eligible_record_winners ON CONFLICT(id_user,id_level) DO UPDATE SET id_record=excluded.id_record,date_updated=clock_timestamp() WHERE personal_best_global.id_record IS DISTINCT FROM excluded.id_record

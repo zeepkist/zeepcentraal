@@ -1,0 +1,1 @@
+INSERT INTO zc_private.level_submission_playlist_notification(id_contest,desired_playlist_id) VALUES($1,$2) ON CONFLICT(id_contest) DO UPDATE SET desired_playlist_id=EXCLUDED.desired_playlist_id,next_attempt_at=now() WHERE level_submission_playlist_notification.desired_playlist_id IS DISTINCT FROM EXCLUDED.desired_playlist_id

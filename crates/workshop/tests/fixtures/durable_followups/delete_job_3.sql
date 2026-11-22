@@ -1,0 +1,1 @@
+DELETE FROM zc_jobs.job; CREATE FUNCTION public.reject_fixture_score() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.task='updateLevelScore' THEN RAISE EXCEPTION 'fixture score failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_fixture_score BEFORE INSERT ON zc_jobs.job FOR EACH ROW EXECUTE FUNCTION public.reject_fixture_score()

@@ -1,0 +1,1 @@
+ANALYZE zc_private.record_history_fact

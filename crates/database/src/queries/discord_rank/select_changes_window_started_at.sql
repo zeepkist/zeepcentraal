@@ -1,0 +1,1 @@
+SELECT changes,floor(extract(epoch FROM window_started_at)*1000)::bigint AS window_started_at, floor(extract(epoch FROM last_change_at)*1000)::bigint AS last_change_at FROM zc_private.discord_rank_batch_state WHERE id=1 FOR UPDATE

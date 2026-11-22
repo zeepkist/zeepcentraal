@@ -1,0 +1,1 @@
+CREATE SCHEMA IF NOT EXISTS zc_private; CREATE TABLE IF NOT EXISTS zc_private.discord_rank_batch_state(id smallint PRIMARY KEY,changes jsonb,window_started_at timestamptz,last_change_at timestamptz); INSERT INTO zc_private.discord_rank_batch_state VALUES(1,'[]',NULL,NULL) ON CONFLICT DO NOTHING

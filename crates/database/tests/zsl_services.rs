@@ -20,8 +20,7 @@ async fn zsl_import_services_are_idempotent() -> anyhow::Result<()> {
     let file_uid = format!("rust-zsl-test-{suffix}");
     let points_id: i32 = client
         .query_one(
-            "INSERT INTO zsl_points_structure(name,points,minimum_points,best_of) \
-             VALUES($1,ARRAY[10,8,6],1,3) RETURNING id",
+            include_str!("fixtures/zsl_services/insert_zsl_points_structure.sql"),
             &[&season_name],
         )
         .await?
@@ -33,24 +32,20 @@ async fn zsl_import_services_are_idempotent() -> anyhow::Result<()> {
     let id_user = users[&steam_id];
     let id_level: i32 = client
         .query_one(
-            "INSERT INTO level(hash,xx_hash) VALUES($1,$2) RETURNING id",
+            include_str!("fixtures/zsl_services/insert_level.sql"),
             &[&format!("legacy-{suffix}"), &format!("{suffix:032X}")],
         )
         .await?
         .get(0);
     client
         .execute(
-            "INSERT INTO workshop_item(workshop_id,author_id,name,image_url) \
-             VALUES($1,$2,'Rust ZSL Workshop','')",
+            include_str!("fixtures/zsl_services/insert_workshop_item.sql"),
             &[&workshop_id, &steam_id],
         )
         .await?;
     client
         .execute(
-            "INSERT INTO level_item(id_level,workshop_id,author_id,name,image_url,file_author, \
-             file_uid,validation_time_author,validation_time_gold,validation_time_silver, \
-             validation_time_bronze,deleted,created_at,updated_at) \
-             VALUES($1,$2,$3,'Rust ZSL Level','','',$4,1,2,3,4,false,now(),now())",
+            include_str!("fixtures/zsl_services/insert_level_item.sql"),
             &[&id_level, &workshop_id, &steam_id, &file_uid],
         )
         .await?;
@@ -83,7 +78,7 @@ async fn zsl_import_services_are_idempotent() -> anyhow::Result<()> {
         .await?;
     let preserved: i64 = client
         .query_one(
-            "SELECT workshop_id FROM zsl_round WHERE id=$1",
+            include_str!("fixtures/zsl_services/select_workshop_id_zsl_round.sql"),
             &[&round.id],
         )
         .await?
@@ -141,8 +136,7 @@ async fn zsl_import_services_are_idempotent() -> anyhow::Result<()> {
         .await?;
     let result = client
         .query_one(
-            "SELECT points,position,time FROM zsl_level_result \
-             WHERE id_level=$1 AND id_user=$2",
+            include_str!("fixtures/zsl_services/select_points_zsl_level_result.sql"),
             &[&zsl_level.id, &id_user],
         )
         .await?;
@@ -151,23 +145,32 @@ async fn zsl_import_services_are_idempotent() -> anyhow::Result<()> {
     assert_eq!(result.get::<_, f32>(2), 12.0);
 
     client
-        .execute("DELETE FROM zsl_season WHERE id=$1", &[&season.id])
-        .await?;
-    client
-        .execute("DELETE FROM level WHERE id=$1", &[&id_level])
+        .execute(
+            include_str!("fixtures/zsl_services/delete_zsl_season.sql"),
+            &[&season.id],
+        )
         .await?;
     client
         .execute(
-            "DELETE FROM workshop_item WHERE workshop_id=$1",
+            include_str!("fixtures/zsl_services/delete_level.sql"),
+            &[&id_level],
+        )
+        .await?;
+    client
+        .execute(
+            include_str!("fixtures/zsl_services/delete_workshop_item.sql"),
             &[&workshop_id],
         )
         .await?;
     client
-        .execute("DELETE FROM \"user\" WHERE id=$1", &[&id_user])
+        .execute(
+            include_str!("fixtures/zsl_services/delete_user.sql"),
+            &[&id_user],
+        )
         .await?;
     client
         .execute(
-            "DELETE FROM zsl_points_structure WHERE id=$1",
+            include_str!("fixtures/zsl_services/delete_zsl_points_structure.sql"),
             &[&points_id],
         )
         .await?;

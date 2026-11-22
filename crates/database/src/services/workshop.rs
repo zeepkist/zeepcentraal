@@ -104,13 +104,9 @@ impl Database {
         excluded_uploader_id: i64,
     ) -> Result<Option<i64>> {
         let mut connection = self.connection().await?;
-        let row = sql_query(
-            "SELECT li.author_id FROM public.level_item li \
-             JOIN public.level l ON l.id=li.id_level \
-             JOIN public.workshop_item wi ON wi.workshop_id=li.workshop_id \
-             WHERE l.xx_hash=$1 AND li.author_id<>$2 AND wi.author_id<>$2 \
-             ORDER BY li.deleted,li.id LIMIT 1",
-        )
+        let row = sql_query(include_str!(
+            "../queries/workshop/find_workshop_level_author.sql"
+        ))
         .bind::<Text, _>(xx_hash)
         .bind::<BigInt, _>(excluded_uploader_id)
         .get_result::<AuthorRow>(&mut connection)
@@ -127,35 +123,24 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<WorkshopLevelUpsertResult, anyhow::Error, _>(async move |connection| {
-                    let previous_workshop = sql_query(
-                        "SELECT visibility FROM public.workshop_item WHERE workshop_id=$1 LIMIT 1",
-                    )
-                    .bind::<BigInt, _>(input.workshop_id)
-                    .get_result::<VisibilityRow>(connection)
-                    .await
-                    .optional()?;
+                let previous_workshop = sql_query(include_str!(
+                    "../queries/workshop/select_visibility_workshop_item.sql"
+                ))
+                .bind::<BigInt, _>(input.workshop_id)
+                .get_result::<VisibilityRow>(connection)
+                .await
+                .optional()?;
 
-                    for steam_id in [input.author_id, input.level_author_id] {
-                        sql_query(
-                            "INSERT INTO public.\"user\" \
-                             (steam_id,steam_name,discord_id,banned,date_created,date_updated) \
-                             VALUES($1,'Unknown',-1,false,clock_timestamp(),clock_timestamp()) \
-                             ON CONFLICT (steam_id) DO NOTHING",
-                        )
-                        .bind::<BigInt, _>(steam_id)
-                        .execute(connection)
-                        .await?;
-                    }
+                for steam_id in [input.author_id, input.level_author_id] {
+                    sql_query(include_str!(
+                        "../queries/workshop/upsert_workshop_level_insert_user.sql"
+                    ))
+                    .bind::<BigInt, _>(steam_id)
+                    .execute(connection)
+                    .await?;
+                }
 
-                    sql_query(
-                        "INSERT INTO public.workshop_item \
-                         (workshop_id,author_id,name,image_url,visibility,file_size,created_at,updated_at,date_created,date_updated) \
-                         VALUES($1,$2,$3,$4,$5,$6,$7::timestamptz,$8::timestamptz,clock_timestamp(),clock_timestamp()) \
-                         ON CONFLICT (workshop_id) DO UPDATE SET \
-                         author_id=excluded.author_id,name=excluded.name,image_url=excluded.image_url, \
-                         visibility=excluded.visibility,file_size=excluded.file_size,created_at=excluded.created_at, \
-                         updated_at=excluded.updated_at,date_updated=clock_timestamp()",
-                    )
+                sql_query(include_str!("../queries/workshop/insert_workshop_item.sql"))
                     .bind::<BigInt, _>(input.workshop_id)
                     .bind::<BigInt, _>(input.author_id)
                     .bind::<Text, _>(&input.workshop_name)
@@ -167,173 +152,164 @@ impl Database {
                     .execute(connection)
                     .await?;
 
-                    let existing_item = sql_query(
-                        "SELECT li.id,li.id_level,li.deleted,l.xx_hash \
-                         FROM public.level_item li JOIN public.level l ON l.id=li.id_level \
-                         WHERE li.workshop_id=$1 AND l.xx_hash=$2 \
-                         ORDER BY li.deleted,li.id LIMIT 1 FOR UPDATE OF li",
-                    )
-                    .bind::<BigInt, _>(input.workshop_id)
-                    .bind::<Text, _>(&input.xx_hash)
-                    .get_result::<ExistingItem>(connection)
-                    .await
-                    .optional()?;
-
-                    let existing_level = sql_query(
-                        "SELECT id,simhash FROM public.level WHERE xx_hash=$1 LIMIT 1 FOR UPDATE",
-                    )
-                    .bind::<Text, _>(&input.xx_hash)
-                    .get_result::<ExistingLevel>(connection)
-                    .await
-                    .optional()?;
-
-                    let needs_simhash = existing_level.as_ref().is_none_or(|level| level.simhash.is_none());
-                    let mut created = false;
-                    let id_level = if let Some(level) = existing_level {
-                        level.id
-                    } else if let Some(item) = existing_item
-                        .as_ref()
-                        .filter(|item| item.xx_hash == input.xx_hash)
-                    {
-                        item.id_level
-                    } else {
-                        let inserted = sql_query(
-                            "INSERT INTO public.level(hash,xx_hash,adventure) VALUES($1,$2,false) \
-                             ON CONFLICT (xx_hash) DO NOTHING RETURNING id",
-                        )
-                        .bind::<Text, _>(&input.hash)
+                let existing_item =
+                    sql_query(include_str!("../queries/workshop/select_id_level_item.sql"))
+                        .bind::<BigInt, _>(input.workshop_id)
                         .bind::<Text, _>(&input.xx_hash)
-                        .get_result::<IdRow>(connection)
+                        .get_result::<ExistingItem>(connection)
                         .await
                         .optional()?;
-                        created = inserted.is_some();
-                        match inserted {
-                            Some(row) => row.id,
-                            None => sql_query(
-                                "SELECT id FROM public.level WHERE xx_hash=$1 LIMIT 1 FOR UPDATE",
-                            )
+
+                let existing_level =
+                    sql_query(include_str!("../queries/workshop/select_id_level.sql"))
+                        .bind::<Text, _>(&input.xx_hash)
+                        .get_result::<ExistingLevel>(connection)
+                        .await
+                        .optional()?;
+
+                let needs_simhash = existing_level
+                    .as_ref()
+                    .is_none_or(|level| level.simhash.is_none());
+                let mut created = false;
+                let id_level = if let Some(level) = existing_level {
+                    level.id
+                } else if let Some(item) = existing_item
+                    .as_ref()
+                    .filter(|item| item.xx_hash == input.xx_hash)
+                {
+                    item.id_level
+                } else {
+                    let inserted = sql_query(include_str!(
+                        "../queries/workshop/upsert_workshop_level_insert_level.sql"
+                    ))
+                    .bind::<Text, _>(&input.hash)
+                    .bind::<Text, _>(&input.xx_hash)
+                    .get_result::<IdRow>(connection)
+                    .await
+                    .optional()?;
+                    created = inserted.is_some();
+                    match inserted {
+                        Some(row) => row.id,
+                        None => {
+                            sql_query(include_str!(
+                                "../queries/workshop/select_id_level_by_xx_hash.sql"
+                            ))
                             .bind::<Text, _>(&input.xx_hash)
                             .get_result::<IdRow>(connection)
                             .await?
-                            .id,
+                            .id
                         }
-                    };
+                    }
+                };
 
-                    sql_query(
-                        "UPDATE public.level SET hash=$2,date_updated=clock_timestamp() \
-                         WHERE id=$1 AND hash IS DISTINCT FROM $2",
-                    )
+                sql_query(include_str!("../queries/workshop/set_hash_level.sql"))
                     .bind::<Integer, _>(id_level)
                     .bind::<Text, _>(&input.hash)
                     .execute(connection)
                     .await?;
 
-
-                    let existing_metadata = sql_query(
-                        "SELECT id FROM public.level_metadata WHERE id_level=$1 ORDER BY id LIMIT 1 FOR UPDATE",
-                    )
+                let existing_metadata = sql_query(include_str!(
+                    "../queries/workshop/select_id_level_metadata.sql"
+                ))
+                .bind::<Integer, _>(id_level)
+                .get_result::<IdRow>(connection)
+                .await
+                .optional()?;
+                let metadata_changed = if let Some(metadata) = existing_metadata {
+                    sql_query(include_str!(
+                        "../queries/workshop/set_amount_checkpoints_level_metadata.sql"
+                    ))
+                    .bind::<Integer, _>(metadata.id)
+                    .bind::<Integer, _>(input.amount_checkpoints)
+                    .bind::<Integer, _>(input.amount_finishes)
+                    .bind::<Integer, _>(input.amount_blocks)
+                    .bind::<Integer, _>(input.type_ground)
+                    .bind::<Integer, _>(input.type_skybox)
+                    .bind::<Integer, _>(input.format)
+                    .bind::<Jsonb, _>(&input.blocks)
+                    .bind::<Nullable<Jsonb>, _>(&input.environment)
+                    .execute(connection)
+                    .await?
+                        > 0
+                } else {
+                    sql_query(include_str!(
+                        "../queries/workshop/insert_level_metadata.sql"
+                    ))
                     .bind::<Integer, _>(id_level)
-                    .get_result::<IdRow>(connection)
-                    .await
-                    .optional()?;
-                    let metadata_changed = if let Some(metadata) = existing_metadata {
-                        sql_query(
-                            "UPDATE public.level_metadata SET amount_checkpoints=$2,amount_finishes=$3, \
-                             amount_blocks=$4,type_ground=$5,type_skybox=$6,format=$7,blocks=$8,environment=$9, \
-                             date_updated=clock_timestamp() WHERE id=$1 AND \
-                             ROW(amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks,environment) \
-                             IS DISTINCT FROM ROW($2,$3,$4,$5,$6,$7,$8,$9)",
-                        )
-                        .bind::<Integer, _>(metadata.id)
-                        .bind::<Integer, _>(input.amount_checkpoints)
-                        .bind::<Integer, _>(input.amount_finishes)
-                        .bind::<Integer, _>(input.amount_blocks)
-                        .bind::<Integer, _>(input.type_ground)
-                        .bind::<Integer, _>(input.type_skybox)
-                        .bind::<Integer, _>(input.format)
-                        .bind::<Jsonb, _>(&input.blocks)
-                        .bind::<Nullable<Jsonb>, _>(&input.environment)
-                        .execute(connection)
-                        .await? > 0
-                    } else {
-                        sql_query(
-                            "INSERT INTO public.level_metadata \
-                             (id_level,amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks,environment,date_created,date_updated) \
-                             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,clock_timestamp(),clock_timestamp())",
-                        )
-                        .bind::<Integer, _>(id_level)
-                        .bind::<Integer, _>(input.amount_checkpoints)
-                        .bind::<Integer, _>(input.amount_finishes)
-                        .bind::<Integer, _>(input.amount_blocks)
-                        .bind::<Integer, _>(input.type_ground)
-                        .bind::<Integer, _>(input.type_skybox)
-                        .bind::<Integer, _>(input.format)
-                        .bind::<Jsonb, _>(&input.blocks)
-                        .bind::<Nullable<Jsonb>, _>(&input.environment)
-                        .execute(connection)
-                        .await?;
-                        true
-                    };
+                    .bind::<Integer, _>(input.amount_checkpoints)
+                    .bind::<Integer, _>(input.amount_finishes)
+                    .bind::<Integer, _>(input.amount_blocks)
+                    .bind::<Integer, _>(input.type_ground)
+                    .bind::<Integer, _>(input.type_skybox)
+                    .bind::<Integer, _>(input.format)
+                    .bind::<Jsonb, _>(&input.blocks)
+                    .bind::<Nullable<Jsonb>, _>(&input.environment)
+                    .execute(connection)
+                    .await?;
+                    true
+                };
 
-                    if needs_simhash {
-                        let simhash = match input.format {
-                            0 => zc_core::levels::calculate_level_simhash(&input.blocks, zc_core::levels::LevelFormat::Csv),
-                            1 => zc_core::levels::calculate_level_simhash(&input.blocks, zc_core::levels::LevelFormat::Json),
-                            _ => Err(anyhow::anyhow!("Unsupported level format")),
-                        };
-                        match simhash {
-                            Ok(Some(simhash)) => {
-                                sql_query("UPDATE public.level SET simhash=$2,date_updated=clock_timestamp() WHERE id=$1 AND simhash IS NULL")
-                                    .bind::<Integer, _>(id_level).bind::<BigInt, _>(simhash)
-                                    .execute(connection).await?;
-                            }
-                            Ok(None) => {}
-                            Err(error) => tracing::warn!(id_level, error = %error, "Invalid blocks for SimHash"),
+                if needs_simhash {
+                    let simhash = match input.format {
+                        0 => zc_core::levels::calculate_level_simhash(
+                            &input.blocks,
+                            zc_core::levels::LevelFormat::Csv,
+                        ),
+                        1 => zc_core::levels::calculate_level_simhash(
+                            &input.blocks,
+                            zc_core::levels::LevelFormat::Json,
+                        ),
+                        _ => Err(anyhow::anyhow!("Unsupported level format")),
+                    };
+                    match simhash {
+                        Ok(Some(simhash)) => {
+                            sql_query(include_str!("../queries/workshop/set_simhash_level.sql"))
+                                .bind::<Integer, _>(id_level)
+                                .bind::<BigInt, _>(simhash)
+                                .execute(connection)
+                                .await?;
+                        }
+                        Ok(None) => {}
+                        Err(error) => {
+                            tracing::warn!(id_level, error = %error, "Invalid blocks for SimHash")
                         }
                     }
+                }
 
-                    // Reused UIDs retire old uploads; never detach historical levels.
-                    let retired = sql_query("UPDATE public.level_item SET deleted=true,date_updated=clock_timestamp() WHERE workshop_id=$1 AND file_uid=$2 AND id_level<>$3 AND NOT deleted RETURNING id_level")
-                        .bind::<BigInt,_>(input.workshop_id).bind::<Text,_>(&input.file_uid).bind::<Integer,_>(id_level)
-                        .load::<ChangedLevel>(connection).await?;
-                    let mut changed_level_ids = unique_ids(retired);
-                    let item_changed = existing_item.as_ref().is_none_or(|item| {
-                        item.deleted || item.id_level != id_level
-                    });
-                    if let Some(item) = existing_item.as_ref() {
-                        sql_query(
-                            "UPDATE public.level_item SET id_level=$2,author_id=$3,name=$4,image_url=$5, \
-                             file_author=$6,file_uid=$7,validation_time_author=$8,validation_time_gold=$9, \
-                             validation_time_silver=$10,validation_time_bronze=$11,deleted=false, \
-                             created_at=$12::timestamptz,updated_at=$13::timestamptz,date_updated=clock_timestamp() \
-                             WHERE id=$1 AND ROW(id_level,author_id,name,image_url,file_author,file_uid, \
-                               validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze, \
-                               deleted,created_at,updated_at) IS DISTINCT FROM ROW($2,$3,$4,$5,$6,$7,$8,$9,$10,$11, \
-                               false,$12::timestamptz,$13::timestamptz)",
-                        )
-                        .bind::<Integer, _>(item.id)
-                        .bind::<Integer, _>(id_level)
-                        .bind::<BigInt, _>(input.level_author_id)
-                        .bind::<Text, _>(&input.name)
-                        .bind::<Text, _>(&input.image_url)
-                        .bind::<Text, _>(&input.file_author)
-                        .bind::<Text, _>(&input.file_uid)
-                        .bind::<Float, _>(input.validation_time_author)
-                        .bind::<Float, _>(input.validation_time_gold)
-                        .bind::<Float, _>(input.validation_time_silver)
-                        .bind::<Float, _>(input.validation_time_bronze)
-                        .bind::<Text, _>(&input.created_at)
-                        .bind::<Text, _>(&input.updated_at)
-                        .execute(connection)
-                        .await?;
-                    } else {
-                        sql_query(
-                            "INSERT INTO public.level_item \
-                             (id_level,workshop_id,author_id,name,image_url,file_author,file_uid, \
-                              validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze, \
-                              deleted,created_at,updated_at,date_created,date_updated) \
-                             VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,false,$12::timestamptz,$13::timestamptz,clock_timestamp(),clock_timestamp())",
-                        )
+                // Reused UIDs retire old uploads; never detach historical levels.
+                let retired = sql_query(include_str!(
+                    "../queries/workshop/set_deleted_level_item.sql"
+                ))
+                .bind::<BigInt, _>(input.workshop_id)
+                .bind::<Text, _>(&input.file_uid)
+                .bind::<Integer, _>(id_level)
+                .load::<ChangedLevel>(connection)
+                .await?;
+                let mut changed_level_ids = unique_ids(retired);
+                let item_changed = existing_item
+                    .as_ref()
+                    .is_none_or(|item| item.deleted || item.id_level != id_level);
+                if let Some(item) = existing_item.as_ref() {
+                    sql_query(include_str!(
+                        "../queries/workshop/set_id_level_level_item.sql"
+                    ))
+                    .bind::<Integer, _>(item.id)
+                    .bind::<Integer, _>(id_level)
+                    .bind::<BigInt, _>(input.level_author_id)
+                    .bind::<Text, _>(&input.name)
+                    .bind::<Text, _>(&input.image_url)
+                    .bind::<Text, _>(&input.file_author)
+                    .bind::<Text, _>(&input.file_uid)
+                    .bind::<Float, _>(input.validation_time_author)
+                    .bind::<Float, _>(input.validation_time_gold)
+                    .bind::<Float, _>(input.validation_time_silver)
+                    .bind::<Float, _>(input.validation_time_bronze)
+                    .bind::<Text, _>(&input.created_at)
+                    .bind::<Text, _>(&input.updated_at)
+                    .execute(connection)
+                    .await?;
+                } else {
+                    sql_query(include_str!("../queries/workshop/insert_level_item.sql"))
                         .bind::<Integer, _>(id_level)
                         .bind::<BigInt, _>(input.workshop_id)
                         .bind::<BigInt, _>(input.level_author_id)
@@ -349,28 +325,38 @@ impl Database {
                         .bind::<Text, _>(&input.updated_at)
                         .execute(connection)
                         .await?;
-                    };
+                };
 
-                    let accessibility_changed = previous_workshop.is_some_and(|previous| {
-                        is_accessible(previous.visibility) != is_accessible(input.workshop_visibility)
-                    });
-                    let mut validation_level_ids=Vec::new();
-                    if metadata_changed {validation_level_ids.push(id_level);}
-                    if created || item_changed || accessibility_changed { changed_level_ids.push(id_level); }
-                    if accessibility_changed {
-                        changed_level_ids.extend(sql_query("SELECT DISTINCT id_level FROM public.level_item WHERE workshop_id=$1")
-                            .bind::<BigInt,_>(input.workshop_id).load::<ChangedLevel>(connection).await?.into_iter().map(|row|row.id_level));
-                    }
-                    changed_level_ids.sort_unstable();
-                    changed_level_ids.dedup();
-                    enqueue_level_scores(connection, &changed_level_ids).await?;
-                    enqueue_ghost_audit_levels(connection, &validation_level_ids).await?;
-                    Ok(WorkshopLevelUpsertResult {
-                        id_level,
-                        changed_level_ids,
-                        validation_level_ids,
-                    })
+                let accessibility_changed = previous_workshop.is_some_and(|previous| {
+                    is_accessible(previous.visibility) != is_accessible(input.workshop_visibility)
+                });
+                let mut validation_level_ids = Vec::new();
+                if metadata_changed {
+                    validation_level_ids.push(id_level);
+                }
+                if created || item_changed || accessibility_changed {
+                    changed_level_ids.push(id_level);
+                }
+                if accessibility_changed {
+                    changed_level_ids.extend(
+                        sql_query(include_str!("../queries/workshop/select_level_item.sql"))
+                            .bind::<BigInt, _>(input.workshop_id)
+                            .load::<ChangedLevel>(connection)
+                            .await?
+                            .into_iter()
+                            .map(|row| row.id_level),
+                    );
+                }
+                changed_level_ids.sort_unstable();
+                changed_level_ids.dedup();
+                enqueue_level_scores(connection, &changed_level_ids).await?;
+                enqueue_ghost_audit_levels(connection, &validation_level_ids).await?;
+                Ok(WorkshopLevelUpsertResult {
+                    id_level,
+                    changed_level_ids,
+                    validation_level_ids,
                 })
+            })
             .await
     }
 
@@ -382,18 +368,15 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<Vec<i32>, anyhow::Error, _>(async move |connection| {
-                sql_query(
-                    "SELECT workshop_id FROM public.workshop_item WHERE workshop_id=$1 FOR UPDATE",
-                )
+                sql_query(include_str!(
+                    "../queries/workshop/select_workshop_id_workshop_item.sql"
+                ))
                 .bind::<BigInt, _>(workshop_id)
                 .execute(connection)
                 .await?;
-                let changed = sql_query(
-                    "UPDATE public.level_item li SET deleted=true,date_updated=clock_timestamp() \
-                         FROM public.level l WHERE li.id_level=l.id AND li.workshop_id=$1 \
-                         AND NOT li.deleted AND NOT l.adventure AND NOT (l.xx_hash=ANY($2)) \
-                         RETURNING li.id_level",
-                )
+                let changed = sql_query(include_str!(
+                    "../queries/workshop/set_deleted_level_item_by_id_level.sql"
+                ))
                 .bind::<BigInt, _>(workshop_id)
                 .bind::<Array<Text>, _>(active_xx_hashes)
                 .load::<ChangedLevel>(connection)
@@ -413,19 +396,16 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<Vec<i32>, anyhow::Error, _>(async move |connection| {
-                sql_query(
-                    "UPDATE public.workshop_item SET visibility=$2,date_updated=clock_timestamp() \
-                         WHERE workshop_id=$1",
-                )
+                sql_query(include_str!(
+                    "../queries/workshop/set_visibility_workshop_item.sql"
+                ))
                 .bind::<BigInt, _>(workshop_id)
                 .bind::<SmallInt, _>(visibility)
                 .execute(connection)
                 .await?;
-                let changed = sql_query(
-                    "UPDATE public.level_item li SET deleted=true,date_updated=clock_timestamp() \
-                         FROM public.level l WHERE li.id_level=l.id AND li.workshop_id=$1 \
-                         AND NOT li.deleted AND NOT l.adventure RETURNING li.id_level",
-                )
+                let changed = sql_query(include_str!(
+                    "../queries/workshop/soft_delete_workshop_level_items.sql"
+                ))
                 .bind::<BigInt, _>(workshop_id)
                 .load::<ChangedLevel>(connection)
                 .await?;
@@ -455,16 +435,13 @@ impl Database {
         let (ids, deleted, zeroed) = connection
             .transaction::<_, anyhow::Error, _>(async move |connection| {
                 sql_query(
-                    "SELECT workshop_id FROM public.workshop_item WHERE workshop_id=ANY($1) \
-                     ORDER BY workshop_id FOR UPDATE",
+                    include_str!("../queries/workshop/select_workshop_id_workshop_item_by_workshop_id.sql"),
                 )
                 .bind::<Array<BigInt>, _>(workshop_ids)
                 .execute(connection)
                 .await?;
                 let levels = sql_query(
-                    "SELECT DISTINCT level.id AS id_level FROM public.level_item item \
-                     JOIN public.level level ON level.id=item.id_level \
-                     WHERE item.workshop_id=ANY($1) AND NOT level.adventure ORDER BY level.id",
+                    include_str!("../queries/workshop/select_level_item_by_workshop_id.sql"),
                 )
                 .bind::<Array<BigInt>, _>(workshop_ids)
                 .load::<ChangedLevel>(connection)
@@ -472,17 +449,14 @@ impl Database {
                 let level_ids: Vec<_> = levels.into_iter().map(|row| row.id_level).collect();
                 // Serialize against score jobs before changing their availability snapshot.
                 for id_level in &level_ids {
-                    sql_query("SELECT pg_advisory_xact_lock($1,$2)")
+                    sql_query(include_str!("../queries/workshop/reconcile_missing_workshop_items_pg_advisory_xact_lock.sql"))
                         .bind::<Integer, _>(LEVEL_SCORE_LOCK_NAMESPACE)
                         .bind::<Integer, _>(id_level)
                         .execute(connection)
                         .await?;
                 }
                 let changed = sql_query(
-                    "UPDATE public.level_item item SET deleted=true,date_updated=clock_timestamp() \
-                     FROM public.level level WHERE level.id=item.id_level \
-                     AND item.workshop_id=ANY($1) AND NOT item.deleted AND NOT level.adventure \
-                     RETURNING item.id_level",
+                    include_str!("../queries/workshop/set_deleted_level_item_by_id.sql"),
                 )
                 .bind::<Array<BigInt>, _>(workshop_ids)
                 .load::<ChangedLevel>(connection)
@@ -491,10 +465,7 @@ impl Database {
                 let mut refresh: BTreeSet<_> =
                     changed.into_iter().map(|row| row.id_level).collect();
                 let unavailable = sql_query(
-                    "SELECT level.id AS id_level FROM public.level level WHERE level.id=ANY($1) \
-                     AND NOT level.adventure AND NOT EXISTS(SELECT 1 FROM public.level_item item \
-                     WHERE item.id_level=level.id AND item.publicly_visible AND NOT item.deleted) \
-                     ORDER BY level.id",
+                    include_str!("../queries/workshop/select_id_level_by_id.sql"),
                 )
                 .bind::<Array<Integer>, _>(&level_ids)
                 .load::<ChangedLevel>(connection)
@@ -511,8 +482,7 @@ impl Database {
                 // A crash after commit must not strand old player contributions on retry.
                 refresh.extend(
                     sql_query(
-                        "SELECT DISTINCT id_level FROM public.user_point_contribution \
-                     WHERE id_level=ANY($1)",
+                        include_str!("../queries/workshop/select_user_point_contribution.sql"),
                     )
                     .bind::<Array<Integer>, _>(&unavailable_ids)
                     .load::<ChangedLevel>(connection)
@@ -541,14 +511,14 @@ impl Database {
             workshop_id: i64,
         }
         let mut connection = self.connection().await?;
-        Ok(
-            sql_query("SELECT workshop_id FROM public.level_request ORDER BY id")
-                .load::<RequestRow>(&mut connection)
-                .await?
-                .into_iter()
-                .map(|row| row.workshop_id)
-                .collect(),
-        )
+        Ok(sql_query(include_str!(
+            "../queries/workshop/pending_level_request_workshop_ids.sql"
+        ))
+        .load::<RequestRow>(&mut connection)
+        .await?
+        .into_iter()
+        .map(|row| row.workshop_id)
+        .collect())
     }
 
     pub async fn workshop_sync_state(&self) -> Result<HashMap<i64, WorkshopSyncState>> {
@@ -562,13 +532,9 @@ impl Database {
             updated_epoch: i64,
         }
         let mut connection = self.connection().await?;
-        let rows = sql_query(
-            "SELECT workshop_id,count(*) FILTER(WHERE NOT deleted)::bigint AS active_item_count, \
-             extract(epoch FROM max(updated_at))::bigint AS updated_epoch \
-             FROM public.level_item WHERE workshop_id>0 GROUP BY workshop_id",
-        )
-        .load::<StateRow>(&mut connection)
-        .await?;
+        let rows = sql_query(include_str!("../queries/workshop/workshop_sync_state.sql"))
+            .load::<StateRow>(&mut connection)
+            .await?;
         Ok(rows
             .into_iter()
             .map(|row| {

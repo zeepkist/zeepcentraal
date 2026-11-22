@@ -44,9 +44,9 @@ impl Database {
             "Invalid SimHash page"
         );
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "SELECT id FROM public.level WHERE simhash IS NULL AND id>$1 ORDER BY id LIMIT $2",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/level_simhash/missing_level_simhash_ids.sql"
+        ))
         .bind::<Integer, _>(after_id)
         .bind::<BigInt, _>(limit)
         .load::<IdRow>(&mut connection)
@@ -61,10 +61,13 @@ impl Database {
         id_level: i32,
     ) -> Result<Option<LevelSimhashSnapshot>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT metadata.id,metadata.id_level,metadata.format,metadata.blocks,metadata.xmin::text AS version \
-            FROM public.level_metadata metadata JOIN public.level candidate ON candidate.id=metadata.id_level \
-            WHERE candidate.id=$1 AND candidate.simhash IS NULL ORDER BY metadata.id LIMIT 1")
-            .bind::<Integer, _>(id_level).get_result(&mut connection).await.optional()?)
+        Ok(sql_query(include_str!(
+            "../queries/level_simhash/level_simhash_snapshot.sql"
+        ))
+        .bind::<Integer, _>(id_level)
+        .get_result(&mut connection)
+        .await
+        .optional()?)
     }
 
     pub async fn set_missing_level_simhash(
@@ -73,19 +76,39 @@ impl Database {
         simhash: i64,
     ) -> Result<bool> {
         let mut connection = self.connection().await?;
-        connection.transaction::<bool, anyhow::Error, _>(async move |connection| {
-            // Match workshop lock order. Never hold a DB connection while hashing blocks.
-            let level = sql_query("SELECT id FROM public.level WHERE id=$1 AND simhash IS NULL FOR UPDATE")
-                .bind::<Integer, _>(snapshot.id_level).get_result::<IdRow>(connection).await.optional()?;
-            if level.is_none() { return Ok(false); }
-            let metadata = sql_query("SELECT id FROM public.level_metadata WHERE id=$1 AND id_level=$2 AND xmin::text=$3 \
-                AND id=(SELECT id FROM public.level_metadata WHERE id_level=$2 ORDER BY id LIMIT 1) FOR SHARE")
-                .bind::<Integer, _>(snapshot.id).bind::<Integer, _>(snapshot.id_level).bind::<Text, _>(&snapshot.version)
-                .get_result::<IdRow>(connection).await.optional()?;
-            if metadata.is_none() { return Ok(false); }
-            Ok(sql_query("UPDATE public.level SET simhash=$2,date_updated=clock_timestamp() WHERE id=$1 AND simhash IS NULL")
-                .bind::<Integer, _>(snapshot.id_level).bind::<BigInt, _>(simhash).execute(connection).await? == 1)
-        }).await
+        connection
+            .transaction::<bool, anyhow::Error, _>(async move |connection| {
+                // Match workshop lock order. Never hold a DB connection while hashing blocks.
+                let level = sql_query(include_str!("../queries/level_simhash/select_id_level.sql"))
+                    .bind::<Integer, _>(snapshot.id_level)
+                    .get_result::<IdRow>(connection)
+                    .await
+                    .optional()?;
+                if level.is_none() {
+                    return Ok(false);
+                }
+                let metadata = sql_query(include_str!(
+                    "../queries/level_simhash/select_id_level_metadata.sql"
+                ))
+                .bind::<Integer, _>(snapshot.id)
+                .bind::<Integer, _>(snapshot.id_level)
+                .bind::<Text, _>(&snapshot.version)
+                .get_result::<IdRow>(connection)
+                .await
+                .optional()?;
+                if metadata.is_none() {
+                    return Ok(false);
+                }
+                Ok(sql_query(include_str!(
+                    "../queries/level_simhash/set_missing_level_simhash_simhash_level.sql"
+                ))
+                .bind::<Integer, _>(snapshot.id_level)
+                .bind::<BigInt, _>(simhash)
+                .execute(connection)
+                .await?
+                    == 1)
+            })
+            .await
     }
 
     pub async fn backfill_level_simhash(&self, id_level: i32) -> Result<LevelSimhashOutcome> {

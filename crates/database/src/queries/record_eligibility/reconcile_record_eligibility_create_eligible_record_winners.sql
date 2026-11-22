@@ -1,0 +1,1 @@
+CREATE TEMP TABLE eligible_record_winners ON COMMIT DROP AS SELECT DISTINCT ON(r.id_user) r.id_user,r.id,r.time,r.date_created FROM public.record r JOIN public."user" u ON u.id=r.id_user WHERE r.id_level=$1 AND NOT u.banned AND r.record_eligible ORDER BY r.id_user,r.time,r.date_created,r.id

@@ -1,0 +1,1 @@
+SELECT id,payload FROM zc_jobs.job WHERE task='auditRecordGhosts' AND NOT running AND NOT(payload ? 'work') AND job_key LIKE 'audit-changed-levels:%' AND jsonb_array_length(payload->'idLevels')<1000 ORDER BY id LIMIT 1 FOR UPDATE

@@ -16,61 +16,8 @@ const USER_SCORE_LOCK_NAMESPACE: i32 = -1_861_284_952;
 pub(crate) const LEVEL_SCORE_LOCK_NAMESPACE: i32 = 1_861_284_954;
 const MAINTENANCE_LOCK_TIMEOUT: &str = "100ms";
 
-const TRACK_TOURNAMENT_SELECTION_SQL: &str = r#"
-WITH period_start AS MATERIALIZED (
-    SELECT CASE WHEN $1=2
-        THEN date_trunc('day', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
-        WHEN $1=0 THEN date_trunc('week', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
-        ELSE date_trunc('month', timezone('UTC', $2::text::timestamptz) - interval '6 hours')
-    END AS utc_start
-), period AS (
-    SELECT (utc_start AT TIME ZONE 'UTC') + interval '6 hours' AS start_at,
-           ((utc_start - CASE WHEN $1=0 THEN interval '84 days' WHEN $1=2 THEN interval '2 months' ELSE interval '6 months' END)
-               AT TIME ZONE 'UTC') + interval '6 hours' AS window_start_at,
-           ((utc_start + CASE WHEN $1=0 THEN interval '1 week' WHEN $1=2 THEN interval '1 day' ELSE interval '1 month' END)
-               AT TIME ZONE 'UTC') + interval '6 hours' AS end_at,
-           CASE WHEN $1=0 THEN to_char(utc_start, 'IYYY-"w"IW')
-                WHEN $1=2 THEN to_char(utc_start, 'YYYY-MM-DD')
-                ELSE to_char(utc_start, 'YYYY-MM') END AS slug
-    FROM period_start
-), available AS MATERIALIZED (
-    SELECT points.id_level, points.points, level.date_created
-    FROM public.level_points points
-    JOIN public.level level ON level.id=points.id_level AND level.publicly_visible=true
-    CROSS JOIN period
-    WHERE level.date_created < period.start_at
-      AND points.points > 0
-      AND EXISTS (
-          SELECT 1 FROM public.level_item item
-          WHERE item.id_level=level.id AND item.publicly_visible=true AND item.deleted=false
-      )
-      AND NOT EXISTS (
-          SELECT 1 FROM public.track_tournament used
-          WHERE used.type=$1 AND used.id_level=level.id
-      )
-), eligible AS MATERIALIZED (
-    SELECT available.* FROM available CROSS JOIN period
-    WHERE ($1=2 AND extract(day FROM period.start_at AT TIME ZONE 'UTC')::integer % 2=0)
-      OR available.date_created >= period.window_start_at
-      OR NOT EXISTS (SELECT 1 FROM available recent WHERE recent.date_created >= period.window_start_at)
-), threshold AS (
-    SELECT percentile_cont(CASE $1 WHEN 0 THEN 0.99 WHEN 1 THEN 0.999 ELSE 0.95 END)
-        WITHIN GROUP (ORDER BY points) AS points
-    FROM eligible
-), selected AS (
-    SELECT eligible.id_level
-    FROM eligible CROSS JOIN threshold
-    WHERE eligible.points >= threshold.points
-    ORDER BY random()
-    LIMIT 1
-)
-INSERT INTO public.track_tournament
-    (type, slug, id_level, start_at, end_at, points_version, date_created, date_updated)
-SELECT $1, period.slug, selected.id_level, period.start_at, period.end_at,
-       1, $2::text::timestamptz, $2::text::timestamptz
-FROM selected CROSS JOIN period
-RETURNING id
-"#;
+const TRACK_TOURNAMENT_SELECTION_SQL: &str =
+    include_str!("../queries/track_tournament/track_tournament_selection.sql");
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MaintenanceOutcome<T> {
@@ -267,26 +214,9 @@ impl Database {
         ensure!((1..=500).contains(&limit), "record media limit is invalid");
         let ids = ids.unwrap_or_default();
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "SELECT media.id_record,media.ghost_url::text AS ghost_url \
-             FROM public.record_media media \
-             LEFT JOIN public.record_statistic statistic ON statistic.id_record=media.id_record \
-             WHERE media.ghost_url IS NOT NULL \
-               AND (cardinality($1::integer[])=0 OR media.id_record=ANY($1)) \
-               AND (cardinality($1::integer[])>0 OR $2::integer IS NULL OR media.id_record<$2) \
-               AND (cardinality($1::integer[])>0 OR ( \
-                    ($3::integer IS NOT NULL AND statistic.ghost_version=$3) OR \
-                    ($3::integer IS NULL AND (statistic.id_record IS NULL \
-                     OR statistic.ghost_version IS NULL OR statistic.has_input_data IS NULL \
-                     OR statistic.has_air_data IS NULL OR statistic.has_wheel_data IS NULL \
-                     OR statistic.has_slip_data IS NULL OR statistic.has_state_data IS NULL \
-                     OR statistic.has_surface_data IS NULL OR statistic.has_velocity_data IS NULL \
-                     OR statistic.has_ragdoll_data IS NULL \
-                     OR (statistic.has_input_data=true AND \
-                         (statistic.time_any_driver_input IS NULL \
-                          OR statistic.driver_input_transition_count IS NULL)))))) \
-             ORDER BY media.id_record DESC LIMIT $4",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/record_statistics/record_media_for_statistics.sql"
+        ))
         .bind::<Array<Integer>, _>(ids)
         .bind::<Nullable<Integer>, _>(before_id)
         .bind::<Nullable<Integer>, _>(reparse_version)
@@ -302,24 +232,21 @@ impl Database {
     ) -> Result<()> {
         let value = serde_json::to_value(statistics)?;
         let mut connection = self.connection().await?;
-        sql_query(include_str!("../queries/upsert_record_statistics.sql"))
-            .bind::<Integer, _>(id_record)
-            .bind::<Jsonb, _>(value)
-            .execute(&mut connection)
-            .await?;
+        sql_query(include_str!(
+            "../queries/record_statistics/upsert_record_statistics.sql"
+        ))
+        .bind::<Integer, _>(id_record)
+        .bind::<Jsonb, _>(value)
+        .execute(&mut connection)
+        .await?;
         Ok(())
     }
 
     pub async fn changed_level_point_ids(&self) -> Result<Vec<i32>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "SELECT points.id_level AS id FROM public.level_points points \
-             LEFT JOIN LATERAL (SELECT history.* FROM public.level_points_history history \
-                 WHERE history.id_level=points.id_level ORDER BY history.date_created DESC NULLS LAST LIMIT 1) latest ON true \
-             WHERE latest.id IS NULL OR ROW(points.points,points.rating,points.modifier_length,points.modifier_evidence,points.modifier_quality,points.modifier_rating,points.complexity_confidence,points.complexity_score,points.field_strength,points.quality_score,points.skill_alignment,points.skill_confidence,points.skill_sample_size,points.skill_score,points.skill_separation) \
-                 IS DISTINCT FROM ROW(latest.points,latest.rating,latest.modifier_length,latest.modifier_evidence,latest.modifier_quality,latest.modifier_rating,latest.complexity_confidence,latest.complexity_score,latest.field_strength,latest.quality_score,latest.skill_alignment,latest.skill_confidence,latest.skill_sample_size,latest.skill_score,latest.skill_separation) \
-             ORDER BY points.id_level",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/scoring/changed_level_point_ids.sql"
+        ))
         .load::<IdRow>(&mut connection)
         .await?
         .into_iter()
@@ -332,12 +259,9 @@ impl Database {
             return Ok(0);
         }
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "INSERT INTO public.level_points_history \
-             (id_level,points,rating,modifier_length,modifier_evidence,modifier_quality,modifier_rating,complexity_confidence,complexity_score,field_strength,quality_score,skill_alignment,skill_confidence,skill_sample_size,skill_score,skill_separation,date_created,date_updated) \
-             SELECT id_level,points,rating,modifier_length,modifier_evidence,modifier_quality,modifier_rating,complexity_confidence,complexity_score,field_strength,quality_score,skill_alignment,skill_confidence,skill_sample_size,skill_score,skill_separation,clock_timestamp(),date_updated \
-             FROM public.level_points WHERE id_level=ANY($1)",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/scoring/insert_level_point_histories.sql"
+        ))
         .bind::<Array<Integer>, _>(ids)
         .execute(&mut connection)
         .await?)
@@ -346,7 +270,7 @@ impl Database {
     pub async fn all_user_point_ids(&self) -> Result<Vec<i32>> {
         let mut connection = self.connection().await?;
         Ok(
-            sql_query("SELECT id_user AS id FROM public.user_points ORDER BY id_user")
+            sql_query(include_str!("../queries/scoring/all_user_point_ids.sql"))
                 .load::<IdRow>(&mut connection)
                 .await?
                 .into_iter()
@@ -360,12 +284,9 @@ impl Database {
             return Ok(0);
         }
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "INSERT INTO public.user_points_history \
-             (id_user,points,total_points,rank,world_records,date_created,date_updated) \
-             SELECT id_user,points,total_points,rank,world_records,clock_timestamp(),date_updated \
-             FROM public.user_points WHERE id_user=ANY($1)",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/scoring/insert_user_point_histories.sql"
+        ))
         .bind::<Array<Integer>, _>(ids)
         .execute(&mut connection)
         .await?)
@@ -377,15 +298,13 @@ impl Database {
             "user activity page limit is invalid"
         );
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "SELECT account.id AS id_user,EXISTS(SELECT 1 FROM (SELECT * FROM public.record WHERE record_eligible) record \
-             WHERE record.id_user=account.id AND record.date_created>=statement_timestamp()-interval '6 months') AS active \
-             FROM public.\"user\" account WHERE account.id>$1 ORDER BY account.id LIMIT $2",
+        Ok(
+            sql_query(include_str!("../queries/scoring/user_activity_page.sql"))
+                .bind::<Integer, _>(after_id)
+                .bind::<BigInt, _>(limit)
+                .load(&mut connection)
+                .await?,
         )
-        .bind::<Integer, _>(after_id)
-        .bind::<BigInt, _>(limit)
-        .load(&mut connection)
-        .await?)
     }
 
     pub async fn user_score_sources(&self, ids: &[i32]) -> Result<Vec<UserScoreSource>> {
@@ -393,15 +312,10 @@ impl Database {
             return Ok(Vec::new());
         }
         let mut connection = self.connection().await?;
-        let rows = sql_query(
-            "SELECT contribution.id_user,contribution.id_level,contribution.id_record, \
-             contribution.level_position::bigint AS level_position,contribution.level_points, \
-             contribution.level_decayed_points FROM public.user_point_contribution contribution \
-             WHERE contribution.id_user=ANY($1) ORDER BY contribution.id_user,contribution.id_level",
-        )
-        .bind::<Array<Integer>, _>(ids)
-        .load::<UserContributionRow>(&mut connection)
-        .await?;
+        let rows = sql_query(include_str!("../queries/scoring/user_score_sources.sql"))
+            .bind::<Array<Integer>, _>(ids)
+            .load::<UserContributionRow>(&mut connection)
+            .await?;
         Ok(group_user_contributions(ids, rows))
     }
 
@@ -468,37 +382,31 @@ impl Database {
         let mut connection = self.connection().await?;
         let result = connection
             .transaction::<MaintenanceOutcome<()>, anyhow::Error, _>(async move |connection| {
-                    set_maintenance_lock_timeout(connection).await?;
-                    if !try_user_score_locks(connection, &[id_user]).await? {
-                        return Ok(MaintenanceOutcome::Contended);
-                    }
-                    let matches: BooleanRow =
-                        sql_query(include_str!("../queries/persist_player_contributions.sql"))
-                    .bind::<Integer, _>(id_user)
-                    .bind::<Jsonb, _>(&expected)
-                    .get_result(connection)
-                    .await?;
-                    if !matches.value {
-                        // PostgreSQL fires statement triggers even when the guarded
-                        // UPDATE finds no rows. Discard their writes on mismatch.
-                        return Err(diesel::result::Error::RollbackTransaction.into());
-                    }
-                    sql_query(
-                        "INSERT INTO public.user_points(id_user,points,total_points,date_created,date_updated) \
-                         VALUES($1,$2,$3,clock_timestamp(),clock_timestamp()) \
-                         ON CONFLICT(id_user) DO UPDATE SET points=excluded.points,total_points=excluded.total_points, \
-                           date_updated=excluded.date_updated \
-                         WHERE ROW(user_points.points,user_points.total_points) \
-                           IS DISTINCT FROM ROW(excluded.points,excluded.total_points)",
-                    )
+                set_maintenance_lock_timeout(connection).await?;
+                if !try_user_score_locks(connection, &[id_user]).await? {
+                    return Ok(MaintenanceOutcome::Contended);
+                }
+                let matches: BooleanRow = sql_query(include_str!(
+                    "../queries/scoring/persist_player_contributions.sql"
+                ))
+                .bind::<Integer, _>(id_user)
+                .bind::<Jsonb, _>(&expected)
+                .get_result(connection)
+                .await?;
+                if !matches.value {
+                    // PostgreSQL fires statement triggers even when the guarded
+                    // UPDATE finds no rows. Discard their writes on mismatch.
+                    return Err(diesel::result::Error::RollbackTransaction.into());
+                }
+                sql_query(include_str!("../queries/scoring/persist_player_score.sql"))
                     .bind::<Integer, _>(id_user)
                     .bind::<Integer, _>(points)
                     .bind::<Integer, _>(total_points)
                     .execute(connection)
                     .await?;
-                    super::record_counts::refresh_user_record_counts(connection, &[id_user]).await?;
-                    Ok(MaintenanceOutcome::Applied(()))
-                })
+                super::record_counts::refresh_user_record_counts(connection, &[id_user]).await?;
+                Ok(MaintenanceOutcome::Applied(()))
+            })
             .await;
         match result {
             Err(error)
@@ -528,34 +436,18 @@ impl Database {
                         return Ok(MaintenanceOutcome::Contended);
                     }
                     sql_query(
-                        "WITH inactive AS MATERIALIZED (SELECT candidate.id FROM unnest($1::integer[]) candidate(id) \
-                           WHERE NOT EXISTS(SELECT 1 FROM (SELECT * FROM public.record WHERE record_eligible) record WHERE record.id_user=candidate.id \
-                             AND record.date_created>=statement_timestamp()-interval '6 months') OR EXISTS(SELECT 1 FROM public.\"user\" u WHERE u.id=candidate.id AND u.banned)) \
-                         UPDATE public.user_point_contribution contribution SET player_decayed_points=0,date_calculated=clock_timestamp() \
-                         FROM inactive WHERE contribution.id_user=inactive.id AND contribution.player_decayed_points IS DISTINCT FROM 0::real",
+                        include_str!("../queries/scoring/reset_inactive_player_points.sql"),
                     )
                     .bind::<Array<Integer>, _>(&sorted)
                     .execute(connection)
                     .await?;
-                    let rows=sql_query("SELECT id_user,id_level,id_record,level_position::bigint AS level_position,level_points,level_decayed_points FROM public.user_point_contribution WHERE id_user=ANY($1)")
+                    let rows=sql_query(include_str!("../queries/scoring/load_inactive_player_contributions.sql"))
                         .bind::<Array<Integer>,_>(&sorted).load::<UserContributionRow>(connection).await?;
                     let totals=serde_json::Value::Array(group_user_contributions(&sorted,rows).into_iter().map(|source| {
                         let score=zc_core::score::calculate_player_points(source.contributions);
                         serde_json::json!({"id_user":source.id_user,"total_points":score.total_points})
                     }).collect());
-                    sql_query(r#"
-                      WITH totals AS (SELECT * FROM jsonb_to_recordset($2::jsonb) input(id_user integer,total_points integer)),
-                      inactive AS (SELECT u.id,t.total_points FROM public."user" u JOIN totals t ON t.id_user=u.id
-                        WHERE u.id=ANY($1) AND (u.banned OR NOT EXISTS(SELECT 1 FROM public.record r
-                          WHERE r.id_user=u.id AND r.date_created>=statement_timestamp()-interval '6 months'
-                          AND r.record_eligible)))
-                      INSERT INTO public.user_points(id_user,points,total_points,rank,date_created,date_updated)
-                      SELECT id,0,total_points,-1,clock_timestamp(),clock_timestamp()
-                      FROM inactive ON CONFLICT(id_user) DO UPDATE SET points=0,total_points=excluded.total_points,
-                        rank=-1,date_updated=excluded.date_updated
-                      WHERE ROW(user_points.points,user_points.total_points,user_points.rank)
-                        IS DISTINCT FROM ROW(0,excluded.total_points,-1)
-                    "#).bind::<Array<Integer>,_>(&sorted).bind::<Jsonb,_>(totals).execute(connection).await?;
+                    sql_query(include_str!("../queries/scoring/write_inactive_player_totals.sql")).bind::<Array<Integer>,_>(&sorted).bind::<Jsonb,_>(totals).execute(connection).await?;
                     super::record_counts::refresh_user_record_counts(connection, &sorted).await?;
                     Ok(MaintenanceOutcome::Applied(()))
                 })
@@ -565,15 +457,11 @@ impl Database {
 
     pub async fn player_rank_snapshot(&self) -> Result<Vec<PlayerRankSnapshot>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "SELECT ranked.id_user,ranked.points,ranked.rank FROM (SELECT points.id_user,points.points, \
-             RANK() OVER(ORDER BY points.points DESC)::integer AS rank FROM public.user_points points \
-             JOIN public.\"user\" account ON account.id=points.id_user AND NOT account.banned \
-             WHERE EXISTS(SELECT 1 FROM public.record record WHERE record.id_user=points.id_user \
-               AND record.record_eligible AND record.date_created>=statement_timestamp()-interval '6 months')) ranked ORDER BY ranked.id_user",
+        Ok(
+            sql_query(include_str!("../queries/scoring/player_rank_snapshot.sql"))
+                .load(&mut connection)
+                .await?,
         )
-        .load(&mut connection)
-        .await?)
     }
 
     /// Recheck the whole field, including users outside the most recently written batch.
@@ -608,55 +496,64 @@ impl Database {
         let mut connection = self.connection().await?;
         let result = connection
             .transaction::<MaintenanceOutcome<usize>, anyhow::Error, _>(async move |connection| {
-                    set_maintenance_lock_timeout(connection).await?;
-                    if !try_user_score_locks(connection, &ids).await? {
-                        return Ok(MaintenanceOutcome::Contended);
-                    }
-                    let matches: BooleanRow = sql_query(
-                        "WITH source AS (SELECT * FROM jsonb_to_recordset($1::jsonb) AS value(id_user integer,points integer,rank integer)) \
-                         SELECT count(*)=(SELECT count(*) FROM source) AS value FROM source \
-                         JOIN public.user_points target USING(id_user) WHERE target.points=source.points",
-                    )
-                    .bind::<Jsonb, _>(&source)
-                    .get_result(connection)
-                    .await?;
-                    if !matches.value {
-                        return Ok(MaintenanceOutcome::SnapshotChanged);
-                    }
-                    let changes = sql_query(
-                        "WITH source AS MATERIALIZED (SELECT * FROM jsonb_to_recordset($1::jsonb) AS value(id_user integer,points integer,rank integer)), \
-                         changed AS MATERIALIZED (SELECT target.id_user,target.rank AS previous_rank,source.rank FROM public.user_points target \
-                           JOIN source USING(id_user) WHERE target.rank IS DISTINCT FROM source.rank), \
-                         updated AS (UPDATE public.user_points target SET rank=changed.rank,date_updated=clock_timestamp() FROM changed \
-                           WHERE target.id_user=changed.id_user RETURNING target.id_user) \
-                         SELECT changed.id_user,changed.previous_rank,changed.rank FROM changed JOIN updated USING(id_user) \
-                         ORDER BY changed.rank,changed.id_user",
-                    )
-                    .bind::<Jsonb, _>(&source)
-                    .load::<RankChange>(connection)
-                    .await?;
-                    let count = changes.len();
-                    if count > 0 && notify {
-                        append_rank_changes(connection, changes).await?;
-                    }
-                    Ok(MaintenanceOutcome::Applied(count))
-                })
+                set_maintenance_lock_timeout(connection).await?;
+                if !try_user_score_locks(connection, &ids).await? {
+                    return Ok(MaintenanceOutcome::Contended);
+                }
+                let matches: BooleanRow =
+                    sql_query(include_str!("../queries/scoring/persist_rank_batch.sql"))
+                        .bind::<Jsonb, _>(&source)
+                        .get_result(connection)
+                        .await?;
+                if !matches.value {
+                    return Ok(MaintenanceOutcome::SnapshotChanged);
+                }
+                let changes = sql_query(include_str!(
+                    "../queries/scoring/persist_rank_batch_and_enqueue_changes.sql"
+                ))
+                .bind::<Jsonb, _>(&source)
+                .load::<RankChange>(connection)
+                .await?;
+                let count = changes.len();
+                if count > 0 && notify {
+                    append_rank_changes(connection, changes).await?;
+                }
+                Ok(MaintenanceOutcome::Applied(count))
+            })
             .await;
         contention_outcome(result)
     }
 
     pub async fn level_ids_page(&self, after_id: i32, recent_only: bool) -> Result<Vec<i32>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT level.id FROM public.level level WHERE level.id>$1 AND (NOT $2 OR EXISTS(SELECT 1 FROM (SELECT * FROM public.record WHERE record_eligible) record WHERE record.id_level=level.id AND record.date_created>=statement_timestamp()-interval '1 hour')) ORDER BY level.id LIMIT 200")
-            .bind::<Integer,_>(after_id).bind::<Bool,_>(recent_only).load::<IdRow>(&mut connection).await?.into_iter().map(|row|row.id).collect())
+        Ok(
+            sql_query(include_str!("../queries/scoring/level_ids_page.sql"))
+                .bind::<Integer, _>(after_id)
+                .bind::<Bool, _>(recent_only)
+                .load::<IdRow>(&mut connection)
+                .await?
+                .into_iter()
+                .map(|row| row.id)
+                .collect(),
+        )
     }
 
     pub async fn rebuild_player_skill_aggregates(&self) -> Result<usize> {
         let mut connection = self.connection().await?;
-        connection.transaction::<usize,anyhow::Error,_>(async move |connection| {
-            sql_query("DELETE FROM public.player_skill_aggregate").execute(connection).await?;
-            Ok(sql_query("WITH ranked AS MATERIALIZED(SELECT pb.id_user,RANK() OVER(PARTITION BY pb.id_level ORDER BY record.time) placement_rank,COUNT(*) OVER(PARTITION BY pb.id_level) field_count FROM (SELECT * FROM public.personal_best_global WHERE record_eligible) pb JOIN (SELECT * FROM public.record WHERE record_eligible) record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user WHERE account.banned=false AND record.time>0),eligible AS(SELECT id_user,1-(placement_rank-1)::double precision/(field_count-1) placement FROM ranked WHERE field_count>=20),placements AS(SELECT id_user,sum(placement)::double precision placement_sum,count(*)::integer eligible_level_count FROM eligible GROUP BY id_user) INSERT INTO public.player_skill_aggregate(id_user,placement_sum,eligible_level_count,skill,date_updated) SELECT id_user,placement_sum,eligible_level_count,(5.0+placement_sum)/(10+eligible_level_count),clock_timestamp() FROM placements").execute(connection).await?)
-        }).await
+        connection
+            .transaction::<usize, anyhow::Error, _>(async move |connection| {
+                sql_query(include_str!(
+                    "../queries/scoring/delete_player_skill_aggregate.sql"
+                ))
+                .execute(connection)
+                .await?;
+                Ok(sql_query(include_str!(
+                    "../queries/scoring/insert_player_skill_aggregates.sql"
+                ))
+                .execute(connection)
+                .await?)
+            })
+            .await
     }
 
     pub async fn update_level_scores(
@@ -675,42 +572,144 @@ impl Database {
             "persistent level scoring requires one level"
         );
         let mut connection = self.connection().await?;
-        let result = connection.transaction::<MaintenanceOutcome<LevelScoreUpdate>,anyhow::Error,_>(async move |connection| {
-            if !report_only {
-                set_maintenance_lock_timeout(connection).await?;
-                let lock: BooleanRow = sql_query("SELECT pg_try_advisory_xact_lock($1,$2) AS value")
-                    .bind::<Integer,_>(LEVEL_SCORE_LOCK_NAMESPACE).bind::<Integer,_>(ids[0]).get_result(connection).await?;
-                if !lock.value {
-                    return Ok(MaintenanceOutcome::Contended);
-                }
-            }
-            let availability=sql_query("SELECT level.id AS id_level,level.adventure,count(item.id)::bigint AS item_count,count(item.id) FILTER(WHERE item.publicly_visible=true AND item.deleted=false)::bigint AS accessible_item_count FROM public.level level LEFT JOIN public.level_item item ON item.id_level=level.id WHERE level.id=ANY($1) GROUP BY level.id,level.adventure")
-                .bind::<Array<Integer>,_>(ids).load::<AvailabilityRow>(connection).await?;
-            let eligible:Vec<_>=availability.iter().filter(|row|zc_core::score::level_score_eligible(row.adventure,row.item_count,row.accessible_item_count)).map(|row|row.id_level).collect();
-            let personal_bests=if eligible.is_empty(){Vec::new()}else{sql_query(include_str!("../queries/level_scoring_personal_bests.sql"))
-                .bind::<Array<Integer>,_>(&eligible).load::<PersonalBestRow>(connection).await?};
-            let votes=if eligible.is_empty(){Vec::new()}else{sql_query("SELECT id_level,value FROM public.vote WHERE id_level=ANY($1) AND coalesce(date_updated,date_created)<=clock_timestamp()-interval '7 days'")
-                .bind::<Array<Integer>,_>(&eligible).load::<VoteRow>(connection).await?};
-            let skills=if eligible.is_empty(){Vec::new()}else{sql_query("WITH target_ranked AS MATERIALIZED(SELECT pb.id_level,pb.id_user,record.time,min(record.time) OVER(PARTITION BY pb.id_level) world_record_time,RANK() OVER(PARTITION BY pb.id_level ORDER BY record.time) placement_rank,COUNT(*) OVER(PARTITION BY pb.id_level) field_count FROM (SELECT * FROM public.personal_best_global WHERE record_eligible) pb JOIN (SELECT * FROM public.record WHERE record_eligible) record ON record.id=pb.id_record JOIN public.\"user\" account ON account.id=pb.id_user WHERE pb.id_level=ANY($1) AND account.banned=false AND record.time>0),target AS MATERIALIZED(SELECT *,CASE WHEN field_count>1 THEN 1-(placement_rank-1)::double precision/(field_count-1) ELSE 0.5 END placement,CASE WHEN field_count>=20 THEN 1 ELSE 0 END target_contributed FROM target_ranked),leave_one_out AS MATERIALIZED(SELECT target.*,(5.0+aggregate.placement_sum-target.placement*target.target_contributed)/(10+aggregate.eligible_level_count-target.target_contributed) independent_skill FROM target JOIN public.player_skill_aggregate aggregate ON aggregate.id_user=target.id_user WHERE aggregate.eligible_level_count-target.target_contributed>=20),skill_ranked AS MATERIALIZED(SELECT *,PERCENT_RANK() OVER(PARTITION BY id_level ORDER BY independent_skill) skill_percentile FROM leave_one_out) SELECT id_level,count(*)::integer rated_player_count,corr(skill_percentile,placement)::double precision alignment,(percentile_cont(0.5) WITHIN GROUP(ORDER BY ln(time/world_record_time)) FILTER(WHERE skill_percentile BETWEEN 0.4 AND 0.6)-percentile_cont(0.5) WITHIN GROUP(ORDER BY ln(time/world_record_time)) FILTER(WHERE skill_percentile>=0.8))::double precision separation,percentile_cont(0.5) WITHIN GROUP(ORDER BY independent_skill) FILTER(WHERE placement_rank<=10)::double precision field_strength FROM skill_ranked GROUP BY id_level")
-                .bind::<Array<Integer>,_>(&eligible).load::<SkillRow>(connection).await?};
-            let mut points_changed = false;
-            for id in ids {
-                if !eligible.contains(id) {
-                    if !report_only { points_changed |= upsert_zero_level_points(connection,*id).await?; }
-                    continue;
-                }
-                let rows:Vec<_>=personal_bests.iter().filter(|row|row.id_level==*id).collect();
-                let runs=rows.iter().map(|row|zc_core::score::LevelScorePersonalBest{time:f64::from(row.time),splits:row.splits.clone().unwrap_or_default().into_iter().map(f64::from).collect(),telemetry:(row.statistic_time.is_some()||row.has_input_data.is_some()).then(||zc_core::score::LevelScoreTelemetry{arms_up_count:row.arms_up_count,arms_up_time:row.arms_up_time.map(f64::from),brake_count:row.brake_count,brake_time:row.brake_time.map(f64::from),driver_input_transition_count:row.driver_input_transition_count,has_input_data:row.has_input_data,time:row.statistic_time.map(f64::from),turn_left_count:row.turn_left_count,turn_left_time:row.turn_left_time.map(f64::from),turn_right_count:row.turn_right_count,turn_right_time:row.turn_right_time.map(f64::from)})}).collect();
-                let skill=skills.iter().find(|row|row.id_level==*id).map(|row|zc_core::score::LevelScoreSkillMetrics{alignment:row.alignment,field_strength:row.field_strength,rated_player_count:row.rated_player_count,separation:row.separation});
-                let vote_values:Vec<_>=votes.iter().filter(|row|row.id_level==*id).map(|row|f64::from(row.value)).collect();
-                let result=zc_core::score::calculate_level_points_v2(runs,rows.as_slice().first().map_or(0,|row|row.total_count),skill,&vote_values);
-                if !report_only { points_changed |= upsert_level_points(connection,*id,result).await?; }
-            }
-            let projection_needed = if report_only { false } else {
-                level_contribution_drift(connection, ids[0]).await?
-            };
-            Ok(MaintenanceOutcome::Applied(LevelScoreUpdate { points_changed, projection_needed }))
-        }).await;
+        let result = connection
+            .transaction::<MaintenanceOutcome<LevelScoreUpdate>, anyhow::Error, _>(
+                async move |connection| {
+                    if !report_only {
+                        set_maintenance_lock_timeout(connection).await?;
+                        let lock: BooleanRow =
+                            sql_query(include_str!("../queries/scoring/try_level_score_lock.sql"))
+                                .bind::<Integer, _>(LEVEL_SCORE_LOCK_NAMESPACE)
+                                .bind::<Integer, _>(ids[0])
+                                .get_result(connection)
+                                .await?;
+                        if !lock.value {
+                            return Ok(MaintenanceOutcome::Contended);
+                        }
+                    }
+                    let availability = sql_query(include_str!(
+                        "../queries/scoring/load_level_scoring_inputs.sql"
+                    ))
+                    .bind::<Array<Integer>, _>(ids)
+                    .load::<AvailabilityRow>(connection)
+                    .await?;
+                    let eligible: Vec<_> = availability
+                        .iter()
+                        .filter(|row| {
+                            zc_core::score::level_score_eligible(
+                                row.adventure,
+                                row.item_count,
+                                row.accessible_item_count,
+                            )
+                        })
+                        .map(|row| row.id_level)
+                        .collect();
+                    let personal_bests = if eligible.is_empty() {
+                        Vec::new()
+                    } else {
+                        sql_query(include_str!(
+                            "../queries/scoring/level_scoring_personal_bests.sql"
+                        ))
+                        .bind::<Array<Integer>, _>(&eligible)
+                        .load::<PersonalBestRow>(connection)
+                        .await?
+                    };
+                    let votes = if eligible.is_empty() {
+                        Vec::new()
+                    } else {
+                        sql_query(include_str!(
+                            "../queries/scoring/load_level_scoring_votes.sql"
+                        ))
+                        .bind::<Array<Integer>, _>(&eligible)
+                        .load::<VoteRow>(connection)
+                        .await?
+                    };
+                    let skills = if eligible.is_empty() {
+                        Vec::new()
+                    } else {
+                        sql_query(include_str!(
+                            "../queries/scoring/rank_level_scoring_contributions.sql"
+                        ))
+                        .bind::<Array<Integer>, _>(&eligible)
+                        .load::<SkillRow>(connection)
+                        .await?
+                    };
+                    let mut points_changed = false;
+                    for id in ids {
+                        if !eligible.contains(id) {
+                            if !report_only {
+                                points_changed |= upsert_zero_level_points(connection, *id).await?;
+                            }
+                            continue;
+                        }
+                        let rows: Vec<_> = personal_bests
+                            .iter()
+                            .filter(|row| row.id_level == *id)
+                            .collect();
+                        let runs = rows
+                            .iter()
+                            .map(|row| zc_core::score::LevelScorePersonalBest {
+                                time: f64::from(row.time),
+                                splits: row
+                                    .splits
+                                    .clone()
+                                    .unwrap_or_default()
+                                    .into_iter()
+                                    .map(f64::from)
+                                    .collect(),
+                                telemetry: (row.statistic_time.is_some()
+                                    || row.has_input_data.is_some())
+                                .then(|| zc_core::score::LevelScoreTelemetry {
+                                    arms_up_count: row.arms_up_count,
+                                    arms_up_time: row.arms_up_time.map(f64::from),
+                                    brake_count: row.brake_count,
+                                    brake_time: row.brake_time.map(f64::from),
+                                    driver_input_transition_count: row
+                                        .driver_input_transition_count,
+                                    has_input_data: row.has_input_data,
+                                    time: row.statistic_time.map(f64::from),
+                                    turn_left_count: row.turn_left_count,
+                                    turn_left_time: row.turn_left_time.map(f64::from),
+                                    turn_right_count: row.turn_right_count,
+                                    turn_right_time: row.turn_right_time.map(f64::from),
+                                }),
+                            })
+                            .collect();
+                        let skill = skills.iter().find(|row| row.id_level == *id).map(|row| {
+                            zc_core::score::LevelScoreSkillMetrics {
+                                alignment: row.alignment,
+                                field_strength: row.field_strength,
+                                rated_player_count: row.rated_player_count,
+                                separation: row.separation,
+                            }
+                        });
+                        let vote_values: Vec<_> = votes
+                            .iter()
+                            .filter(|row| row.id_level == *id)
+                            .map(|row| f64::from(row.value))
+                            .collect();
+                        let result = zc_core::score::calculate_level_points_v2(
+                            runs,
+                            rows.as_slice().first().map_or(0, |row| row.total_count),
+                            skill,
+                            &vote_values,
+                        );
+                        if !report_only {
+                            points_changed |= upsert_level_points(connection, *id, result).await?;
+                        }
+                    }
+                    let projection_needed = if report_only {
+                        false
+                    } else {
+                        level_contribution_drift(connection, ids[0]).await?
+                    };
+                    Ok(MaintenanceOutcome::Applied(LevelScoreUpdate {
+                        points_changed,
+                        projection_needed,
+                    }))
+                },
+            )
+            .await;
         contention_outcome(result)
     }
 
@@ -724,11 +723,9 @@ impl Database {
             id_level > 0 && after_user_id >= 0,
             "invalid record count cursor"
         );
-        let user_ids = sql_query(
-            "SELECT id_user AS id FROM (SELECT id_user FROM public.personal_best_global WHERE id_level=$1 \
-             UNION SELECT id_user FROM public.world_record_global WHERE id_level=$1) holders \
-             WHERE id_user>$2 ORDER BY id_user LIMIT 50",
-        )
+        let user_ids = sql_query(include_str!(
+            "../queries/record_counts/level_record_count_user_page.sql"
+        ))
         .bind::<Integer, _>(id_level)
         .bind::<Integer, _>(after_user_id)
         .load::<IdRow>(&mut self.connection().await?)
@@ -758,9 +755,9 @@ impl Database {
             "level contribution page limit must be 1..=50"
         );
         let mut connection = self.connection().await?;
-        let user_ids = sql_query(
-            "SELECT affected.id_user AS id FROM (SELECT id_user FROM (SELECT * FROM public.personal_best_global WHERE record_eligible) WHERE id_level=$1 UNION SELECT id_user FROM public.user_point_contribution WHERE id_level=$1) affected WHERE affected.id_user>$2 ORDER BY affected.id_user LIMIT $3",
-        )
+        let user_ids = sql_query(include_str!(
+            "../queries/scoring/level_contribution_user_page.sql"
+        ))
         .bind::<Integer, _>(id_level)
         .bind::<Integer, _>(after_user_id)
         .bind::<BigInt, _>(limit)
@@ -815,9 +812,9 @@ impl Database {
 
     pub async fn prune_points_history_batch(&self, level_history: bool) -> Result<i64> {
         let statement = if level_history {
-            "WITH candidates AS MATERIALIZED (SELECT history.id_level FROM public.level_points_history history WHERE history.date_created<clock_timestamp()-interval '28 days' GROUP BY history.id_level HAVING count(*)>count(DISTINCT date_trunc('week',history.date_created AT TIME ZONE 'UTC')) ORDER BY history.id_level LIMIT 200), annotated AS MATERIALIZED (SELECT history.*,date_trunc('week',history.date_created AT TIME ZONE 'UTC') AS week_start,first_value(history.points) OVER(PARTITION BY history.id_level,date_trunc('week',history.date_created AT TIME ZONE 'UTC') ORDER BY history.date_created DESC,history.id DESC) latest_points FROM public.level_points_history history JOIN candidates USING(id_level) WHERE history.date_created<clock_timestamp()-interval '28 days'), ranked AS MATERIALIZED (SELECT id,row_number() OVER(PARTITION BY id_level,week_start ORDER BY CASE WHEN latest_points=0 THEN date_created END DESC NULLS LAST,CASE WHEN latest_points<>0 THEN points END DESC NULLS LAST,date_created DESC,id DESC) keeper_rank FROM annotated), deleted AS (DELETE FROM public.level_points_history history USING (SELECT id FROM ranked WHERE keeper_rank>1 LIMIT 10000) target WHERE history.id=target.id RETURNING history.id) SELECT count(*)::bigint AS count FROM deleted"
+            include_str!("../queries/scoring/prune_level_points_history.sql")
         } else {
-            "WITH candidates AS MATERIALIZED (SELECT history.id_user FROM public.user_points_history history WHERE history.date_created<clock_timestamp()-interval '28 days' GROUP BY history.id_user HAVING count(*)>count(DISTINCT date_trunc('week',history.date_created AT TIME ZONE 'UTC')) ORDER BY history.id_user LIMIT 200), ranked AS MATERIALIZED (SELECT history.id,row_number() OVER(PARTITION BY history.id_user,date_trunc('week',history.date_created AT TIME ZONE 'UTC') ORDER BY CASE WHEN history.rank>0 THEN 0 ELSE 1 END,CASE WHEN history.rank>0 THEN history.rank END ASC NULLS LAST,history.date_created DESC,history.id DESC) keeper_rank FROM public.user_points_history history JOIN candidates USING(id_user) WHERE history.date_created<clock_timestamp()-interval '28 days'), deleted AS (DELETE FROM public.user_points_history history USING (SELECT id FROM ranked WHERE keeper_rank>1 LIMIT 10000) target WHERE history.id=target.id RETURNING history.id) SELECT count(*)::bigint AS count FROM deleted"
+            include_str!("../queries/scoring/prune_user_points_history.sql")
         };
         let mut connection = self.connection().await?;
         let result: CountRow = sql_query(statement).get_result(&mut connection).await?;
@@ -829,10 +826,12 @@ impl Database {
         id_tournament: i32,
     ) -> Result<Vec<TournamentLobbySource>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "SELECT item.workshop_id,item.file_uid,item.file_author,item.name AS level_name,COALESCE((SELECT metadata.format FROM public.level_metadata metadata WHERE metadata.id_level=item.id_level ORDER BY metadata.id LIMIT 1),0)::integer AS format \
-             FROM public.track_tournament tournament JOIN public.level level ON level.id=tournament.id_level AND level.publicly_visible=true JOIN public.level_item item ON item.id_level=level.id AND item.deleted=false AND item.publicly_visible=true WHERE tournament.id=$1 ORDER BY item.updated_at DESC,item.id DESC",
-        ).bind::<Integer, _>(id_tournament).load(&mut connection).await?)
+        Ok(sql_query(include_str!(
+            "../queries/track_tournament/tournament_lobby_sources.sql"
+        ))
+        .bind::<Integer, _>(id_tournament)
+        .load(&mut connection)
+        .await?)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -848,8 +847,19 @@ impl Database {
         byte_size: i32,
     ) -> Result<()> {
         let mut connection = self.connection().await?;
-        sql_query("INSERT INTO zc_private.track_tournament_lobby_asset(id_tournament,workshop_id,file_uid,level_name,author,collaborators,override_author_name,object_key,content_sha256,byte_size,date_created,date_updated) VALUES($1,$2,$3,$4,$5,'','',$6,$7,$8,clock_timestamp(),clock_timestamp()) ON CONFLICT(id_tournament) DO UPDATE SET workshop_id=excluded.workshop_id,file_uid=excluded.file_uid,level_name=excluded.level_name,author=excluded.author,collaborators=excluded.collaborators,override_author_name=excluded.override_author_name,object_key=excluded.object_key,content_sha256=excluded.content_sha256,byte_size=excluded.byte_size,date_updated=excluded.date_updated")
-            .bind::<Integer,_>(id_tournament).bind::<BigInt,_>(workshop_id).bind::<Text,_>(file_uid).bind::<Text,_>(level_name).bind::<Text,_>(author).bind::<Text,_>(object_key).bind::<Text,_>(sha256).bind::<Integer,_>(byte_size).execute(&mut connection).await?;
+        sql_query(include_str!(
+            "../queries/track_tournament/publish_tournament_lobby_asset.sql"
+        ))
+        .bind::<Integer, _>(id_tournament)
+        .bind::<BigInt, _>(workshop_id)
+        .bind::<Text, _>(file_uid)
+        .bind::<Text, _>(level_name)
+        .bind::<Text, _>(author)
+        .bind::<Text, _>(object_key)
+        .bind::<Text, _>(sha256)
+        .bind::<Integer, _>(byte_size)
+        .execute(&mut connection)
+        .await?;
         Ok(())
     }
 
@@ -877,25 +887,23 @@ async fn rotate_track_tournament_at(
     ensure!(matches!(tournament_type, 0..=2), "invalid tournament type");
     connection
         .transaction::<TournamentRotation, anyhow::Error, _>(async move |connection| {
-            sql_query("SELECT pg_advisory_xact_lock(1953744431,$1)")
-                .bind::<Integer, _>(tournament_type)
-                .execute(connection)
-                .await?;
+            sql_query(include_str!(
+                "../queries/track_tournament/rotate_track_tournament_at_pg_advisory_xact_lock.sql"
+            ))
+            .bind::<Integer, _>(tournament_type)
+            .execute(connection)
+            .await?;
             // Capture after acquiring the lock; every query uses this same instant.
-            let clock: TournamentClockRow = sql_query(
-                "SELECT COALESCE($1::text::timestamptz,clock_timestamp())::text AS observed_at",
-            )
+            let clock: TournamentClockRow = sql_query(include_str!(
+                "../queries/track_tournament/rotate_track_tournament_at_coalesce.sql"
+            ))
             .bind::<Nullable<Text>, _>(observed_at)
             .get_result(connection)
             .await?;
             let at = &clock.observed_at;
-            let existing = sql_query(
-                "SELECT id FROM public.track_tournament WHERE type=$1 AND start_at= \
-                 (CASE WHEN $1=2 THEN date_trunc('day',timezone('UTC',$2::text::timestamptz)-interval '6 hours') \
-                 WHEN $1=0 THEN date_trunc('week',timezone('UTC',$2::text::timestamptz)-interval '6 hours') \
-                 ELSE date_trunc('month',timezone('UTC',$2::text::timestamptz)-interval '6 hours') END \
-                 AT TIME ZONE 'UTC')+interval '6 hours' LIMIT 1",
-            )
+            let existing = sql_query(include_str!(
+                "../queries/track_tournament/select_id_track_tournament.sql"
+            ))
             .bind::<Integer, _>(tournament_type)
             .bind::<Text, _>(at)
             .get_result::<IdRow>(connection)
@@ -907,39 +915,74 @@ async fn rotate_track_tournament_at(
                 let row = sql_query(TRACK_TOURNAMENT_SELECTION_SQL)
                     .bind::<Integer, _>(tournament_type)
                     .bind::<Text, _>(at)
-                    .get_result::<IdRow>(connection).await.optional()?;
+                    .get_result::<IdRow>(connection)
+                    .await
+                    .optional()?;
                 (row.as_ref().map(|row| row.id), row.is_some())
             };
             #[derive(QueryableByName)]
             struct LockedTournament {
-                #[diesel(sql_type=Integer)] id: i32,
-                #[diesel(sql_type=Integer)] id_level: i32,
+                #[diesel(sql_type=Integer)]
+                id: i32,
+                #[diesel(sql_type=Integer)]
+                id_level: i32,
             }
-            let affected = sql_query("SELECT id,id_level FROM public.track_tournament WHERE type=$1 AND finalized_at IS NULL AND (end_at<=$2::text::timestamptz OR ($3 AND id=$4)) ORDER BY id")
-                .bind::<Integer,_>(tournament_type).bind::<Text,_>(at)
-                .bind::<Bool,_>(created).bind::<Nullable<Integer>,_>(id_tournament)
-                .load::<LockedTournament>(connection).await?;
-            let levels: std::collections::BTreeSet<_> = affected.iter().map(|row|row.id_level).collect();
+            let affected = sql_query(include_str!(
+                "../queries/track_tournament/select_id_track_tournament_by_type.sql"
+            ))
+            .bind::<Integer, _>(tournament_type)
+            .bind::<Text, _>(at)
+            .bind::<Bool, _>(created)
+            .bind::<Nullable<Integer>, _>(id_tournament)
+            .load::<LockedTournament>(connection)
+            .await?;
+            let levels: std::collections::BTreeSet<_> =
+                affected.iter().map(|row| row.id_level).collect();
             // Submissions and eligibility repair hold shared counterparts. Acquire
             // every level in order before result/row locks, including across types.
             for level in levels {
-                sql_query("SELECT pg_advisory_xact_lock(0,$1)").bind::<Integer,_>(level).execute(connection).await?;
+                sql_query(include_str!(
+                    "../queries/track_tournament/lock_tournament_level.sql"
+                ))
+                .bind::<Integer, _>(level)
+                .execute(connection)
+                .await?;
             }
             for tournament in affected {
-                sql_query("SELECT id FROM public.track_tournament WHERE id=$1 FOR UPDATE")
-                    .bind::<Integer,_>(tournament.id).execute(connection).await?;
-                sql_query("SELECT pg_advisory_xact_lock(1953744432,$1)")
-                    .bind::<Integer,_>(tournament.id).execute(connection).await?;
-                if created && Some(tournament.id)==id_tournament {
+                sql_query(include_str!(
+                    "../queries/track_tournament/select_id_track_tournament_by_id.sql"
+                ))
+                .bind::<Integer, _>(tournament.id)
+                .execute(connection)
+                .await?;
+                sql_query(include_str!(
+                    "../queries/track_tournament/lock_tournament_results.sql"
+                ))
+                .bind::<Integer, _>(tournament.id)
+                .execute(connection)
+                .await?;
+                if created && Some(tournament.id) == id_tournament {
                     // Acceptance before recovery still belongs to original period.
-                    sql_query("INSERT INTO public.track_tournament_result(id_tournament,id_user,id_record,time,rank,points,date_created,date_updated) SELECT $1,winner.id_user,winner.id,winner.time,1,1000,clock_timestamp(),clock_timestamp() FROM (SELECT DISTINCT ON(r.id_user) r.id_user,r.id,r.time FROM public.record r JOIN public.\"user\" u ON u.id=r.id_user JOIN public.track_tournament t ON t.id=$1 WHERE r.id_level=t.id_level AND r.date_created>=t.start_at AND r.date_created<t.end_at AND r.record_eligible AND NOT u.banned ORDER BY r.id_user,r.time,r.id) winner ON CONFLICT(id_tournament,id_user) DO NOTHING")
-                        .bind::<Integer,_>(tournament.id).execute(connection).await?;
-                    super::record::rerank_tournament(connection,tournament.id).await?;
+                    sql_query(include_str!(
+                        "../queries/track_tournament/insert_track_tournament_result.sql"
+                    ))
+                    .bind::<Integer, _>(tournament.id)
+                    .execute(connection)
+                    .await?;
+                    super::record::rerank_tournament(connection, tournament.id).await?;
                 }
             }
-            sql_query("UPDATE public.track_tournament SET finalized_at=$2::text::timestamptz,date_updated=$2::text::timestamptz WHERE type=$1 AND finalized_at IS NULL AND end_at<=$2::text::timestamptz")
-                .bind::<Integer,_>(tournament_type).bind::<Text,_>(at).execute(connection).await?;
-            Ok(TournamentRotation {created, id_tournament})
+            sql_query(include_str!(
+                "../queries/track_tournament/set_finalized_at_track_tournament.sql"
+            ))
+            .bind::<Integer, _>(tournament_type)
+            .bind::<Text, _>(at)
+            .execute(connection)
+            .await?;
+            Ok(TournamentRotation {
+                created,
+                id_tournament,
+            })
         })
         .await
 }
@@ -952,8 +995,13 @@ pub(crate) async fn upsert_zero_level_points(
     connection: &mut diesel_async::AsyncPgConnection,
     id_level: i32,
 ) -> Result<bool> {
-    Ok(sql_query("INSERT INTO public.level_points(id_level,points,rating,modifier_length,modifier_evidence,modifier_quality,modifier_rating,complexity_confidence,complexity_score,field_strength,quality_score,skill_alignment,skill_confidence,skill_sample_size,skill_score,skill_separation,date_created,date_updated) VALUES($1,0,0.5,0,0.2,0.55,1,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,clock_timestamp(),clock_timestamp()) ON CONFLICT(id_level) DO UPDATE SET points=0,modifier_length=0,modifier_evidence=0.2,modifier_quality=0.55,modifier_rating=1,complexity_confidence=NULL,complexity_score=NULL,field_strength=NULL,quality_score=NULL,skill_alignment=NULL,skill_confidence=NULL,skill_sample_size=NULL,skill_score=NULL,skill_separation=NULL,date_updated=clock_timestamp() WHERE ROW(level_points.points,level_points.modifier_length,level_points.modifier_evidence,level_points.modifier_quality,level_points.modifier_rating,level_points.complexity_confidence,level_points.complexity_score,level_points.field_strength,level_points.quality_score,level_points.skill_alignment,level_points.skill_confidence,level_points.skill_sample_size,level_points.skill_score,level_points.skill_separation) IS DISTINCT FROM ROW(0,0::real,0.2::real,0.55::real,1::real,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL)")
-        .bind::<Integer,_>(id_level).execute(connection).await? > 0)
+    Ok(sql_query(include_str!(
+        "../queries/scoring/upsert_zero_level_points.sql"
+    ))
+    .bind::<Integer, _>(id_level)
+    .execute(connection)
+    .await?
+        > 0)
 }
 
 async fn upsert_level_points(
@@ -963,20 +1011,40 @@ async fn upsert_level_points(
 ) -> Result<bool> {
     let real = |value: f64| value as f32;
     let optional = |value: Option<f64>| value.map(|value| value as f32);
-    Ok(sql_query("INSERT INTO public.level_points(id_level,points,rating,modifier_length,modifier_evidence,modifier_quality,modifier_rating,complexity_confidence,complexity_score,field_strength,quality_score,skill_alignment,skill_confidence,skill_sample_size,skill_score,skill_separation,date_created,date_updated) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,clock_timestamp(),clock_timestamp()) ON CONFLICT(id_level) DO UPDATE SET points=excluded.points,rating=excluded.rating,modifier_length=excluded.modifier_length,modifier_evidence=excluded.modifier_evidence,modifier_quality=excluded.modifier_quality,modifier_rating=excluded.modifier_rating,complexity_confidence=excluded.complexity_confidence,complexity_score=excluded.complexity_score,field_strength=excluded.field_strength,quality_score=excluded.quality_score,skill_alignment=excluded.skill_alignment,skill_confidence=excluded.skill_confidence,skill_sample_size=excluded.skill_sample_size,skill_score=excluded.skill_score,skill_separation=excluded.skill_separation,date_updated=excluded.date_updated WHERE ROW(level_points.points,level_points.rating,level_points.modifier_length,level_points.modifier_evidence,level_points.modifier_quality,level_points.modifier_rating,level_points.complexity_confidence,level_points.complexity_score,level_points.field_strength,level_points.quality_score,level_points.skill_alignment,level_points.skill_confidence,level_points.skill_sample_size,level_points.skill_score,level_points.skill_separation) IS DISTINCT FROM ROW(excluded.points,excluded.rating,excluded.modifier_length,excluded.modifier_evidence,excluded.modifier_quality,excluded.modifier_rating,excluded.complexity_confidence,excluded.complexity_score,excluded.field_strength,excluded.quality_score,excluded.skill_alignment,excluded.skill_confidence,excluded.skill_sample_size,excluded.skill_score,excluded.skill_separation)")
-        .bind::<Integer,_>(id_level).bind::<Integer,_>(value.points).bind::<Float,_>(real(value.rating))
-        .bind::<Float,_>(real(value.length_modifier)).bind::<Float,_>(real(value.evidence_modifier)).bind::<Float,_>(real(value.quality_modifier)).bind::<Float,_>(real(value.rating_modifier))
-        .bind::<Nullable<Float>,_>(optional(value.complexity_confidence)).bind::<Nullable<Float>,_>(optional(value.complexity_score)).bind::<Nullable<Float>,_>(optional(value.field_strength)).bind::<Nullable<Float>,_>(optional(value.quality_score))
-        .bind::<Nullable<Float>,_>(optional(value.skill_alignment)).bind::<Nullable<Float>,_>(optional(value.skill_confidence)).bind::<Nullable<Integer>,_>(value.skill_sample_size).bind::<Nullable<Float>,_>(optional(value.skill_score)).bind::<Nullable<Float>,_>(optional(value.skill_separation))
-        .execute(connection).await? > 0)
+    Ok(
+        sql_query(include_str!("../queries/scoring/upsert_level_points.sql"))
+            .bind::<Integer, _>(id_level)
+            .bind::<Integer, _>(value.points)
+            .bind::<Float, _>(real(value.rating))
+            .bind::<Float, _>(real(value.length_modifier))
+            .bind::<Float, _>(real(value.evidence_modifier))
+            .bind::<Float, _>(real(value.quality_modifier))
+            .bind::<Float, _>(real(value.rating_modifier))
+            .bind::<Nullable<Float>, _>(optional(value.complexity_confidence))
+            .bind::<Nullable<Float>, _>(optional(value.complexity_score))
+            .bind::<Nullable<Float>, _>(optional(value.field_strength))
+            .bind::<Nullable<Float>, _>(optional(value.quality_score))
+            .bind::<Nullable<Float>, _>(optional(value.skill_alignment))
+            .bind::<Nullable<Float>, _>(optional(value.skill_confidence))
+            .bind::<Nullable<Integer>, _>(value.skill_sample_size)
+            .bind::<Nullable<Float>, _>(optional(value.skill_score))
+            .bind::<Nullable<Float>, _>(optional(value.skill_separation))
+            .execute(connection)
+            .await?
+            > 0,
+    )
 }
 
 pub(crate) async fn level_contribution_drift(
     connection: &mut diesel_async::AsyncPgConnection,
     id_level: i32,
 ) -> Result<bool> {
-    let row: BooleanRow = sql_query("WITH desired AS (SELECT pb.id_user,pb.id_record,points.points AS level_points,RANK() OVER(ORDER BY record.time)::integer AS level_position FROM (SELECT * FROM public.personal_best_global WHERE record_eligible) pb JOIN (SELECT * FROM public.record WHERE record_eligible) record ON record.id=pb.id_record JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_level=$1 AND points.points>0), calculated AS (SELECT *,(CASE WHEN ln(level_points::double precision)+(level_position-1)*ln(0.985)<ln(1.401298464324817e-45) THEN 0 ELSE level_points::double precision*power(0.985,level_position-1) END)::real AS decayed FROM desired), current AS (SELECT * FROM public.user_point_contribution WHERE id_level=$1) SELECT EXISTS(SELECT 1 FROM calculated target FULL JOIN current ON current.id_user=target.id_user WHERE target.id_user IS NULL OR current.id_user IS NULL OR ROW(current.id_record,current.level_position,current.level_points,current.level_decayed_points) IS DISTINCT FROM ROW(target.id_record,target.level_position,target.level_points,target.decayed) LIMIT 1) AS value")
-        .bind::<Integer,_>(id_level).get_result(connection).await?;
+    let row: BooleanRow = sql_query(include_str!(
+        "../queries/scoring/level_contribution_drift.sql"
+    ))
+    .bind::<Integer, _>(id_level)
+    .get_result(connection)
+    .await?;
     Ok(row.value)
 }
 
@@ -988,10 +1056,27 @@ async fn sync_contribution_levels_for_users(
     if affected.is_empty() {
         return Ok(Vec::new());
     }
-    let mut changed = sql_query("WITH ranked_all AS(SELECT pb.id_user,pb.id_level,pb.id_record,points.points AS level_points,RANK() OVER(PARTITION BY pb.id_level ORDER BY record.time)::integer AS level_position FROM (SELECT * FROM public.personal_best_global WHERE record_eligible) pb JOIN (SELECT * FROM public.record WHERE record_eligible) record ON record.id=pb.id_record JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_level=ANY($1) AND points.points>0),ranked AS(SELECT * FROM ranked_all WHERE id_user=ANY($2)),desired AS(SELECT ranked.*,CASE WHEN ln(ranked.level_points::double precision)+(ranked.level_position-1)*ln(0.985)<ln(1.401298464324817e-45) THEN 0 ELSE ranked.level_points::double precision*power(0.985,ranked.level_position-1) END AS level_decayed_points FROM ranked) INSERT INTO public.user_point_contribution(id_user,id_level,id_record,contribution_rank,level_position,level_points,level_decayed_points,player_decayed_points,date_calculated) SELECT desired.id_user,desired.id_level,desired.id_record,coalesce(existing.contribution_rank,2147483647),desired.level_position,desired.level_points,desired.level_decayed_points,coalesce(existing.player_decayed_points,0),clock_timestamp() FROM desired LEFT JOIN public.user_point_contribution existing ON existing.id_user=desired.id_user AND existing.id_level=desired.id_level ON CONFLICT(id_user,id_level) DO UPDATE SET id_record=excluded.id_record,level_position=excluded.level_position,level_points=excluded.level_points,level_decayed_points=excluded.level_decayed_points,date_calculated=excluded.date_calculated WHERE ROW(user_point_contribution.id_record,user_point_contribution.level_position,user_point_contribution.level_points,user_point_contribution.level_decayed_points) IS DISTINCT FROM ROW(excluded.id_record,excluded.level_position,excluded.level_points,excluded.level_decayed_points) RETURNING id_user AS id")
-        .bind::<Array<Integer>,_>(ids).bind::<Array<Integer>,_>(affected).load::<IdRow>(connection).await?.into_iter().map(|row|row.id).collect::<Vec<_>>();
-    changed.extend(sql_query("DELETE FROM public.user_point_contribution contribution WHERE contribution.id_level=ANY($1) AND contribution.id_user=ANY($2) AND NOT EXISTS(SELECT 1 FROM (SELECT * FROM public.personal_best_global WHERE record_eligible) pb JOIN public.level_points points ON points.id_level=pb.id_level WHERE pb.id_user=contribution.id_user AND pb.id_level=contribution.id_level AND points.points>0) RETURNING contribution.id_user AS id")
-        .bind::<Array<Integer>,_>(ids).bind::<Array<Integer>,_>(affected).load::<IdRow>(connection).await?.into_iter().map(|row|row.id));
+    let mut changed = sql_query(include_str!(
+        "../queries/scoring/sync_level_contributions_for_users.sql"
+    ))
+    .bind::<Array<Integer>, _>(ids)
+    .bind::<Array<Integer>, _>(affected)
+    .load::<IdRow>(connection)
+    .await?
+    .into_iter()
+    .map(|row| row.id)
+    .collect::<Vec<_>>();
+    changed.extend(
+        sql_query(include_str!(
+            "../queries/scoring/delete_stale_level_contributions.sql"
+        ))
+        .bind::<Array<Integer>, _>(ids)
+        .bind::<Array<Integer>, _>(affected)
+        .load::<IdRow>(connection)
+        .await?
+        .into_iter()
+        .map(|row| row.id),
+    );
     changed.sort_unstable();
     changed.dedup();
     Ok(changed)
@@ -1000,10 +1085,12 @@ async fn sync_contribution_levels_for_users(
 async fn set_maintenance_lock_timeout(
     connection: &mut diesel_async::AsyncPgConnection,
 ) -> Result<()> {
-    sql_query("SELECT set_config('lock_timeout',$1,true)")
-        .bind::<Text, _>(MAINTENANCE_LOCK_TIMEOUT)
-        .execute(connection)
-        .await?;
+    sql_query(include_str!(
+        "../queries/scoring/set_maintenance_lock_timeout.sql"
+    ))
+    .bind::<Text, _>(MAINTENANCE_LOCK_TIMEOUT)
+    .execute(connection)
+    .await?;
     Ok(())
 }
 
@@ -1017,14 +1104,11 @@ async fn try_user_score_locks(
     let mut sorted = ids.to_vec();
     sorted.sort_unstable();
     sorted.dedup();
-    let result: BooleanRow = sql_query(
-        "SELECT COALESCE(bool_and(pg_try_advisory_xact_lock($1,target.id)),true) AS value \
-         FROM (SELECT id FROM unnest($2::integer[]) value(id) ORDER BY id) target",
-    )
-    .bind::<Integer, _>(USER_SCORE_LOCK_NAMESPACE)
-    .bind::<Array<Integer>, _>(&sorted)
-    .get_result(connection)
-    .await?;
+    let result: BooleanRow = sql_query(include_str!("../queries/scoring/try_user_score_locks.sql"))
+        .bind::<Integer, _>(USER_SCORE_LOCK_NAMESPACE)
+        .bind::<Array<Integer>, _>(&sorted)
+        .get_result(connection)
+        .await?;
     Ok(result.value)
 }
 

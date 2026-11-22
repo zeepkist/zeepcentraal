@@ -1,0 +1,1 @@
+INSERT INTO public.zsl_season (id_points_structure,name,start_date,end_date,date_created) VALUES ($1,$2,(($3::date)::timestamp+interval '18 hours') AT TIME ZONE 'UTC', (($4::date)::timestamp+interval '18 hours') AT TIME ZONE 'UTC',clock_timestamp()) RETURNING id,id_points_structure

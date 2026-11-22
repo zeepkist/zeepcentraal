@@ -21,7 +21,7 @@ async fn discord_link_codes_rotate_and_unlink() -> anyhow::Result<()> {
     assert!(second.ends_with('Z'));
     let codes = client
         .query(
-            "SELECT code_hash FROM zc_private.discord_link_code WHERE id_user=$1",
+            include_str!("fixtures/account_services/select_code_hash_discord_link_code.sql"),
             &[&user.id],
         )
         .await?;
@@ -71,14 +71,17 @@ async fn discord_link_codes_rotate_and_unlink() -> anyhow::Result<()> {
     assert!(database.unlink_discord_by_steam_id(steam_id).await?);
     let discord_id: i64 = client
         .query_one(
-            "SELECT discord_id FROM public.\"user\" WHERE id=$1",
+            include_str!("fixtures/account_services/select_discord_id_user.sql"),
             &[&user.id],
         )
         .await?
         .get(0);
     assert_eq!(discord_id, -1);
     client
-        .execute("DELETE FROM public.\"user\" WHERE id=$1", &[&user.id])
+        .execute(
+            include_str!("fixtures/account_services/delete_user.sql"),
+            &[&user.id],
+        )
         .await?;
     Ok(())
 }

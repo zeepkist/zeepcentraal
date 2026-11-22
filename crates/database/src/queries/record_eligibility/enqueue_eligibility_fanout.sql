@@ -1,0 +1,1 @@
+SELECT zc_jobs.enqueue('bulk','fanOutRecordEligibility',jsonb_build_object('operationId',pg_current_xact_id()::text,'userIds',$1::integer[],'afterUserId',0),'eligibility-fanout:'||pg_current_xact_id()::text||':0','eligibility-player-fanout',3,clock_timestamp())

@@ -1,0 +1,1 @@
+UPDATE zc_jobs.job SET running=false,lease_until=NULL,attempts=GREATEST(0,attempts-1),payload=jsonb_set(payload,'{deferCount}',to_jsonb(LEAST(4,COALESCE((payload->>'deferCount')::integer,0)+1))) WHERE lane=$1 AND id=$2::bigint AND generation=$3::bigint

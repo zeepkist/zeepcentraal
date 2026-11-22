@@ -28,7 +28,9 @@ impl Database {
 
     pub async fn ping(&self) -> Result<()> {
         let mut connection = self.connection().await?;
-        sql_query("SELECT 1").execute(&mut connection).await?;
+        sql_query(include_str!("queries/connections/select_1.sql"))
+            .execute(&mut connection)
+            .await?;
         Ok(())
     }
 

@@ -1,0 +1,1 @@
+SELECT metadata.id,metadata.id_level,metadata.format,metadata.blocks,metadata.xmin::text AS version FROM public.level_metadata metadata JOIN public.level candidate ON candidate.id=metadata.id_level WHERE candidate.id=$1 AND candidate.simhash IS NULL ORDER BY metadata.id LIMIT 1

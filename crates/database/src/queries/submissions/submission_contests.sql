@@ -1,0 +1,1 @@
+SELECT {{contest_json}} AS payload FROM public.zsl_round r JOIN zc_private.level_submission_contest c ON c.id_zsl_round=r.id WHERE ($1 IS NULL OR r.id_season=$1) AND ($2 IS NULL OR r.id=$2) ORDER BY r.id_season DESC,r.round DESC

@@ -1,0 +1,1 @@
+INSERT INTO public."user" (steam_id,steam_name,discord_id,banned,date_created,date_updated) SELECT steam_id,steam_name,-1,false,clock_timestamp(),clock_timestamp() FROM unnest($1::bigint[],$2::text[]) AS input(steam_id,steam_name) ON CONFLICT (steam_id) DO UPDATE SET steam_name=excluded.steam_name,date_updated=clock_timestamp() RETURNING id,steam_id::bigint,steam_name::text

@@ -1,0 +1,1 @@
+id,stream_id,user_id,message_id,snapshot,peak_viewers,is_live,guild_id,channel_id,policy_watch_id,canonical,tracking_state,activation_pending

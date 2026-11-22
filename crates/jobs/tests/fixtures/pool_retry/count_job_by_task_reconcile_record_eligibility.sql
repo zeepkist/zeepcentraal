@@ -1,0 +1,1 @@
+SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE task='reconcileRecordEligibility' AND attempts=2 AND generation=1 AND NOT running AND lease_until IS NULL AND payload->>'idLevel'='86176' AND payload->>'deferCount'='1'

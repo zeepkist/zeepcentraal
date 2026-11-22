@@ -24,13 +24,9 @@ impl Database {
     /// Atomic idempotency across requests, workers, and replicas.
     pub async fn record_kofi_donation(&self, payment: &DonationInput) -> Result<bool> {
         let mut connection = self.connection().await?;
-        let inserted = sql_query(
-            "INSERT INTO zc_private.donations \
-             (message_id,timestamp,type,is_public,url,is_subscription_payment,\
-              is_first_subscription_payment,kofi_transaction_id,tier_name,discord_userid) \
-             VALUES ($1::uuid,$2::timestamptz,$3,$4,$5,$6,$7,$8::uuid,$9,$10) \
-             ON CONFLICT DO NOTHING",
-        )
+        let inserted = sql_query(include_str!(
+            "../queries/donations/record_kofi_donation.sql"
+        ))
         .bind::<Text, _>(&payment.message_id)
         .bind::<Text, _>(&payment.timestamp)
         .bind::<Text, _>(&payment.payment_type)

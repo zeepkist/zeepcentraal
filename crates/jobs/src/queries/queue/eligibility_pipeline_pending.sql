@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('reconcileRecordEligibility','fanOutRecordEligibility','updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','updatePlayerScores')) AS ok

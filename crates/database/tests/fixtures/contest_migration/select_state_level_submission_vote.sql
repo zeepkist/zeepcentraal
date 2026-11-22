@@ -1,0 +1,1 @@
+SELECT c.state,c.current_playlist_id,c.archive_sha256,s.latest_validation_id,s.authors,s.level_hash,(SELECT count(*) FROM zc_private.level_submission_vote WHERE id_contest=c.id),(SELECT count(*) FROM zc_private.level_submission_notification) FROM zc_private.level_submission_contest c JOIN zc_private.level_submissions s ON s.id_contest=c.id WHERE c.id=9000

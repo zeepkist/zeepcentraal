@@ -1,0 +1,1 @@
+INSERT INTO public.level(id,hash,xx_hash) OVERRIDING SYSTEM VALUE SELECT id,'fixture-'||id,md5(id::text) FROM generate_series(10,110) id; INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE SELECT id+990,1,id,10,'test','test' FROM generate_series(10,110) id

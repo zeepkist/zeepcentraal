@@ -2,6 +2,9 @@ use anyhow::{Context, Result, ensure};
 use serde_json::json;
 use zc_database::{Database, services::super_league::VoteResultState};
 
+const INSERT_LEVEL_SUBMISSION_VOTE: &str =
+    include_str!("fixtures/super_league_vote_results/insert_level_submission_vote.sql");
+
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "requires disposable migrated PostgreSQL named zsl_migration_test"]
 async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Result<()> {
@@ -17,27 +20,75 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
         let _ = connection.await;
     });
     let db = Database::connect(&url, 2).await?;
-    let points: i32 = client.query_one("INSERT INTO public.zsl_points_structure(name,points,minimum_points,best_of) VALUES('Vote results fixture',ARRAY[10],1,1) RETURNING id", &[]).await?.get(0);
-    let season: i32 = client.query_one("INSERT INTO public.zsl_season(id_points_structure,name,start_date,end_date) VALUES($1,'Vote results fixture',now(),now()+interval '1 year') RETURNING id", &[&points]).await?.get(0);
-    let round: i32 = client.query_one("INSERT INTO public.zsl_round(id_season,name,round,workshop_id,event_date,submission_start,submission_end,zsl_vote_end,cosmetic_vote_end) VALUES($1,'Vote results fixture',1,0,now(),now()-interval '3 days',now()-interval '2 days',now()+interval '1 day',now()+interval '2 days') RETURNING id", &[&season]).await?.get(0);
-    let historical: i32 = client.query_one("INSERT INTO public.zsl_round(id_season,name,round,workshop_id,event_date) VALUES($1,'No stored votes',2,0,now()) RETURNING id", &[&season]).await?.get(0);
+    let points: i32 = client
+        .query_one(
+            include_str!("fixtures/super_league_vote_results/insert_zsl_points_structure.sql"),
+            &[],
+        )
+        .await?
+        .get(0);
+    let season: i32 = client
+        .query_one(
+            include_str!("fixtures/super_league_vote_results/insert_zsl_season.sql"),
+            &[&points],
+        )
+        .await?
+        .get(0);
+    let round: i32 = client
+        .query_one(
+            include_str!("fixtures/super_league_vote_results/insert_zsl_round.sql"),
+            &[&season],
+        )
+        .await?
+        .get(0);
+    let historical: i32 = client
+        .query_one(
+            include_str!("fixtures/super_league_vote_results/insert_zsl_round_2.sql"),
+            &[&season],
+        )
+        .await?
+        .get(0);
     db.configure_inspector_contest(round, json!({}), "fixture")
         .await?;
     let contest = db.get_inspector_contest(round).await?.context("contest")?;
-    let playlist: i64 = client.query_one("INSERT INTO zc_private.level_submission_playlist(id_contest,digest,valid_count,object_key) VALUES($1,'fixture',5,'fixture') RETURNING id", &[&contest.id]).await?.get(0);
+    let playlist: i64 = client
+        .query_one(
+            include_str!("fixtures/super_league_vote_results/insert_level_submission_playlist.sql"),
+            &[&contest.id],
+        )
+        .await?
+        .get(0);
     let steam_id = 76561198900000000_i64 + i64::from(round);
     let author = steam_id.to_string();
     let co_author = (steam_id + 2_000_000).to_string();
-    let user: i32 = client.query_one("INSERT INTO public.\"user\"(steam_id,steam_name) VALUES($1,'Voter fixture') RETURNING id", &[&steam_id]).await?.get(0);
-    let second_user: i32 = client.query_one("INSERT INTO public.\"user\"(steam_id,steam_name) VALUES($1,'Second voter fixture') RETURNING id", &[&(steam_id + 1_000_000)]).await?.get(0);
-    let invalid_user: i32 = client.query_one("INSERT INTO public.\"user\"(steam_id,steam_name) VALUES($1,'Invalid candidate voter') RETURNING id", &[&(steam_id + 3_000_000)]).await?.get(0);
+    let user: i32 = client
+        .query_one(
+            include_str!("fixtures/super_league_vote_results/insert_user.sql"),
+            &[&steam_id],
+        )
+        .await?
+        .get(0);
+    let second_user: i32 = client
+        .query_one(
+            include_str!("fixtures/super_league_vote_results/insert_user_2.sql"),
+            &[&(steam_id + 1_000_000)],
+        )
+        .await?
+        .get(0);
+    let invalid_user: i32 = client
+        .query_one(
+            include_str!("fixtures/super_league_vote_results/insert_user_3.sql"),
+            &[&(steam_id + 3_000_000)],
+        )
+        .await?
+        .get(0);
     let mut levels = Vec::new();
     let mut hashes = Vec::new();
     for index in 0..5 {
         let hash = format!("{:032X}", u128::try_from(round)? * 100 + index);
         let id: i32 = client
             .query_one(
-                "INSERT INTO public.level(hash,xx_hash,adventure) VALUES($1,$1,false) RETURNING id",
+                include_str!("fixtures/super_league_vote_results/insert_level.sql"),
                 &[&hash],
             )
             .await?
@@ -67,22 +118,67 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
             4 => vec![author.clone(), co_author.clone()],
             _ => vec![author.clone()],
         };
-        let submission: i64 = client.query_one("INSERT INTO zc_private.level_submissions(id_contest,workshop_id,authors,state,level_hash) VALUES($1,$2,$3,'selected',$4) RETURNING id", &[&contest.id, &workshop, &authors, &hashes[index]]).await?.get(0);
+        let submission: i64 = client
+            .query_one(
+                include_str!("fixtures/super_league_vote_results/insert_level_submissions.sql"),
+                &[&contest.id, &workshop, &authors, &hashes[index]],
+            )
+            .await?
+            .get(0);
         let payload = json!({"name":name,"author":"Private author fixture"}).to_string();
-        let validation: i64 = client.query_one("INSERT INTO zc_private.level_submission_validation(id_submission,workshop_updated_at,workshop_file_size,validator_version,rules_hash,measurements,failures,valid,payload) VALUES($1,'fixture',1,'fixture','fixture','{}','[]',$2,$3::text::jsonb) RETURNING id", &[&submission, &valid, &payload]).await?.get(0);
-        client.execute("INSERT INTO zc_private.level_submission_playlist_entry(id_playlist,position,id_validation,workshop_id) VALUES($1,$2,$3,$4)", &[&playlist, &(position as i32), &validation, &workshop]).await?;
+        let validation: i64 = client
+            .query_one(
+                include_str!(
+                    "fixtures/super_league_vote_results/insert_level_submission_validation.sql"
+                ),
+                &[&submission, &valid, &payload],
+            )
+            .await?
+            .get(0);
+        client
+            .execute(
+                include_str!(
+                    "fixtures/super_league_vote_results/insert_level_submission_playlist_entry.sql"
+                ),
+                &[&playlist, &(position as i32), &validation, &workshop],
+            )
+            .await?;
     }
-    client.execute("UPDATE zc_private.level_submission_contest SET state='frozen',current_playlist_id=$2,finalized_at=now(),archive_object_key='fixture',archive_sha256=repeat('a',64),archive_size=1 WHERE id=$1", &[&contest.id, &playlist]).await?;
+    client
+        .execute(
+            include_str!(
+                "fixtures/super_league_vote_results/set_state_level_submission_contest.sql"
+            ),
+            &[&contest.id, &playlist],
+        )
+        .await?;
     for vote_type in 1..=3_i16 {
         for id in [levels[0], levels[1], levels[2], levels[4]] {
-            client.execute("INSERT INTO zc_private.level_submission_vote(id_contest,id_user,id_level,vote_type) VALUES($1,$2,$3,$4)", &[&contest.id, &user, &id, &vote_type]).await?;
+            client
+                .execute(
+                    INSERT_LEVEL_SUBMISSION_VOTE,
+                    &[&contest.id, &user, &id, &vote_type],
+                )
+                .await?;
         }
     }
     for id in [levels[0], levels[1], levels[2]] {
-        client.execute("INSERT INTO zc_private.level_submission_vote(id_contest,id_user,id_level,vote_type) VALUES($1,$2,$3,1)", &[&contest.id, &second_user, &id]).await?;
+        client
+            .execute(
+                include_str!(
+                    "fixtures/super_league_vote_results/insert_level_submission_vote_2.sql"
+                ),
+                &[&contest.id, &second_user, &id],
+            )
+            .await?;
     }
     for vote_type in 1..=3_i16 {
-        client.execute("INSERT INTO zc_private.level_submission_vote(id_contest,id_user,id_level,vote_type) VALUES($1,$2,$3,$4)", &[&contest.id, &invalid_user, &levels[4], &vote_type]).await?;
+        client
+            .execute(
+                INSERT_LEVEL_SUBMISSION_VOTE,
+                &[&contest.id, &invalid_user, &levels[4], &vote_type],
+            )
+            .await?;
     }
     let pending = db.super_league_vote_results(round).await?.unwrap();
     assert!(
@@ -96,7 +192,7 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     );
     client
         .execute(
-            "UPDATE public.zsl_round SET zsl_vote_end=clock_timestamp() WHERE id=$1",
+            include_str!("fixtures/super_league_vote_results/set_zsl_vote_end_zsl_round.sql"),
             &[&round],
         )
         .await?;
@@ -147,7 +243,7 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     assert_eq!(public[0]["resultTypes"], json!([1]));
     client
         .execute(
-            "UPDATE public.zsl_round SET cosmetic_vote_end=clock_timestamp() WHERE id=$1",
+            include_str!("fixtures/super_league_vote_results/set_cosmetic_vote_end_zsl_round.sql"),
             &[&round],
         )
         .await?;
@@ -219,7 +315,7 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
     );
     client
         .execute(
-            "DELETE FROM zc_private.level_submission_vote WHERE id_contest=$1",
+            include_str!("fixtures/super_league_vote_results/delete_level_submission_vote.sql"),
             &[&contest.id],
         )
         .await?;
@@ -230,7 +326,14 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
             .iter()
             .all(|category| category.total_votes == Some(0) && category.unique_voters == Some(0))
     );
-    client.execute("UPDATE zc_private.level_submission_validation SET valid=false WHERE id IN (SELECT id_validation FROM zc_private.level_submission_playlist_entry WHERE id_playlist=$1)", &[&playlist]).await?;
+    client
+        .execute(
+            include_str!(
+                "fixtures/super_league_vote_results/set_valid_level_submission_validation.sql"
+            ),
+            &[&playlist],
+        )
+        .await?;
     let no_candidates = db.super_league_vote_results(round).await?.unwrap();
     assert!(
         no_candidates
@@ -240,7 +343,14 @@ async fn anonymous_tallies_deadlines_candidates_and_historical_rounds() -> Resul
                 && category.unique_voters == Some(0)
                 && category.levels.is_empty())
     );
-    client.execute("UPDATE zc_private.level_submission_contest SET state='open',finalized_at=NULL,archive_object_key=NULL,archive_sha256=NULL,archive_size=NULL WHERE id=$1", &[&contest.id]).await?;
+    client
+        .execute(
+            include_str!(
+                "fixtures/super_league_vote_results/set_state_level_submission_contest_by_id.sql"
+            ),
+            &[&contest.id],
+        )
+        .await?;
     assert!(
         db.super_league_vote_results(round)
             .await?

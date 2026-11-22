@@ -1,0 +1,1 @@
+INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) SELECT id,id_user,id_level,'fail','{}','fixture' FROM public.record WHERE id IN(2,3) ON CONFLICT(id_record) DO UPDATE SET status=excluded.status;

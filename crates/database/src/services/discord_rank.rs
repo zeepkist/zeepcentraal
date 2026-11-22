@@ -156,15 +156,15 @@ pub(crate) async fn append_rank_changes(
     changes: Vec<RankChange>,
 ) -> Result<usize> {
     // Caller owns transaction: rank updates, accumulator and emitted events commit together.
-    let row = sql_query(
-        "SELECT changes,floor(extract(epoch FROM window_started_at)*1000)::bigint AS window_started_at, \
-         floor(extract(epoch FROM last_change_at)*1000)::bigint AS last_change_at \
-         FROM zc_private.discord_rank_batch_state WHERE id=1 FOR UPDATE",
-    ).get_result::<StateRow>(connection).await?;
+    let row = sql_query(include_str!(
+        "../queries/discord_rank/select_changes_window_started_at.sql"
+    ))
+    .get_result::<StateRow>(connection)
+    .await?;
     // Read clock after locking so concurrent requests cannot move quiet timer backwards.
-    let now = sql_query(
-        "SELECT floor(extract(epoch FROM clock_timestamp())*1000)::bigint AS milliseconds",
-    )
+    let now = sql_query(include_str!(
+        "../queries/discord_rank/append_rank_changes_floor.sql"
+    ))
     .get_result::<ClockRow>(connection)
     .await?
     .milliseconds;
@@ -178,17 +178,17 @@ pub(crate) async fn append_rank_changes(
     };
     let batches = accumulator.append(changes, now);
     for batch in &batches {
-        sql_query(
-            "INSERT INTO public.discord_activity_event(kind,payload,occurred_at) \
-             VALUES('rank_batch',jsonb_build_object('changes',$1::jsonb),to_timestamp($2::bigint::double precision/1000))",
-        ).bind::<Jsonb, _>(serde_json::to_value(&batch.changes)?)
-            .bind::<BigInt, _>(batch.occurred_at).execute(connection).await?;
+        sql_query(include_str!(
+            "../queries/discord_rank/insert_discord_activity_event.sql"
+        ))
+        .bind::<Jsonb, _>(serde_json::to_value(&batch.changes)?)
+        .bind::<BigInt, _>(batch.occurred_at)
+        .execute(connection)
+        .await?;
     }
-    sql_query(
-        "UPDATE zc_private.discord_rank_batch_state SET changes=$1, \
-         window_started_at=to_timestamp($2::bigint::double precision/1000), \
-         last_change_at=to_timestamp($3::bigint::double precision/1000) WHERE id=1",
-    )
+    sql_query(include_str!(
+        "../queries/discord_rank/set_changes_discord_rank_batch_state.sql"
+    ))
     .bind::<Jsonb, _>(serde_json::to_value(
         accumulator.changes.into_values().collect::<Vec<_>>(),
     )?)

@@ -1,0 +1,1 @@
+SELECT p.id_level,u.steam_id::bigint,coalesce(u.steam_name,'Unknown player')::text AS name,(p.time*1000000)::bigint AS microseconds,p.finalised,p.timeslot FROM zc_private.zsl_provisional_level_result p JOIN public.zsl_level l ON l.id=p.id_level JOIN public."user" u ON u.id=p.id_user WHERE l.id_round=$1 ORDER BY p.id_level,p.time,p.id_user

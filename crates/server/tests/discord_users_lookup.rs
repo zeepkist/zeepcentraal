@@ -231,7 +231,11 @@ async fn rank_batch_flush_http_contract_accepts_empty_body_and_is_idempotent() -
     tokio::spawn(async move {
         let _ = connection.await;
     });
-    client.batch_execute("CREATE SCHEMA IF NOT EXISTS zc_private; CREATE TABLE IF NOT EXISTS zc_private.discord_rank_batch_state(id smallint PRIMARY KEY,changes jsonb,window_started_at timestamptz,last_change_at timestamptz); INSERT INTO zc_private.discord_rank_batch_state VALUES(1,'[]',NULL,NULL) ON CONFLICT DO NOTHING").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/discord_users_lookup/create_zc_private.sql"
+        ))
+        .await?;
     let app = app(&url)?;
     for _ in 0..2 {
         assert_eq!(
@@ -292,15 +296,11 @@ async fn lookup_http_contract_returns_only_requested_users_and_nullable_points()
     tokio::spawn(async move {
         let _ = connection.await;
     });
-    client.batch_execute(r#"
-        CREATE TABLE IF NOT EXISTS public."user" (id integer PRIMARY KEY, steam_id bigint, steam_name varchar(255), discord_id bigint);
-        CREATE TABLE IF NOT EXISTS public.user_points (id_user integer PRIMARY KEY, points integer);
-        INSERT INTO public."user"(id,steam_name,discord_id) VALUES
-            (9001,'Fixture player',123456789012345678),(9002,NULL,NULL)
-            ON CONFLICT(id) DO UPDATE SET steam_name=excluded.steam_name,discord_id=excluded.discord_id;
-        INSERT INTO public.user_points(id_user,points) VALUES(9001,123000)
-            ON CONFLICT(id_user) DO UPDATE SET points=excluded.points;
-    "#).await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/discord_users_lookup/create_user.sql"
+        ))
+        .await?;
     let app = app(&url)?;
     let user_ids = [vec![9002, 9001, 9001], (10_000..=10_046).collect()].concat();
     let (status, users) = request(

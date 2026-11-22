@@ -1,0 +1,1 @@
+UPDATE public.level_item item SET deleted=true,date_updated=clock_timestamp() FROM public.level level WHERE level.id=item.id_level AND item.workshop_id=ANY($1) AND NOT item.deleted AND NOT level.adventure RETURNING item.id_level

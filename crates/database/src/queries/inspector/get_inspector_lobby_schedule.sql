@@ -1,0 +1,1 @@
+SELECT to_char(submission_end AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS submission_end, to_char(zsl_vote_end AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS zsl_vote_end, (zsl_vote_end<=clock_timestamp()) AS closed FROM public.zsl_round WHERE id=$1 AND submission_end IS NOT NULL AND zsl_vote_end IS NOT NULL

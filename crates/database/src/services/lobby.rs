@@ -118,31 +118,29 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<(), anyhow::Error, _>(async move |connection| {
-                    advisory_lock(connection, STATS_LOCK_KEY).await?;
-                    let previous: Option<Statistics> = sql_query(
-                        "SELECT players,rooms,players_in_rooms FROM public.lobby_stats ORDER BY id DESC LIMIT 1",
-                    )
-                    .get_result(connection)
-                    .await
-                    .optional()?;
-                    if previous.as_ref().is_some_and(|value| {
-                        value.players == players
-                            && value.rooms == rooms
-                            && value.players_in_rooms == players_in_rooms
-                    }) {
-                        return Ok(());
-                    }
-                    sql_query(
-                        "INSERT INTO public.lobby_stats(players,rooms,players_in_rooms,date_created,date_updated) VALUES($1,$2,$3,$4::timestamptz,$4::timestamptz)",
-                    )
+                advisory_lock(connection, STATS_LOCK_KEY).await?;
+                let previous: Option<Statistics> = sql_query(include_str!(
+                    "../queries/lobby/select_players_lobby_stats.sql"
+                ))
+                .get_result(connection)
+                .await
+                .optional()?;
+                if previous.as_ref().is_some_and(|value| {
+                    value.players == players
+                        && value.rooms == rooms
+                        && value.players_in_rooms == players_in_rooms
+                }) {
+                    return Ok(());
+                }
+                sql_query(include_str!("../queries/lobby/insert_lobby_stats.sql"))
                     .bind::<Integer, _>(players)
                     .bind::<Integer, _>(rooms)
                     .bind::<Integer, _>(players_in_rooms)
                     .bind::<Text, _>(observed_at)
                     .execute(connection)
                     .await?;
-                    Ok(())
-                })
+                Ok(())
+            })
             .await
     }
 
@@ -169,85 +167,82 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<(), anyhow::Error, _>(async move |connection| {
-                    advisory_lock(connection, LOBBY_LOCK_KEY).await?;
-                    upsert_hosts(connection, &values, observed_at).await?;
-                    let existing: Vec<ExistingLobby> = sql_query(
-                        "SELECT id,master_id,room_name,host_id,players,player_limit,is_public,closed_at IS NOT NULL AS closed \
-                         FROM public.lobby WHERE CASE WHEN $2 THEN master_id IN (SELECT jsonb_array_elements_text($1)) OR closed_at IS NULL \
-                         ELSE master_id IN (SELECT jsonb_array_elements_text($1)) END",
-                    )
-                    .bind::<Jsonb, _>(&ids)
-                    .bind::<Bool, _>(authoritative)
-                    .load(connection)
-                    .await?;
-                    let upserted: Vec<LobbyId> = sql_query(
-                        "INSERT INTO public.lobby(master_id,room_name,host_id,players,player_limit,is_public,peak_players,peak_time,first_seen,last_seen,closed_at,date_created,date_updated) \
-                         SELECT value.master_id,value.room_name,value.host_id,value.players,value.player_limit,value.is_public,value.players,$2::timestamptz,$2::timestamptz,$2::timestamptz,NULL,$2::timestamptz,$2::timestamptz \
-                         FROM jsonb_to_recordset($1) AS value(master_id text,room_name text,host_id bigint,host_name text,players integer,player_limit integer,is_public boolean) \
-                         ON CONFLICT(master_id) DO UPDATE SET room_name=excluded.room_name,host_id=excluded.host_id,players=excluded.players,player_limit=excluded.player_limit,is_public=excluded.is_public, \
-                         peak_players=CASE WHEN excluded.players>lobby.peak_players THEN excluded.players ELSE lobby.peak_players END, \
-                         peak_time=CASE WHEN excluded.players>lobby.peak_players THEN excluded.last_seen ELSE lobby.peak_time END, \
-                         last_seen=excluded.last_seen,closed_at=NULL,date_updated=excluded.date_updated RETURNING id,master_id",
-                    )
-                    .bind::<Jsonb, _>(&values)
-                    .bind::<Text, _>(observed_at)
-                    .load(connection)
-                    .await?;
+                advisory_lock(connection, LOBBY_LOCK_KEY).await?;
+                upsert_hosts(connection, &values, observed_at).await?;
+                let existing: Vec<ExistingLobby> =
+                    sql_query(include_str!("../queries/lobby/read_current_lobbies.sql"))
+                        .bind::<Jsonb, _>(&ids)
+                        .bind::<Bool, _>(authoritative)
+                        .load(connection)
+                        .await?;
+                let upserted: Vec<LobbyId> = sql_query(include_str!(
+                    "../queries/lobby/persist_active_lobbies_insert_lobby.sql"
+                ))
+                .bind::<Jsonb, _>(&values)
+                .bind::<Text, _>(observed_at)
+                .load(connection)
+                .await?;
 
-                    let existing_by_id = existing
-                        .iter()
-                        .map(|row| (row.master_id.as_str(), row))
-                        .collect::<HashMap<_, _>>();
-                    let id_by_master = upserted
-                        .iter()
-                        .map(|row| (row.master_id.as_str(), row.id))
-                        .collect::<HashMap<_, _>>();
-                    let mut history = Vec::new();
-                    for entry in &entries {
-                        let previous = existing_by_id.get(entry.id.as_str()).copied();
-                        let change_type = match previous {
-                            None => Some("opened"),
-                            Some(value) if value.closed => Some("reopened"),
-                            Some(value) if materially_changed(value, entry)? => Some("updated"),
-                            _ => None,
-                        };
-                        if let (Some(change_type), Some(lobby_id)) =
-                            (change_type, id_by_master.get(entry.id.as_str()).copied())
-                        {
-                            history.push(history_value(lobby_id, entry, change_type)?);
-                        }
+                let existing_by_id = existing
+                    .iter()
+                    .map(|row| (row.master_id.as_str(), row))
+                    .collect::<HashMap<_, _>>();
+                let id_by_master = upserted
+                    .iter()
+                    .map(|row| (row.master_id.as_str(), row.id))
+                    .collect::<HashMap<_, _>>();
+                let mut history = Vec::new();
+                for entry in &entries {
+                    let previous = existing_by_id.get(entry.id.as_str()).copied();
+                    let change_type = match previous {
+                        None => Some("opened"),
+                        Some(value) if value.closed => Some("reopened"),
+                        Some(value) if materially_changed(value, entry)? => Some("updated"),
+                        _ => None,
+                    };
+                    if let (Some(change_type), Some(lobby_id)) =
+                        (change_type, id_by_master.get(entry.id.as_str()).copied())
+                    {
+                        history.push(history_value(lobby_id, entry, change_type)?);
                     }
+                }
 
-                    let current = entries
-                        .iter()
-                        .map(|entry| entry.id.as_str())
-                        .collect::<std::collections::HashSet<_>>();
-                    let missing = existing
-                        .iter()
-                        .filter(|row| authoritative && !row.closed && !current.contains(row.master_id.as_str()))
-                        .collect::<Vec<_>>();
-                    for row in &missing {
-                        history.push(HistoryValue {
-                            lobby_id: row.id,
-                            host_id: row.host_id,
-                            change_type: "closed",
-                            room_name: if row.is_public { &row.room_name } else { PRIVATE_ROOM_NAME },
-                            players: row.players,
-                            player_limit: row.player_limit,
-                            is_public: row.is_public,
-                        });
-                    }
-                    insert_history(connection, &history, observed_at).await?;
-                    if !missing.is_empty() {
-                        let missing_ids = missing.iter().map(|row| row.id).collect::<Vec<_>>();
-                        sql_query("UPDATE public.lobby SET closed_at=$2::timestamptz,date_updated=$2::timestamptz WHERE id=ANY($1)")
-                            .bind::<diesel::sql_types::Array<BigInt>, _>(missing_ids)
-                            .bind::<Text, _>(observed_at)
-                            .execute(connection)
-                            .await?;
-                    }
-                    Ok(())
-                })
+                let current = entries
+                    .iter()
+                    .map(|entry| entry.id.as_str())
+                    .collect::<std::collections::HashSet<_>>();
+                let missing = existing
+                    .iter()
+                    .filter(|row| {
+                        authoritative && !row.closed && !current.contains(row.master_id.as_str())
+                    })
+                    .collect::<Vec<_>>();
+                for row in &missing {
+                    history.push(HistoryValue {
+                        lobby_id: row.id,
+                        host_id: row.host_id,
+                        change_type: "closed",
+                        room_name: if row.is_public {
+                            &row.room_name
+                        } else {
+                            PRIVATE_ROOM_NAME
+                        },
+                        players: row.players,
+                        player_limit: row.player_limit,
+                        is_public: row.is_public,
+                    });
+                }
+                insert_history(connection, &history, observed_at).await?;
+                if !missing.is_empty() {
+                    let missing_ids = missing.iter().map(|row| row.id).collect::<Vec<_>>();
+                    sql_query(include_str!("../queries/lobby/set_closed_at_lobby.sql"))
+                        .bind::<diesel::sql_types::Array<BigInt>, _>(missing_ids)
+                        .bind::<Text, _>(observed_at)
+                        .execute(connection)
+                        .await?;
+                }
+                Ok(())
+            })
             .await
     }
 
@@ -267,39 +262,37 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<(), anyhow::Error, _>(async move |connection| {
-                    advisory_lock(connection, LOBBY_LOCK_KEY).await?;
-                    upsert_hosts(connection, &values, observed_at).await?;
-                    let previous: Option<ExistingLobby> = sql_query(
-                        "SELECT id,master_id,room_name,host_id,players,player_limit,is_public,closed_at IS NOT NULL AS closed FROM public.lobby WHERE master_id IN (SELECT jsonb_array_elements_text($1)) LIMIT 1",
+                advisory_lock(connection, LOBBY_LOCK_KEY).await?;
+                upsert_hosts(connection, &values, observed_at).await?;
+                let previous: Option<ExistingLobby> =
+                    sql_query(include_str!("../queries/lobby/read_last_lobby.sql"))
+                        .bind::<Jsonb, _>(&ids)
+                        .get_result(connection)
+                        .await
+                        .optional()?;
+                let row: LobbyId = sql_query(include_str!(
+                    "../queries/lobby/persist_closed_lobby_insert_lobby.sql"
+                ))
+                .bind::<Jsonb, _>(&values)
+                .bind::<Text, _>(observed_at)
+                .get_result(connection)
+                .await?;
+                if previous.as_ref().is_none_or(|value| !value.closed) {
+                    insert_history(
+                        connection,
+                        &[history_value(row.id, entry, "closed")?],
+                        observed_at,
                     )
-                    .bind::<Jsonb, _>(&ids)
-                    .get_result(connection)
-                    .await
-                    .optional()?;
-                    let row: LobbyId = sql_query(
-                        "INSERT INTO public.lobby(master_id,room_name,host_id,players,player_limit,is_public,peak_players,peak_time,first_seen,last_seen,closed_at,date_created,date_updated) \
-                         SELECT value.master_id,value.room_name,value.host_id,value.players,value.player_limit,value.is_public,value.players,$2::timestamptz,$2::timestamptz,$2::timestamptz,$2::timestamptz,$2::timestamptz,$2::timestamptz \
-                         FROM jsonb_to_recordset($1) AS value(master_id text,room_name text,host_id bigint,host_name text,players integer,player_limit integer,is_public boolean) \
-                         ON CONFLICT(master_id) DO UPDATE SET room_name=excluded.room_name,host_id=excluded.host_id,players=excluded.players,player_limit=excluded.player_limit,is_public=excluded.is_public, \
-                         peak_players=CASE WHEN excluded.players>lobby.peak_players THEN excluded.players ELSE lobby.peak_players END, \
-                         peak_time=CASE WHEN excluded.players>lobby.peak_players THEN excluded.last_seen ELSE lobby.peak_time END, \
-                         last_seen=excluded.last_seen,closed_at=excluded.closed_at,date_updated=excluded.date_updated RETURNING id,master_id",
-                    )
-                    .bind::<Jsonb, _>(&values)
-                    .bind::<Text, _>(observed_at)
-                    .get_result(connection)
                     .await?;
-                    if previous.as_ref().is_none_or(|value| !value.closed) {
-                        insert_history(connection, &[history_value(row.id, entry, "closed")?], observed_at).await?;
-                    }
-                    Ok(())
-                })
+                }
+                Ok(())
+            })
             .await
     }
 }
 
 async fn advisory_lock(connection: &mut AsyncPgConnection, key: &str) -> Result<()> {
-    sql_query("SELECT pg_advisory_xact_lock(hashtext($1))")
+    sql_query(include_str!("../queries/lobby/advisory_lock.sql"))
         .bind::<Text, _>(key)
         .execute(connection)
         .await?;
@@ -339,17 +332,11 @@ async fn upsert_hosts(
     values: &serde_json::Value,
     observed_at: &str,
 ) -> Result<()> {
-    sql_query(
-        "INSERT INTO public.\"user\"(steam_id,steam_name,banned,date_created,date_updated) \
-         SELECT DISTINCT ON (value.host_id) value.host_id,left(value.host_name,255),false,$2::timestamptz,$2::timestamptz \
-         FROM jsonb_to_recordset($1) AS value(host_id bigint,host_name text) ORDER BY value.host_id \
-         ON CONFLICT(steam_id) DO UPDATE SET steam_name=excluded.steam_name,date_updated=excluded.date_updated \
-         WHERE \"user\".steam_name IS DISTINCT FROM excluded.steam_name",
-    )
-    .bind::<Jsonb, _>(values)
-    .bind::<Text, _>(observed_at)
-    .execute(connection)
-    .await?;
+    sql_query(include_str!("../queries/lobby/upsert_hosts.sql"))
+        .bind::<Jsonb, _>(values)
+        .bind::<Text, _>(observed_at)
+        .execute(connection)
+        .await?;
     Ok(())
 }
 
@@ -385,15 +372,11 @@ async fn insert_history(
     if history.is_empty() {
         return Ok(());
     }
-    sql_query(
-        "INSERT INTO public.lobby_history(lobby_id,host_id,change_type,room_name,players,player_limit,is_public,observed_at,date_created) \
-         SELECT value.lobby_id,value.host_id,value.change_type,value.room_name,value.players,value.player_limit,value.is_public,$2::timestamptz,$2::timestamptz \
-         FROM jsonb_to_recordset($1) AS value(lobby_id bigint,host_id bigint,change_type text,room_name text,players integer,player_limit integer,is_public boolean)",
-    )
-    .bind::<Jsonb, _>(serde_json::to_value(history)?)
-    .bind::<Text, _>(observed_at)
-    .execute(connection)
-    .await?;
+    sql_query(include_str!("../queries/lobby/insert_history.sql"))
+        .bind::<Jsonb, _>(serde_json::to_value(history)?)
+        .bind::<Text, _>(observed_at)
+        .execute(connection)
+        .await?;
     Ok(())
 }
 

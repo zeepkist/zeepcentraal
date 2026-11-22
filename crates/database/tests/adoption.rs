@@ -20,11 +20,7 @@ async fn adopts_existing_drizzle_database_in_place() -> anyhow::Result<()> {
         let _ = connection.await;
     });
     let ledger = client
-        .query_one(
-            "SELECT to_regclass('public.__diesel_schema_migrations') IS NULL, \
-         to_regclass('zc_private.__diesel_schema_migrations') IS NOT NULL",
-            &[],
-        )
+        .query_one(include_str!("fixtures/adoption/to_regclass.sql"), &[])
         .await?;
     assert!(ledger.get::<_, bool>(0) && ledger.get::<_, bool>(1));
     assert!(first.baseline_created);

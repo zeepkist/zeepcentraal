@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM public.personal_best_global pb JOIN zc_private.record_validation v ON v.id_record=pb.id_record WHERE pb.id_level=$1 AND v.status='fail' UNION ALL SELECT 1 FROM public.world_record_global wr JOIN zc_private.record_validation v ON v.id_record=wr.id_record WHERE wr.id_level=$1 AND v.status='fail') AS value

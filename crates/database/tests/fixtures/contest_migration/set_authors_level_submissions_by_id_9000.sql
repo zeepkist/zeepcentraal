@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submissions SET authors=ARRAY['76561198000000001','76561198000000001'] WHERE id=9000

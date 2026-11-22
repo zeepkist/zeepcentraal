@@ -1,0 +1,1 @@
+SELECT id,steam_name,banned,steam_id,discord_id, to_char(date_created AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS date_created, CASE WHEN date_updated IS NULL THEN NULL ELSE to_char(date_updated AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') END AS date_updated FROM public."user" WHERE discord_id=$1 LIMIT 1

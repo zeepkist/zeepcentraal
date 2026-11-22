@@ -1,0 +1,1 @@
+SELECT count(*) FROM information_schema.columns WHERE table_schema='zc_private' AND table_name='level_submission_contest' AND column_name IN ('thread_id','guild_id','forum_id','title','theme','season_number','round_number','mapping_source','publication')

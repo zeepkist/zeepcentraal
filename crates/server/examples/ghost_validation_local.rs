@@ -92,7 +92,7 @@ async fn main() -> Result<()> {
     tokio::spawn(async move { connection.await.expect("local fixture connection") });
     client
         .execute(
-            "UPDATE public.\"user\" SET role='admin' WHERE steam_id=42",
+            include_str!("queries/ghost_validation_local/set_role_user.sql"),
             &[],
         )
         .await?;

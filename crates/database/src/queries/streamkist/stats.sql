@@ -1,0 +1,1 @@
+SELECT count(DISTINCT stream_id) AS streams, count(DISTINCT user_id) AS streamers, (SELECT count(*) FROM streamkist.twitch_categories) AS categories, (SELECT count(*) FROM streamkist.guilds) AS guilds FROM streamkist.streams

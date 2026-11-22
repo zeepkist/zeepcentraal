@@ -1,0 +1,1 @@
+SELECT discord_userid,is_subscription_payment,tier_name FROM public.donations ORDER BY discord_userid

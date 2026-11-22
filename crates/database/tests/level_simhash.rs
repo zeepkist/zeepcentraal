@@ -18,34 +18,17 @@ async fn migration_backfill_concurrency_visibility_and_distance() -> Result<()> 
     tokio::spawn(async move {
         connection.await.expect("PostgreSQL connection");
     });
-    client.batch_execute(
-        "DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='zeepcentraal_graphql') THEN CREATE ROLE zeepcentraal_graphql; END IF; END $$;
-         CREATE TABLE public.level (
-             id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-             hash text NOT NULL, xx_hash text UNIQUE NOT NULL, adventure boolean NOT NULL DEFAULT false,
-             has_records boolean NOT NULL DEFAULT false,record_count bigint NOT NULL DEFAULT 0,
-             publicly_visible boolean NOT NULL DEFAULT true,date_created timestamptz NOT NULL DEFAULT now(),date_updated timestamptz
-         );
-         CREATE TABLE public.level_metadata (
-             id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,id_level integer NOT NULL REFERENCES public.level,
-             format integer NOT NULL,blocks jsonb NOT NULL
-         );
-         GRANT USAGE ON SCHEMA public TO zeepcentraal_graphql;
-         GRANT SELECT ON public.level TO zeepcentraal_graphql;
-         ALTER TABLE public.level ENABLE ROW LEVEL SECURITY;
-         CREATE POLICY visible_level ON public.level FOR SELECT TO zeepcentraal_graphql USING(publicly_visible);"
-    ).await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/level_simhash/create_fixture_schema.sql"
+        ))
+        .await?;
     client.batch_execute(UP).await?;
     client.batch_execute(DOWN).await?;
     client.batch_execute(UP).await?;
-    client.batch_execute(
-        "INSERT INTO public.level(hash,xx_hash) SELECT 'simhash-'||id,lpad(id::text,32,'0') FROM generate_series(1,110) id;
-         INSERT INTO public.level_metadata(id_level,format,blocks) VALUES
-         (1,0,'[{\"Id\":22},{\"Id\":22},{\"Id\":2}]'),
-         (2,1,'[{\"i\":2,\"p\":{\"x\":100}},{\"i\":22},{\"i\":22}]'),
-         (3,1,'[]'),(4,1,'[{\"i\":\"bad\"}]'),(5,9,'[{\"i\":22}]'),
-         (6,1,'[{\"i\":2}]'),(6,1,'[{\"i\":22}]');"
-    ).await?;
+    client
+        .batch_execute(include_str!("fixtures/level_simhash/insert_level.sql"))
+        .await?;
     let database = Database::connect(&url, 4).await?;
     let first_page = database.missing_level_simhash_ids(0, 100).await?;
     assert_eq!(first_page, (1..=100).collect::<Vec<_>>());
@@ -86,7 +69,7 @@ async fn migration_backfill_concurrency_visibility_and_distance() -> Result<()> 
     );
     let hashes = client
         .query(
-            "SELECT simhash FROM public.level WHERE id IN(1,2) ORDER BY id",
+            include_str!("fixtures/level_simhash/select_simhash_level.sql"),
             &[],
         )
         .await?;
@@ -102,7 +85,7 @@ async fn migration_backfill_concurrency_visibility_and_distance() -> Result<()> 
     let old = database.level_simhash_snapshot(6).await?.unwrap();
     client
         .execute(
-            "UPDATE public.level_metadata SET blocks='[{\"i\":22}]' WHERE id=$1",
+            include_str!("fixtures/level_simhash/set_blocks_level_metadata.sql"),
             &[&old.id],
         )
         .await?;
@@ -114,18 +97,17 @@ async fn migration_backfill_concurrency_visibility_and_distance() -> Result<()> 
     assert!(!database.set_missing_level_simhash(&old, 123).await?);
     // Retry after a discarded snapshot recomputes current data; completed rows never change.
     let saved: i64 = client
-        .query_one("SELECT simhash FROM public.level WHERE id=6", &[])
+        .query_one(
+            include_str!("fixtures/level_simhash/select_simhash_level_by_id_6.sql"),
+            &[],
+        )
         .await?
         .get(0);
     assert_eq!(saved as u64, xxhash_for_json_id(22)? as u64);
 
-    client.batch_execute("UPDATE public.level SET simhash=NULL; UPDATE public.level SET simhash=-9223372036854775808 WHERE id=1;
-        UPDATE public.level SET simhash=-9223372036854775807 WHERE id=2;
-        UPDATE public.level SET simhash=-9223372036854775808 WHERE id=3;
-        UPDATE public.level SET simhash=-9223372036854775806 WHERE id=4;
-        UPDATE public.level SET simhash=-9223372036854710273 WHERE id=5;
-        UPDATE public.level SET simhash=-9223372036854644737 WHERE id=6;
-        UPDATE public.level SET simhash=-9223372036854775808,publicly_visible=false WHERE id=7;").await?;
+    client
+        .batch_execute(include_str!("fixtures/level_simhash/set_simhash_level.sql"))
+        .await?;
     let source = "00000000000000000000000000000001";
     assert_eq!(similar_ids(&client, source, 0).await?, vec![3]);
     assert_eq!(similar_ids(&client, source, 1).await?, vec![3, 2, 4]);
@@ -147,20 +129,26 @@ async fn migration_backfill_concurrency_visibility_and_distance() -> Result<()> 
     );
     assert!(
         client
-            .query("SELECT * FROM public.similar_levels(NULL,16)", &[])
+            .query(
+                include_str!("fixtures/level_simhash/select_similar_levels.sql"),
+                &[]
+            )
             .await?
             .is_empty()
     );
     assert!(
         client
-            .query("SELECT * FROM public.similar_levels($1,NULL)", &[&source])
+            .query(
+                include_str!("fixtures/level_simhash/select_similar_levels_2.sql"),
+                &[&source]
+            )
             .await?
             .is_empty()
     );
     assert_eq!(
         client
             .query(
-                "SELECT id FROM public.similar_levels($1) ORDER BY id",
+                include_str!("fixtures/level_simhash/select_id_similar_levels.sql"),
                 &[&source]
             )
             .await?
@@ -168,23 +156,30 @@ async fn migration_backfill_concurrency_visibility_and_distance() -> Result<()> 
         4
     );
     client
-        .batch_execute("SET ROLE zeepcentraal_graphql")
+        .batch_execute(include_str!(
+            "fixtures/level_simhash/set_role_zeepcentraal_graphql.sql"
+        ))
         .await?;
     assert_eq!(similar_ids(&client, source, 64).await?, vec![3, 2, 4, 5, 6]);
-    client.batch_execute("RESET ROLE").await?;
+    client
+        .batch_execute(include_str!("fixtures/level_simhash/reset_role.sql"))
+        .await?;
 
     // Large fingerprint-only search: no metadata dependency; validate covering access.
     client
-        .batch_execute(
-            "INSERT INTO public.level(hash,xx_hash,simhash)
-        SELECT 'large-'||id,lpad(to_hex(id),32,'0'),id::bigint FROM generate_series(1000,101000) id;",
-        )
+        .batch_execute(include_str!("fixtures/level_simhash/insert_level_2.sql"))
         .await?;
-    client.batch_execute("VACUUM ANALYZE public.level").await?;
-    client.batch_execute("SET enable_seqscan=off").await?;
+    client
+        .batch_execute(include_str!("fixtures/level_simhash/vacuum_level.sql"))
+        .await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/level_simhash/set_enable_seqscan_off.sql"
+        ))
+        .await?;
     let plan = client
         .query(
-            "EXPLAIN (ANALYZE,BUFFERS,FORMAT TEXT) SELECT * FROM public.similar_levels($1,16)",
+            include_str!("fixtures/level_simhash/explain_similar_levels.sql"),
             &[&source],
         )
         .await?
@@ -193,8 +188,16 @@ async fn migration_backfill_concurrency_visibility_and_distance() -> Result<()> 
         .collect::<Vec<_>>()
         .join("\n");
     // SQL functions with SET options are opaque in EXPLAIN; inspect fingerprint query separately.
-    let fingerprints = client.query("EXPLAIN (ANALYZE,BUFFERS,FORMAT TEXT) SELECT id,bit_count(simhash::bit(64) # (-9223372036854775808)::bigint::bit(64)) FROM public.level WHERE publicly_visible=true AND simhash IS NOT NULL",&[]).await?
-        .into_iter().map(|row|row.get::<_,String>(0)).collect::<Vec<_>>().join("\n");
+    let fingerprints = client
+        .query(
+            include_str!("fixtures/level_simhash/explain_level.sql"),
+            &[],
+        )
+        .await?
+        .into_iter()
+        .map(|row| row.get::<_, String>(0))
+        .collect::<Vec<_>>()
+        .join("\n");
     assert!(
         fingerprints.contains("Index Only Scan")
             && fingerprints.contains("IX_level_public_simhash")
@@ -215,7 +218,7 @@ fn xxhash_for_json_id(id: i64) -> Result<i64> {
 async fn similar_ids(client: &tokio_postgres::Client, hash: &str, cutoff: i32) -> Result<Vec<i32>> {
     Ok(client
         .query(
-            "SELECT id FROM public.similar_levels($1,$2)",
+            include_str!("fixtures/level_simhash/select_id_similar_levels_2.sql"),
             &[&hash, &cutoff],
         )
         .await?

@@ -1,0 +1,1 @@
+DROP TRIGGER test_history_flag_writes ON zc_private.record_history_index;

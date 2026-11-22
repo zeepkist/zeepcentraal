@@ -13,14 +13,14 @@ impl Database {
     pub async fn managed_lobby_join_id(&self, key: &str) -> Result<Option<String>> {
         validate_key(key)?;
         let mut connection = self.connection().await?;
-        Ok(
-            sql_query("SELECT join_id FROM zc_private.managed_lobby WHERE key=$1 LIMIT 1")
-                .bind::<Text, _>(key)
-                .get_result::<JoinIdRow>(&mut connection)
-                .await
-                .optional()?
-                .map(|row| row.join_id),
-        )
+        Ok(sql_query(include_str!(
+            "../queries/managed_lobby/managed_lobby_join_id.sql"
+        ))
+        .bind::<Text, _>(key)
+        .get_result::<JoinIdRow>(&mut connection)
+        .await
+        .optional()?
+        .map(|row| row.join_id))
     }
 
     pub async fn set_managed_lobby_join_id(&self, key: &str, join_id: &str) -> Result<()> {
@@ -30,11 +30,9 @@ impl Database {
             "Invalid managed lobby join ID"
         );
         let mut connection = self.connection().await?;
-        sql_query(
-            "INSERT INTO zc_private.managed_lobby(key,join_id,date_created,date_updated) \
-             VALUES($1,$2,clock_timestamp(),clock_timestamp()) \
-             ON CONFLICT(key) DO UPDATE SET join_id=excluded.join_id,date_updated=clock_timestamp()",
-        )
+        sql_query(include_str!(
+            "../queries/managed_lobby/set_managed_lobby_join_id.sql"
+        ))
         .bind::<Text, _>(key)
         .bind::<Text, _>(join_id)
         .execute(&mut connection)
@@ -45,13 +43,13 @@ impl Database {
     pub async fn clear_managed_lobby_join_id(&self, key: &str) -> Result<bool> {
         validate_key(key)?;
         let mut connection = self.connection().await?;
-        Ok(
-            sql_query("DELETE FROM zc_private.managed_lobby WHERE key=$1")
-                .bind::<Text, _>(key)
-                .execute(&mut connection)
-                .await?
-                > 0,
-        )
+        Ok(sql_query(include_str!(
+            "../queries/managed_lobby/clear_managed_lobby_join_id.sql"
+        ))
+        .bind::<Text, _>(key)
+        .execute(&mut connection)
+        .await?
+            > 0)
     }
 }
 

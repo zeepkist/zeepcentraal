@@ -96,17 +96,9 @@ impl Database {
         ensure!(tournament_id > 0, "Invalid tournament ID");
         let steam_id = i64::try_from(steam_id)?;
         let mut connection = self.connection().await?;
-        let row = sql_query(
-            "SELECT (SELECT minimum FROM public.version ORDER BY id DESC LIMIT 1) AS minimum_gtr_version, \
-             account.id AS user_id, \
-             COALESCE(EXISTS(SELECT 1 FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record \
-                 WHERE record.id_user=account.id AND record.date_created>=clock_timestamp()-interval '720 hours'),false) AS recent_record, \
-             result.rank,result.time \
-             FROM (SELECT 1) seed \
-             LEFT JOIN public.\"user\" account ON account.steam_id=$2 \
-             LEFT JOIN public.track_tournament_result result \
-                 ON result.id_user=account.id AND result.id_tournament=$1",
-        )
+        let row = sql_query(include_str!(
+            "../queries/lobby_assets/tournament_lobby_player_context.sql"
+        ))
         .bind::<Integer, _>(tournament_id)
         .bind::<BigInt, _>(steam_id)
         .get_result::<PlayerContextRow>(&mut connection)
@@ -128,20 +120,13 @@ impl Database {
     ) -> Result<Option<TournamentLobbyAsset>> {
         ensure!(matches!(tournament_type, 0..=2), "Invalid tournament type");
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "SELECT asset.id_tournament,asset.workshop_id,asset.file_uid,asset.level_name, \
-             asset.author,asset.collaborators,asset.override_author_name,asset.object_key, \
-             asset.content_sha256,asset.byte_size,tournament.slug AS tournament_slug, \
-             to_char(tournament.end_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS tournament_end_at \
-             FROM zc_private.track_tournament_lobby_asset asset \
-             JOIN public.track_tournament tournament ON tournament.id=asset.id_tournament \
-             WHERE tournament.type=$1 AND tournament.start_at<=clock_timestamp() \
-             ORDER BY (tournament.end_at>clock_timestamp()) DESC,tournament.start_at DESC LIMIT 1",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/lobby_assets/preferred_tournament_lobby_asset.sql"
+        ))
         .bind::<Integer, _>(tournament_type)
         .get_result(&mut connection)
         .await
-            .optional()?)
+        .optional()?)
     }
 
     pub async fn tournament_lobby_snapshot(
@@ -160,22 +145,16 @@ impl Database {
             .map(i64::try_from)
             .collect::<std::result::Result<Vec<_>, _>>()?;
         let mut connection = self.connection().await?;
-        let entries = sql_query(
-            "SELECT count(*)::bigint AS count FROM public.track_tournament_result \
-             WHERE id_tournament=$1",
-        )
+        let entries = sql_query(include_str!(
+            "../queries/lobby_assets/count_track_tournament_result.sql"
+        ))
         .bind::<Integer, _>(tournament_id)
         .get_result::<CountRow>(&mut connection)
         .await?
         .count;
-        let standings = sql_query(
-            "SELECT result.id_user AS user_id,result.id_record AS record_id,\"user\".steam_id, \
-             \"user\".steam_name,result.time,result.rank,result.points \
-             FROM public.track_tournament_result result \
-             JOIN public.\"user\" ON \"user\".id=result.id_user \
-             WHERE result.id_tournament=$1 AND \"user\".steam_id IS NOT NULL \
-             ORDER BY result.rank,result.time,result.id_record LIMIT 6",
-        )
+        let standings = sql_query(include_str!(
+            "../queries/lobby_assets/select_id_user_track_tournament_result.sql"
+        ))
         .bind::<Integer, _>(tournament_id)
         .load::<TournamentLobbyStanding>(&mut connection)
         .await?;
@@ -183,12 +162,7 @@ impl Database {
             Vec::new()
         } else {
             sql_query(
-                "SELECT result.id_user AS user_id,result.id_record AS record_id,\"user\".steam_id, \
-                 \"user\".steam_name,result.time,result.rank,result.points \
-                 FROM public.track_tournament_result result \
-                 JOIN public.\"user\" ON \"user\".id=result.id_user \
-                 WHERE result.id_tournament=$1 AND \"user\".steam_id=ANY($2) \
-                 ORDER BY result.rank,result.time,result.id_record LIMIT 64",
+                include_str!("../queries/lobby_assets/select_id_user_track_tournament_result_by_id_tournament.sql"),
             )
             .bind::<Integer, _>(tournament_id)
             .bind::<Array<BigInt>, _>(steam_ids)

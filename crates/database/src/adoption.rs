@@ -112,15 +112,21 @@ pub async fn run(
     let mut connection = AsyncPgConnection::establish(database_url)
         .await
         .context("Failed to connect to PostgreSQL")?;
-    sql_query(format!("SELECT pg_advisory_lock({MIGRATION_LOCK_ID})"))
-        .execute(&mut connection)
-        .await
-        .context("Failed to acquire migration advisory lock")?;
+    sql_query(
+        include_str!("queries/migrations/acquire_advisory_lock.sql")
+            .replace("{{migration_lock_id}}", &MIGRATION_LOCK_ID.to_string()),
+    )
+    .execute(&mut connection)
+    .await
+    .context("Failed to acquire migration advisory lock")?;
 
     let outcome = adopt_locked(&mut connection, &frozen.entries, mode).await;
-    let unlock = sql_query(format!("SELECT pg_advisory_unlock({MIGRATION_LOCK_ID})"))
-        .execute(&mut connection)
-        .await;
+    let unlock = sql_query(
+        include_str!("queries/migrations/release_advisory_lock.sql")
+            .replace("{{migration_lock_id}}", &MIGRATION_LOCK_ID.to_string()),
+    )
+    .execute(&mut connection)
+    .await;
     if outcome.is_ok() {
         unlock.context("Failed to release migration advisory lock")?;
     }
@@ -132,12 +138,11 @@ async fn adopt_locked(
     expected: &[FrozenLedgerRow],
     mode: Mode,
 ) -> Result<AdoptionReport> {
-    let actual: Vec<DrizzleLedgerRow> = sql_query(
-        "SELECT hash, created_at FROM drizzle.__drizzle_migrations ORDER BY created_at, id",
-    )
-    .load(connection)
-    .await
-    .context("Existing Drizzle migration ledger is missing or unreadable")?;
+    let actual: Vec<DrizzleLedgerRow> =
+        sql_query(include_str!("queries/migrations/read_drizzle_ledger.sql"))
+            .load(connection)
+            .await
+            .context("Existing Drizzle migration ledger is missing or unreadable")?;
     verify_ledger(expected, &actual)?;
     crate::catalog::verify(connection).await?;
 
@@ -146,11 +151,10 @@ async fn adopt_locked(
         baseline_created = connection
             .transaction::<bool, anyhow::Error, _>(async move |connection| {
                 crate::migrations::ensure_private_ledger(connection).await?;
-                let versions: Vec<DieselVersionRow> = sql_query(
-                    "SELECT version FROM zc_private.__diesel_schema_migrations ORDER BY version",
-                )
-                .load(connection)
-                .await?;
+                let versions: Vec<DieselVersionRow> =
+                    sql_query(include_str!("queries/migrations/read_private_ledger.sql"))
+                        .load(connection)
+                        .await?;
                 if versions.iter().any(|row| row.version == BASELINE_VERSION) {
                     return Ok(false);
                 }
@@ -158,7 +162,7 @@ async fn adopt_locked(
                     versions.is_empty(),
                     "Diesel migrations exist without Drizzle baseline; refusing adoption"
                 );
-                sql_query("INSERT INTO zc_private.__diesel_schema_migrations(version) VALUES ($1)")
+                sql_query(include_str!("queries/migrations/insert_diesel_version.sql"))
                     .bind::<Text, _>(BASELINE_VERSION)
                     .execute(connection)
                     .await?;

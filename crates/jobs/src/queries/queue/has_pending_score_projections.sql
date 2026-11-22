@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','reconcileRecordEligibility','fanOutRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok

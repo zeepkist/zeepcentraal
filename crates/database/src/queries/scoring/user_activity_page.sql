@@ -1,0 +1,1 @@
+SELECT account.id AS id_user,EXISTS(SELECT 1 FROM (SELECT * FROM public.record WHERE record_eligible) record WHERE record.id_user=account.id AND record.date_created>=statement_timestamp()-interval '6 months') AS active FROM public."user" account WHERE account.id>$1 ORDER BY account.id LIMIT $2

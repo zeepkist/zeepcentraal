@@ -1,0 +1,1 @@
+INSERT INTO zc_private.managed_lobby(key,join_id,date_created,date_updated) VALUES($1,$2,clock_timestamp(),clock_timestamp()) ON CONFLICT(key) DO UPDATE SET join_id=excluded.join_id,date_updated=clock_timestamp()

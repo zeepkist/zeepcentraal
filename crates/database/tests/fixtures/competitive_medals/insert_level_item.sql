@@ -1,0 +1,1 @@
+INSERT INTO public.level_item(id,id_level,validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze,updated_at,deleted,publicly_visible) SELECT 4,id_level,validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze,now(),false,true FROM public.level_item WHERE id=2

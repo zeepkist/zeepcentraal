@@ -1,0 +1,1 @@
+SELECT count(*)::bigint, (SELECT id_record FROM public.personal_best_global WHERE id_user=$1 AND id_level=$2), (SELECT id_record FROM public.world_record_global WHERE id_level=$2) FROM public.record WHERE id_user=$1 AND id_level=$2

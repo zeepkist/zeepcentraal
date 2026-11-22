@@ -1,0 +1,1 @@
+SELECT jsonb_build_object('record',(SELECT to_jsonb(r) FROM public.record r WHERE id=1276),'pb',(SELECT jsonb_agg(p) FROM public.personal_best_global p),'wr',(SELECT jsonb_agg(w) FROM public.world_record_global w),'points',(SELECT jsonb_agg(s) FROM public.level_points s))::text

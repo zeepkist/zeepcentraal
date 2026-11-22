@@ -74,7 +74,13 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
     tokio::spawn(async move {
         let _ = connection.await;
     });
-    let round:i32=client.query_one("INSERT INTO public.zsl_round(id_season,name,round,workshop_id,event_date,submission_start,submission_end,zsl_vote_end,cosmetic_vote_end) VALUES(9000,'API fixture',3,0,now()+interval '14 days',now()-interval '1 day',now()+interval '1 day',now()+interval '8 days',now()+interval '28 days') RETURNING id",&[]).await?.get(0);
+    let round: i32 = client
+        .query_one(
+            include_str!("fixtures/submissions/insert_zsl_round.sql"),
+            &[],
+        )
+        .await?
+        .get(0);
     let database_config = DatabaseConfig {
         url: url.clone(),
         source: zc_core::environment::VariableSource::Process,
@@ -235,7 +241,7 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
     assert!(
         client
             .query_opt(
-                "SELECT id FROM public.\"user\" WHERE steam_id=$1",
+                include_str!("fixtures/submissions/select_id_user.sql"),
                 &[&new_author]
             )
             .await?
@@ -253,7 +259,7 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
     assert_eq!(created.0, StatusCode::ACCEPTED);
     let placeholder = client
         .query_one(
-            "SELECT steam_name,banned FROM public.\"user\" WHERE steam_id=$1",
+            include_str!("fixtures/submissions/select_steam_name_user.sql"),
             &[&new_author],
         )
         .await?;
@@ -337,7 +343,7 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
     assert_eq!(rejected.0, StatusCode::BAD_REQUEST);
     client
         .execute(
-            "UPDATE public.zsl_round SET submission_end=now()-interval '1 second' WHERE id=$1",
+            include_str!("fixtures/submissions/set_submission_end_zsl_round.sql"),
             &[&round],
         )
         .await?;
@@ -348,7 +354,12 @@ async fn first_party_http_auth_privacy_and_contract() -> Result<()> {
         StatusCode::BAD_REQUEST
     );
     // Public results expose author names without authentication after publication.
-    client.execute("UPDATE public.zsl_round SET submission_start=now()-interval '4 days',submission_end=now()-interval '3 days',zsl_vote_end=now()-interval '2 days',cosmetic_vote_end=now()-interval '1 day' WHERE id=9000", &[]).await?;
+    client
+        .execute(
+            include_str!("fixtures/submissions/set_submission_start_zsl_round.sql"),
+            &[],
+        )
+        .await?;
     let published = request(
         &app,
         Method::GET,

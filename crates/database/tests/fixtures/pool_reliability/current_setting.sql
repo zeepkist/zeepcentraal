@@ -1,0 +1,1 @@
+SELECT current_setting('application_name') AS application_name, current_setting('statement_timeout') AS statement_timeout, current_setting('lock_timeout') AS lock_timeout, current_setting('idle_in_transaction_session_timeout') AS idle_transaction_timeout

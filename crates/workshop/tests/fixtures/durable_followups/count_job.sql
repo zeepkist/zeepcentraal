@@ -1,0 +1,1 @@
+SELECT count(*)::bigint, bool_and(EXISTS(SELECT 1 FROM zc_jobs.job j WHERE j.task='updateLevelScore' AND (j.payload->>'idLevel')::integer=l.id)), bool_and(EXISTS(SELECT 1 FROM zc_jobs.job j WHERE j.task='auditRecordGhosts' AND j.payload->'idLevels' @> to_jsonb(ARRAY[l.id]))) FROM public.level l JOIN public.level_item i ON i.id_level=l.id WHERE i.workshop_id=$1

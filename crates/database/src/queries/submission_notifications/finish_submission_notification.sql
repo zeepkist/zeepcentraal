@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submission_notification SET message_id=$4,payload_digest=$5,delivered_revision=$2,delivered_validation_id=$3,attempt_started_at=NULL,last_error=NULL,date_updated=now() WHERE id_submission=$1

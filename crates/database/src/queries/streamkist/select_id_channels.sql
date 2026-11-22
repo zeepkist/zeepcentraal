@@ -1,0 +1,1 @@
+SELECT c.id,c.guild_id,c.channel_id,c.game_id,t.name AS game_name,c.minimum_viewers,c.allow_category_switches,0::integer AS stream_limit FROM streamkist.channels c JOIN streamkist.twitch_categories t USING(game_id) WHERE c.id=$1 AND c.deleted_at IS NULL

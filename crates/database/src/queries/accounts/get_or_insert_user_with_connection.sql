@@ -1,0 +1,1 @@
+INSERT INTO public."user"(steam_id,banned,date_created,date_updated) VALUES($1,false,clock_timestamp(),clock_timestamp()) ON CONFLICT (steam_id) DO UPDATE SET steam_id=excluded.steam_id RETURNING id,steam_name,banned,steam_id,discord_id

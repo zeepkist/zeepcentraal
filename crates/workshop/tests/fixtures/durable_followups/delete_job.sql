@@ -1,0 +1,1 @@
+DELETE FROM zc_jobs.job WHERE task='auditRecordGhosts'; CREATE FUNCTION public.reject_fixture_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.task='auditRecordGhosts' THEN RAISE EXCEPTION 'fixture queue failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_fixture_audit BEFORE INSERT ON zc_jobs.job FOR EACH ROW EXECUTE FUNCTION public.reject_fixture_audit()

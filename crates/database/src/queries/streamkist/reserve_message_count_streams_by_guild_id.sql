@@ -1,0 +1,1 @@
+SELECT count(*) FROM streamkist.streams s WHERE guild_id=$1 AND stream_id=$2 AND (tracking_state='active' OR activation_pending) AND EXISTS(SELECT 1 FROM streamkist.channels c WHERE c.guild_id=s.guild_id AND c.channel_id=s.channel_id AND c.deleted_at IS NULL)

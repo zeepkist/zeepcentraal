@@ -37,17 +37,9 @@ async fn historical_stats_deduplicate_streams_and_retain_removed_watches() -> Re
             guilds: 0,
         }
     );
-    client.batch_execute(
-        "INSERT INTO streamkist.guilds(guild_id) VALUES('1'),('2');
-         INSERT INTO streamkist.twitch_categories(game_id,name) VALUES('9','Game'),('8','Other'),('7','Old');
-         INSERT INTO streamkist.channels(guild_id,channel_id,game_id) VALUES('1','10','9'),('1','11','8'),('2','20','9');
-         INSERT INTO streamkist.streams(watch_id,policy_watch_id,guild_id,channel_id,stream_id,user_id,snapshot,is_live,tracking_state)
-             SELECT id,id,guild_id,channel_id,'first','user-1','{}',false,'finished' FROM streamkist.channels;
-         INSERT INTO streamkist.streams(watch_id,policy_watch_id,guild_id,channel_id,stream_id,user_id,snapshot)
-             SELECT id,id,guild_id,channel_id,'second','user-1','{}' FROM streamkist.channels WHERE channel_id='11';
-         INSERT INTO streamkist.streams(watch_id,policy_watch_id,guild_id,channel_id,stream_id,user_id,snapshot)
-             SELECT id,id,guild_id,channel_id,'third','user-2','{}' FROM streamkist.channels WHERE channel_id='20';"
-    ).await?;
+    client
+        .batch_execute(include_str!("fixtures/streamkist/insert_guilds.sql"))
+        .await?;
     let expected = StreamkistStats {
         streams: 3,
         streamers: 2,
@@ -56,7 +48,9 @@ async fn historical_stats_deduplicate_streams_and_retain_removed_watches() -> Re
     };
     assert_eq!(database.streamkist_stats().await?, expected);
     client
-        .batch_execute("UPDATE streamkist.channels SET deleted_at=now();")
+        .batch_execute(include_str!(
+            "fixtures/streamkist/set_deleted_at_channels.sql"
+        ))
         .await?;
     assert_eq!(database.streamkist_stats().await?, expected);
     client.batch_execute(POLICY_DOWN).await?;
@@ -79,22 +73,44 @@ async fn migration_quota_concurrency_scope_delivery_and_terminal_state() -> Resu
         connection.await.expect("PostgreSQL connection");
     });
     client.batch_execute(UP).await?;
-    client.batch_execute("INSERT INTO streamkist.guilds(guild_id,watch_limit) VALUES('legacy',3); INSERT INTO streamkist.twitch_categories(game_id,name) VALUES('9','Zeepkist'),('8','Other game'); INSERT INTO streamkist.channels(guild_id,channel_id,game_id) VALUES('legacy','555','9'),('legacy','555','8'); INSERT INTO streamkist.streams(watch_id,stream_id,user_id,message_id,snapshot,peak_viewers) SELECT id,'legacy-stream','42',CASE WHEN game_id='9' THEN '9001' ELSE '9002' END,jsonb_build_object('peak_viewers',10,'ended_at',NULL),CASE WHEN game_id='9' THEN 10 ELSE 30 END FROM streamkist.channels;").await?;
+    client
+        .batch_execute(include_str!("fixtures/streamkist/insert_guilds_2.sql"))
+        .await?;
     // Discord snowflakes order delivery, even when the older card's row was created later.
     client
-        .batch_execute(
-            "UPDATE streamkist.streams SET created_at='2000-01-01' WHERE message_id='9002';",
-        )
+        .batch_execute(include_str!(
+            "fixtures/streamkist/set_created_at_streams.sql"
+        ))
         .await?;
     client.batch_execute(POLICY_UP).await?;
-    let canonical = client.query_one("SELECT message_id,peak_viewers,snapshot->>'peak_viewers' FROM streamkist.streams WHERE canonical",&[]).await?;
+    let canonical = client
+        .query_one(
+            include_str!("fixtures/streamkist/select_message_id_streams.sql"),
+            &[],
+        )
+        .await?;
     assert_eq!(canonical.get::<_, String>(0), "9001");
     assert_eq!(canonical.get::<_, i32>(1), 30);
     assert_eq!(canonical.get::<_, String>(2), "30");
-    assert_eq!(client.query_one("SELECT count(*) FROM streamkist.streams WHERE NOT canonical AND tracking_state='active'",&[]).await?.get::<_,i64>(0),1);
-    client.batch_execute("UPDATE streamkist.streams SET tracking_state='category_paused',is_live=false,snapshot=jsonb_build_object('peak_viewers',peak_viewers,'ended_at',123,'category_stopped',true) WHERE canonical;").await?;
+    assert_eq!(
+        client
+            .query_one(include_str!("fixtures/streamkist/count_streams.sql"), &[])
+            .await?
+            .get::<_, i64>(0),
+        1
+    );
+    client
+        .batch_execute(include_str!(
+            "fixtures/streamkist/set_tracking_state_streams.sql"
+        ))
+        .await?;
     client.batch_execute(POLICY_DOWN).await?;
-    let rolled_back=client.query_one("SELECT is_live,snapshot->>'ended_at',snapshot ? 'category_stopped' FROM streamkist.streams WHERE message_id='9001'",&[]).await?;
+    let rolled_back = client
+        .query_one(
+            include_str!("fixtures/streamkist/select_is_live_streams.sql"),
+            &[],
+        )
+        .await?;
     assert!(rolled_back.get::<_, bool>(0));
     assert!(rolled_back.get::<_, Option<String>>(1).is_none());
     assert!(!rolled_back.get::<_, bool>(2));
@@ -287,7 +303,7 @@ async fn migration_quota_concurrency_scope_delivery_and_terminal_state() -> Resu
     );
     client
         .execute(
-            "UPDATE streamkist.guilds SET watch_limit=3 WHERE guild_id='1'",
+            include_str!("fixtures/streamkist/set_watch_limit_guilds.sql"),
             &[],
         )
         .await?;
@@ -339,7 +355,7 @@ async fn migration_quota_concurrency_scope_delivery_and_terminal_state() -> Resu
     );
     client
         .execute(
-            "UPDATE streamkist.guilds SET watch_limit=5 WHERE guild_id='1'",
+            include_str!("fixtures/streamkist/set_watch_limit_guilds_by_guild_id_1.sql"),
             &[],
         )
         .await?;
@@ -352,7 +368,7 @@ async fn migration_quota_concurrency_scope_delivery_and_terminal_state() -> Resu
     );
     client
         .execute(
-            "UPDATE streamkist.guilds SET watch_limit=1 WHERE guild_id='1'",
+            include_str!("fixtures/streamkist/set_watch_limit_guilds_by_guild_id_1_2.sql"),
             &[],
         )
         .await?;

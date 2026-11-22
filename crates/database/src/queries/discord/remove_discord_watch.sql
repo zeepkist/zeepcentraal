@@ -1,0 +1,1 @@
+DELETE FROM zc_private.discord_watch WHERE discord_id=$1 AND id=$2 RETURNING id,discord_id,kind,target_id,paused,last_error,last_delivery_key, to_char(date_created AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS date_created, to_char(date_updated AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS date_updated

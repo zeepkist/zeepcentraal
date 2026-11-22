@@ -15,6 +15,12 @@ use zc_workshop::{
     scanner::WorkshopScanner, steamcmd::WorkshopDownload,
 };
 
+const COUNT_JOB_2: &str = include_str!("fixtures/durable_followups/count_job_2.sql");
+const EXISTS_SQL: &str = include_str!("fixtures/durable_followups/exists.sql");
+const DELETE_JOB_3: &str = include_str!("fixtures/durable_followups/delete_job_3.sql");
+const DROP_REJECT_FIXTURE_SCORE: &str =
+    include_str!("fixtures/durable_followups/drop_reject_fixture_score.sql");
+
 struct Metadata;
 #[async_trait]
 impl WorkshopMetadataAdapter for Metadata {
@@ -115,7 +121,12 @@ impl WorkshopDownloader for Downloader {
 }
 
 async fn assert_pending(client: &tokio_postgres::Client, workshop: i64) -> Result<()> {
-    let row = client.query_one("SELECT count(*)::bigint, bool_and(EXISTS(SELECT 1 FROM zc_jobs.job j WHERE j.task='updateLevelScore' AND (j.payload->>'idLevel')::integer=l.id)), bool_and(EXISTS(SELECT 1 FROM zc_jobs.job j WHERE j.task='auditRecordGhosts' AND j.payload->'idLevels' @> to_jsonb(ARRAY[l.id]))) FROM public.level l JOIN public.level_item i ON i.id_level=l.id WHERE i.workshop_id=$1", &[&workshop]).await?;
+    let row = client
+        .query_one(
+            include_str!("fixtures/durable_followups/count_job.sql"),
+            &[&workshop],
+        )
+        .await?;
     ensure!(
         row.get::<_, i64>(0) > 0,
         "fixture must commit at least one level"
@@ -145,7 +156,10 @@ async fn committed_changes_keep_followups_through_scan_and_queue_failures() -> R
     tokio::spawn(async move { connection.await.expect("fixture connection") });
     ensure!(
         client
-            .query_one("SELECT count(*) FROM public.level", &[])
+            .query_one(
+                include_str!("fixtures/durable_followups/count_level.sql"),
+                &[]
+            )
             .await?
             .get::<_, i64>(0)
             == 0,
@@ -158,14 +172,19 @@ async fn committed_changes_keep_followups_through_scan_and_queue_failures() -> R
     let downloader = Downloader::default();
     let scanner = WorkshopScanner::new(&Metadata, &downloader, &persistence);
     let outcome = async {
-        let batch = scanner.scan_workshop_items(&[1,2], 2).await?;
+        let batch = scanner.scan_workshop_items(&[1, 2], 2).await?;
         assert_eq!(batch.transient_failures.len(), 1);
         assert_pending(&client, 1).await?;
-        let queued: i64 = client.query_one("SELECT count(*) FROM zc_jobs.job", &[]).await?.get(0);
+        let queued: i64 = client.query_one(COUNT_JOB_2, &[]).await?.get(0);
         scanner.scan_workshop_item(1).await?;
-        assert_eq!(client.query_one("SELECT count(*) FROM zc_jobs.job", &[]).await?.get::<_,i64>(0), queued);
+        assert_eq!(
+            client.query_one(COUNT_JOB_2, &[]).await?.get::<_, i64>(0),
+            queued
+        );
 
-        storage.fail_at.store(storage.uploads.load(Ordering::SeqCst)+2, Ordering::SeqCst);
+        storage
+            .fail_at
+            .store(storage.uploads.load(Ordering::SeqCst) + 2, Ordering::SeqCst);
         assert!(scanner.scan_workshop_item(3).await.is_err());
         assert_pending(&client, 3).await?;
         scanner.scan_workshop_item(3).await?;
@@ -175,32 +194,100 @@ async fn committed_changes_keep_followups_through_scan_and_queue_failures() -> R
         assert_pending(&client, 4).await?;
 
         // Start a new audit batch so enqueue failure cannot merge into previous job.
-        client.batch_execute("DELETE FROM zc_jobs.job WHERE task='auditRecordGhosts'; CREATE FUNCTION public.reject_fixture_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.task='auditRecordGhosts' THEN RAISE EXCEPTION 'fixture queue failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_fixture_audit BEFORE INSERT ON zc_jobs.job FOR EACH ROW EXECUTE FUNCTION public.reject_fixture_audit()").await?;
+        client
+            .batch_execute(include_str!("fixtures/durable_followups/delete_job.sql"))
+            .await?;
         assert!(scanner.scan_workshop_item(5).await.is_err());
-        assert_eq!(client.query_one("SELECT count(*) FROM public.workshop_item WHERE workshop_id=5", &[]).await?.get::<_,i64>(0), 0);
-        client.batch_execute("DROP TRIGGER reject_fixture_audit ON zc_jobs.job; DROP FUNCTION public.reject_fixture_audit()").await?;
+        assert_eq!(
+            client
+                .query_one(
+                    include_str!("fixtures/durable_followups/count_workshop_item.sql"),
+                    &[]
+                )
+                .await?
+                .get::<_, i64>(0),
+            0
+        );
+        client
+            .batch_execute(include_str!(
+                "fixtures/durable_followups/drop_reject_fixture_audit.sql"
+            ))
+            .await?;
         scanner.scan_workshop_item(5).await?;
         assert_pending(&client, 5).await?;
-        client.batch_execute("DELETE FROM zc_jobs.job").await?;
+        client
+            .batch_execute(include_str!("fixtures/durable_followups/delete_job_2.sql"))
+            .await?;
         let ids = database.mark_workshop_deleted(5, 2).await?;
         assert!(!ids.is_empty());
-        ensure!(client.query_one("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task='updateLevelScore' AND (payload->>'idLevel')::integer=$1)", &[&ids[0]]).await?.get::<_,bool>(0), "deletion repair missing");
-        client.batch_execute("DELETE FROM zc_jobs.job; CREATE FUNCTION public.reject_fixture_score() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.task='updateLevelScore' THEN RAISE EXCEPTION 'fixture score failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_fixture_score BEFORE INSERT ON zc_jobs.job FOR EACH ROW EXECUTE FUNCTION public.reject_fixture_score()").await?;
-        assert!(database.mark_missing_workshop_levels_deleted(1, &[]).await.is_err());
-        assert!(!client.query_one("SELECT deleted FROM public.level_item WHERE workshop_id=1 LIMIT 1", &[]).await?.get::<_,bool>(0));
-        client.batch_execute("DROP TRIGGER reject_fixture_score ON zc_jobs.job; DROP FUNCTION public.reject_fixture_score()").await?;
-        let ids = database.mark_missing_workshop_levels_deleted(1, &[]).await?;
+        ensure!(
+            client
+                .query_one(EXISTS_SQL, &[&ids[0]])
+                .await?
+                .get::<_, bool>(0),
+            "deletion repair missing"
+        );
+        client.batch_execute(DELETE_JOB_3).await?;
+        assert!(
+            database
+                .mark_missing_workshop_levels_deleted(1, &[])
+                .await
+                .is_err()
+        );
+        assert!(
+            !client
+                .query_one(
+                    include_str!("fixtures/durable_followups/select_deleted_level_item.sql"),
+                    &[]
+                )
+                .await?
+                .get::<_, bool>(0)
+        );
+        client.batch_execute(DROP_REJECT_FIXTURE_SCORE).await?;
+        let ids = database
+            .mark_missing_workshop_levels_deleted(1, &[])
+            .await?;
         assert!(!ids.is_empty());
-        assert!(client.query_one("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task='updateLevelScore' AND (payload->>'idLevel')::integer=$1)", &[&ids[0]]).await?.get::<_,bool>(0));
-        client.batch_execute("DELETE FROM zc_jobs.job; CREATE FUNCTION public.reject_fixture_score() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.task='updateLevelScore' THEN RAISE EXCEPTION 'fixture score failure'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_fixture_score BEFORE INSERT ON zc_jobs.job FOR EACH ROW EXECUTE FUNCTION public.reject_fixture_score()").await?;
-        assert!(database.reconcile_missing_workshop_items(&[3]).await.is_err());
-        assert!(!client.query_one("SELECT bool_or(deleted) FROM public.level_item WHERE workshop_id=3", &[]).await?.get::<_,bool>(0));
-        client.batch_execute("DROP TRIGGER reject_fixture_score ON zc_jobs.job; DROP FUNCTION public.reject_fixture_score()").await?;
+        assert!(
+            client
+                .query_one(EXISTS_SQL, &[&ids[0]])
+                .await?
+                .get::<_, bool>(0)
+        );
+        client.batch_execute(DELETE_JOB_3).await?;
+        assert!(
+            database
+                .reconcile_missing_workshop_items(&[3])
+                .await
+                .is_err()
+        );
+        assert!(
+            !client
+                .query_one(
+                    include_str!("fixtures/durable_followups/select_level_item.sql"),
+                    &[]
+                )
+                .await?
+                .get::<_, bool>(0)
+        );
+        client.batch_execute(DROP_REJECT_FIXTURE_SCORE).await?;
         let ids = database.reconcile_missing_workshop_items(&[3]).await?;
         assert_eq!(ids.len(), 2);
-        assert_eq!(client.query_one("SELECT count(*) FROM zc_jobs.job WHERE task='updateLevelScore' AND (payload->>'idLevel')::integer=ANY($1)", &[&ids]).await?.get::<_,i64>(0), 2);
+        assert_eq!(
+            client
+                .query_one(
+                    include_str!(
+                        "fixtures/durable_followups/count_job_by_task_update_level_score.sql"
+                    ),
+                    &[&ids]
+                )
+                .await?
+                .get::<_, i64>(0),
+            2
+        );
         Ok(())
-    }.await;
+    }
+    .await;
     for root in downloader.roots.lock().unwrap().iter() {
         if root.exists() {
             std::fs::remove_dir_all(root)?;

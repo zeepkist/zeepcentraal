@@ -1,0 +1,1 @@
+SELECT id,id_submission,submission_revision,workshop_updated_at,workshop_file_size,content_sha256,validator_version,rules_hash,measurements,file_uid,failures,valid,payload FROM zc_private.level_submission_validation WHERE id=$1

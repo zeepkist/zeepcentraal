@@ -1,0 +1,1 @@
+SELECT level.xmin::text,metadata.xmin::text,item.xmin::text FROM public.level level JOIN public.level_metadata metadata ON metadata.id_level=level.id JOIN public.level_item item ON item.id_level=level.id WHERE level.id=$1

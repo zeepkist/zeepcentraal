@@ -9,6 +9,10 @@ use std::{fmt::Display, future::Future};
 use tracing::Instrument;
 use zc_core::ghosts::GhostStatistics;
 
+const LOCK_RECORD_LEVEL: &str = include_str!("../queries/records/lock_record_level.sql");
+const INSERT_RECORD_MEDIA: &str = include_str!("../queries/records/insert_record_media.sql");
+const SELECT_ID_USER_RECORD: &str = include_str!("../queries/records/select_id_user_record.sql");
+
 const WORLD_RECORD_LOCK_NAMESPACE: i32 = 1_861_284_953;
 const TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE: i32 = 1_953_744_432;
 
@@ -99,66 +103,86 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<Option<Level>, anyhow::Error, _>(async move |connection| {
-                    let by_xx = level_by_xx(connection, xx_hash).await?;
-                    let level = if let Some(level) = by_xx {
-                        level
-                    } else {
-                        let legacy = sql_query(
-                            "SELECT id,hash,xx_hash,adventure,has_records,record_count,publicly_visible \
-                             FROM public.level WHERE hash=$1 ORDER BY id LIMIT 1 FOR UPDATE",
-                        )
+                let by_xx = level_by_xx(connection, xx_hash).await?;
+                let level = if let Some(level) = by_xx {
+                    level
+                } else {
+                    let legacy = sql_query(include_str!("../queries/records/select_id_level.sql"))
                         .bind::<Text, _>(hash)
                         .get_result::<Level>(connection)
                         .await
                         .optional()?;
-                        let verified_legacy = if let Some(level) = legacy.filter(|level| level.xx_hash.is_empty() && (!adventure || level.adventure)) {
-                            #[derive(QueryableByName)]
-                            struct Blocks {
-                                #[diesel(sql_type=Jsonb)] blocks: serde_json::Value,
-                                #[diesel(sql_type=Integer)] format: i32,
-                                #[diesel(sql_type=Integer)] type_ground: i32,
-                                #[diesel(sql_type=Integer)] type_skybox: i32,
-                            }
-                            let stored = sql_query("SELECT blocks,format,type_ground,type_skybox FROM public.level_metadata WHERE id_level=$1 ORDER BY id LIMIT 1")
-                                .bind::<Integer,_>(level.id).get_result::<Blocks>(connection).await.optional()?;
-                            stored.filter(|stored| {
-                                let hash=match stored.format {1=>zc_core::levels::calculate_json_level_xxhash(&serde_json::json!({"blox":stored.blocks}).to_string()),0=>zc_core::levels::calculate_csv_blocks_xxhash(&stored.blocks,stored.type_skybox.into(),stored.type_ground.into()),_=>return false};
-                                hash.is_ok_and(|hash|hash.eq_ignore_ascii_case(xx_hash))
-                            }).map(|_|level)
-                        } else { None };
-                        if let Some(level) = verified_legacy {
-                            lock_level_workshop_items(connection, level.id).await?;
-                            sql_query(
-                                "UPDATE public.level SET xx_hash=$2,date_updated=clock_timestamp() \
-                                 WHERE id=$1",
-                            )
+                    let verified_legacy = if let Some(level) = legacy
+                        .filter(|level| level.xx_hash.is_empty() && (!adventure || level.adventure))
+                    {
+                        #[derive(QueryableByName)]
+                        struct Blocks {
+                            #[diesel(sql_type=Jsonb)]
+                            blocks: serde_json::Value,
+                            #[diesel(sql_type=Integer)]
+                            format: i32,
+                            #[diesel(sql_type=Integer)]
+                            type_ground: i32,
+                            #[diesel(sql_type=Integer)]
+                            type_skybox: i32,
+                        }
+                        let stored = sql_query(include_str!(
+                            "../queries/records/select_blocks_level_metadata.sql"
+                        ))
+                        .bind::<Integer, _>(level.id)
+                        .get_result::<Blocks>(connection)
+                        .await
+                        .optional()?;
+                        stored
+                            .filter(|stored| {
+                                let hash = match stored.format {
+                                    1 => zc_core::levels::calculate_json_level_xxhash(
+                                        &serde_json::json!({"blox":stored.blocks}).to_string(),
+                                    ),
+                                    0 => zc_core::levels::calculate_csv_blocks_xxhash(
+                                        &stored.blocks,
+                                        stored.type_skybox.into(),
+                                        stored.type_ground.into(),
+                                    ),
+                                    _ => return false,
+                                };
+                                hash.is_ok_and(|hash| hash.eq_ignore_ascii_case(xx_hash))
+                            })
+                            .map(|_| level)
+                    } else {
+                        None
+                    };
+                    if let Some(level) = verified_legacy {
+                        lock_level_workshop_items(connection, level.id).await?;
+                        sql_query(include_str!("../queries/records/set_xx_hash_level.sql"))
                             .bind::<Integer, _>(level.id)
                             .bind::<Text, _>(xx_hash)
                             .execute(connection)
                             .await?;
-                            level_by_xx(connection, xx_hash)
-                                .await?
-                                .expect("updated canonical level")
-                        } else {
-                            if adventure { return Ok(None); }
-                            let created = sql_query(
-                                "INSERT INTO public.level(hash,xx_hash,adventure) VALUES($1,$2,$3) \
-                                 ON CONFLICT (xx_hash) DO NOTHING RETURNING id",
-                            )
-                            .bind::<Text, _>(hash)
-                            .bind::<Text, _>(xx_hash)
-                            .bind::<Bool, _>(false)
-                            .get_result::<IdRow>(connection)
-                            .await
-                            .optional()?;
-                            let _ = created;
-                            level_by_xx(connection, xx_hash)
-                                .await?
-                                .ok_or_else(|| anyhow::anyhow!("failed to resolve canonical level"))?
+                        level_by_xx(connection, xx_hash)
+                            .await?
+                            .expect("updated canonical level")
+                    } else {
+                        if adventure {
+                            return Ok(None);
                         }
-                    };
-                    Ok((!adventure || level.adventure).then_some(level))
-                })
+                        let created = sql_query(include_str!(
+                            "../queries/records/resolve_submission_level_insert_level.sql"
+                        ))
+                        .bind::<Text, _>(hash)
+                        .bind::<Text, _>(xx_hash)
+                        .bind::<Bool, _>(false)
+                        .get_result::<IdRow>(connection)
+                        .await
+                        .optional()?;
+                        let _ = created;
+                        level_by_xx(connection, xx_hash)
+                            .await?
+                            .ok_or_else(|| anyhow::anyhow!("failed to resolve canonical level"))?
+                    }
+                };
+                Ok((!adventure || level.adventure).then_some(level))
+            })
             .await
     }
 
@@ -183,231 +207,251 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<RecordSubmissionResult, anyhow::Error, _>(async move |connection| {
-                    sql_query("SELECT pg_advisory_xact_lock($1,$2)")
-                        .bind::<Integer,_>(super::record_eligibility::LEVEL_LOCK_NAMESPACE)
-                        .bind::<Integer,_>(input.id_level).execute(connection).await?;
-                    if let Some(evidence) = &input.evidence
-                        && let Some(run_uuid) = evidence.run_uuid {
-                        sql_query("SELECT pg_advisory_xact_lock($1,hashtext($2))").bind::<Integer,_>(input.id_user).bind::<Text,_>(run_uuid).execute(connection).await?;
-                        #[derive(QueryableByName)]
-                        struct Run { #[diesel(sql_type=Integer)] id_record:i32, #[diesel(sql_type=Text)] payload_digest:String }
-                        let existing=sql_query("SELECT id_record,payload_digest FROM zc_private.record_run WHERE id_user=$1 AND run_uuid=$2").bind::<Integer,_>(input.id_user).bind::<Text,_>(run_uuid).get_result::<Run>(connection).await.optional()?;
-                        if let Some(existing)=existing {
-                            ensure!(existing.payload_digest==evidence.payload_digest,"run UUID payload mismatch");
-                            return Ok(RecordSubmissionResult {id_record:existing.id_record,personal_best_changed:false,tournament_result_changed:false,world_record_user_ids:vec![]});
-                        }
-                    }
-                    let accepted: AcceptanceRow = record_phase(
-                        "user_level_lock",
-                        sql_query(
-                            "SELECT pg_advisory_xact_lock($1,$2),clock_timestamp()::text AS accepted_at",
-                        )
+                sql_query(LOCK_RECORD_LEVEL)
+                    .bind::<Integer, _>(super::record_eligibility::LEVEL_LOCK_NAMESPACE)
+                    .bind::<Integer, _>(input.id_level)
+                    .execute(connection)
+                    .await?;
+                if let Some(evidence) = &input.evidence
+                    && let Some(run_uuid) = evidence.run_uuid
+                {
+                    sql_query(include_str!("../queries/records/lock_record_run_uuid.sql"))
                         .bind::<Integer, _>(input.id_user)
-                        .bind::<Integer, _>(input.id_level)
-                        .get_result(connection),
+                        .bind::<Text, _>(run_uuid)
+                        .execute(connection)
+                        .await?;
+                    #[derive(QueryableByName)]
+                    struct Run {
+                        #[diesel(sql_type=Integer)]
+                        id_record: i32,
+                        #[diesel(sql_type=Text)]
+                        payload_digest: String,
+                    }
+                    let existing = sql_query(include_str!(
+                        "../queries/records/select_id_record_record_run.sql"
+                    ))
+                    .bind::<Integer, _>(input.id_user)
+                    .bind::<Text, _>(run_uuid)
+                    .get_result::<Run>(connection)
+                    .await
+                    .optional()?;
+                    if let Some(existing) = existing {
+                        ensure!(
+                            existing.payload_digest == evidence.payload_digest,
+                            "run UUID payload mismatch"
+                        );
+                        return Ok(RecordSubmissionResult {
+                            id_record: existing.id_record,
+                            personal_best_changed: false,
+                            tournament_result_changed: false,
+                            world_record_user_ids: vec![],
+                        });
+                    }
+                }
+                let accepted: AcceptanceRow = record_phase(
+                    "user_level_lock",
+                    sql_query(include_str!(
+                        "../queries/records/lock_record_submission.sql"
+                    ))
+                    .bind::<Integer, _>(input.id_user)
+                    .bind::<Integer, _>(input.id_level)
+                    .get_result(connection),
+                )
+                .await?;
+                record_phase(
+                    "tournament_level_lock",
+                    sql_query(include_str!(
+                        "../queries/records/lock_tournament_level_shared.sql"
+                    ))
+                    .bind::<Integer, _>(input.id_level)
+                    .execute(connection),
+                )
+                .await?;
+
+                let created: IdRow = record_phase(
+                    "record_insert",
+                    sql_query(include_str!(
+                        "../queries/records/submit_record_insert_record.sql"
+                    ))
+                    .bind::<Integer, _>(input.id_user)
+                    .bind::<Float, _>(input.time)
+                    .bind::<Varchar, _>(input.game_version)
+                    .bind::<Integer, _>(input.id_level)
+                    .bind::<Varchar, _>(input.mod_version)
+                    .bind::<Array<Float>, _>(input.splits)
+                    .bind::<Array<Float>, _>(input.speeds)
+                    .get_result(connection),
+                )
+                .await?;
+
+                if let Some(evidence) = &input.evidence {
+                    sql_query(INSERT_RECORD_MEDIA)
+                        .bind::<Integer, _>(created.id)
+                        .bind::<Text, _>(evidence.ghost_key)
+                        .execute(connection)
+                        .await?;
+                    super::ghost_validation::persist_validation(
+                        connection,
+                        created.id,
+                        Some(evidence.ghost_digest),
+                        evidence.report,
+                        Some(&evidence.checked_at),
                     )
                     .await?;
+                    if let Some(run_uuid) = evidence.run_uuid {
+                        sql_query(include_str!("../queries/records/insert_record_run.sql"))
+                            .bind::<Integer, _>(input.id_user)
+                            .bind::<Text, _>(run_uuid)
+                            .bind::<Text, _>(evidence.payload_digest)
+                            .bind::<Integer, _>(created.id)
+                            .execute(connection)
+                            .await?;
+                    }
+                }
+                sql_query(include_str!(
+                    "../queries/records/insert_record_statistic.sql"
+                ))
+                .bind::<Jsonb, _>(statistics)
+                .bind::<Integer, _>(created.id)
+                .execute(connection)
+                .await?;
+
+                if input
+                    .evidence
+                    .as_ref()
+                    .is_some_and(|e| e.report.status == "fail")
+                {
+                    return Ok(RecordSubmissionResult {
+                        id_record: created.id,
+                        personal_best_changed: false,
+                        tournament_result_changed: false,
+                        world_record_user_ids: vec![],
+                    });
+                }
+                let personal_best_changed = record_optional_phase(
+                    "personal_best",
+                    sql_query(include_str!(
+                        "../queries/records/insert_personal_best_global.sql"
+                    ))
+                    .bind::<Integer, _>(input.id_user)
+                    .bind::<Integer, _>(input.id_level)
+                    .bind::<Integer, _>(created.id)
+                    .bind::<Float, _>(input.time)
+                    .get_result::<IdRow>(connection),
+                )
+                .await?
+                .is_some();
+
+                let tournaments = sql_query(include_str!(
+                    "../queries/records/select_id_track_tournament.sql"
+                ))
+                .bind::<Integer, _>(input.id_level)
+                .bind::<Integer, _>(input.id_user)
+                .bind::<Text, _>(&accepted.accepted_at)
+                .bind::<Float, _>(input.time)
+                .load::<TournamentRow>(connection)
+                .await?;
+                let mut changed_tournaments = Vec::new();
+                for tournament in tournaments {
+                    sql_query(LOCK_RECORD_LEVEL)
+                        .bind::<Integer, _>(TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE)
+                        .bind::<Integer, _>(tournament.id)
+                        .execute(connection)
+                        .await?;
+                    let changed = sql_query(include_str!(
+                        "../queries/records/insert_track_tournament_result.sql"
+                    ))
+                    .bind::<Integer, _>(tournament.id)
+                    .bind::<Integer, _>(input.id_user)
+                    .bind::<Integer, _>(created.id)
+                    .bind::<Float, _>(input.time)
+                    .get_result::<IdRow>(connection)
+                    .await
+                    .optional()?;
+                    if changed.is_some() {
+                        changed_tournaments.push(tournament.id);
+                    }
+                }
+                for tournament in &changed_tournaments {
+                    rerank_tournament(connection, *tournament).await?;
+                }
+
+                let observed = sql_query(SELECT_ID_USER_RECORD)
+                    .bind::<Integer, _>(input.id_level)
+                    .bind::<Integer, _>(created.id)
+                    .get_result::<WorldRecordRow>(connection)
+                    .await
+                    .optional()?;
+                let mut world_record_user_ids = Vec::new();
+                if observed
+                    .as_ref()
+                    .is_none_or(|record| record.time > input.time)
+                {
                     record_phase(
-                        "tournament_level_lock",
-                        sql_query("SELECT pg_advisory_xact_lock_shared(0,$1)")
+                        "world_record_lock",
+                        sql_query(LOCK_RECORD_LEVEL)
+                            .bind::<Integer, _>(WORLD_RECORD_LOCK_NAMESPACE)
                             .bind::<Integer, _>(input.id_level)
                             .execute(connection),
                     )
                     .await?;
-
-                    let created: IdRow = record_phase(
-                        "record_insert",
-                        sql_query(
-                            "INSERT INTO public.record \
-                         (id_user,time,game_version,id_level,mod_version,splits,speeds,date_created,date_updated) \
-                         VALUES($1,$2,$3,$4,$5,$6,$7,clock_timestamp(),clock_timestamp()) RETURNING id",
-                        )
-                        .bind::<Integer, _>(input.id_user)
-                        .bind::<Float, _>(input.time)
-                        .bind::<Varchar, _>(input.game_version)
+                    let previous = sql_query(SELECT_ID_USER_RECORD)
                         .bind::<Integer, _>(input.id_level)
-                        .bind::<Varchar, _>(input.mod_version)
-                        .bind::<Array<Float>, _>(input.splits)
-                        .bind::<Array<Float>, _>(input.speeds)
-                        .get_result(connection),
-                    )
-                    .await?;
-
-                    if let Some(evidence)=&input.evidence {
-                        sql_query("INSERT INTO public.record_media(id_record,ghost_url,date_created,date_updated) VALUES($1,$2,clock_timestamp(),clock_timestamp())").bind::<Integer,_>(created.id).bind::<Text,_>(evidence.ghost_key).execute(connection).await?;
-                        super::ghost_validation::persist_validation(connection,created.id,Some(evidence.ghost_digest),evidence.report,Some(&evidence.checked_at)).await?;
-                        if let Some(run_uuid)=evidence.run_uuid {
-                            sql_query("INSERT INTO zc_private.record_run(id_user,run_uuid,payload_digest,id_record) VALUES($1,$2,$3,$4)").bind::<Integer,_>(input.id_user).bind::<Text,_>(run_uuid).bind::<Text,_>(evidence.payload_digest).bind::<Integer,_>(created.id).execute(connection).await?;
-                        }
+                        .bind::<Integer, _>(created.id)
+                        .get_result::<WorldRecordRow>(connection)
+                        .await
+                        .optional()?;
+                    if previous
+                        .as_ref()
+                        .is_some_and(|record| record.time <= input.time)
+                    {
+                        return Ok(RecordSubmissionResult {
+                            id_record: created.id,
+                            personal_best_changed,
+                            tournament_result_changed: !changed_tournaments.is_empty(),
+                            world_record_user_ids,
+                        });
                     }
-                    sql_query(
-                        "INSERT INTO public.record_statistic \
-                         SELECT populated.* FROM jsonb_populate_record( \
-                           NULL::public.record_statistic, \
-                           $1 || jsonb_build_object('id_record',$2,'date_created',clock_timestamp(),'date_updated',clock_timestamp()) \
-                         ) AS populated",
-                    )
-                    .bind::<Jsonb, _>(statistics)
-                    .bind::<Integer, _>(created.id)
-                    .execute(connection)
-                    .await?;
-
-                    if input.evidence.as_ref().is_some_and(|e| e.report.status == "fail") {
-                        return Ok(RecordSubmissionResult { id_record:created.id, personal_best_changed:false,
-                            tournament_result_changed:false, world_record_user_ids:vec![] });
+                    let mut user_ids = vec![input.id_user];
+                    if let Some(previous) = &previous {
+                        user_ids.push(previous.id_user);
                     }
-                    let personal_best_changed = record_optional_phase(
-                        "personal_best",
-                        sql_query(
-                            "INSERT INTO public.personal_best_global \
-                         (id_user,id_level,id_record,date_created,date_updated) \
-                         SELECT $1,$2,$3,clock_timestamp(),clock_timestamp() \
-                         WHERE NOT EXISTS(SELECT 1 FROM public.record r WHERE r.id_user=$1 AND r.id_level=$2 \
-                           AND zc_private.record_is_eligible(r.id) AND (r.time<$4 OR (r.time=$4 AND r.id<$3))) \
-                         ON CONFLICT (id_user,id_level) DO UPDATE SET \
-                           id_record=excluded.id_record,date_updated=excluded.date_updated \
-                         WHERE NOT zc_private.record_is_eligible(personal_best_global.id_record) OR (SELECT current_record.time FROM public.record current_record \
-                                WHERE current_record.id=personal_best_global.id_record)>$4 \
-                         RETURNING id",
-                        )
+                    user_ids.sort_unstable();
+                    user_ids.dedup();
+                    let changed = record_optional_phase(
+                        "world_record",
+                        sql_query(include_str!(
+                            "../queries/records/insert_world_record_global.sql"
+                        ))
                         .bind::<Integer, _>(input.id_user)
                         .bind::<Integer, _>(input.id_level)
                         .bind::<Integer, _>(created.id)
                         .bind::<Float, _>(input.time)
                         .get_result::<IdRow>(connection),
                     )
-                    .await?
-                    .is_some();
-
-                    let tournaments = sql_query(
-                        "SELECT tournament.id FROM public.track_tournament tournament \
-                         LEFT JOIN public.track_tournament_result existing \
-                           ON existing.id_tournament=tournament.id AND existing.id_user=$2 \
-                         WHERE tournament.id_level=$1 AND tournament.finalized_at IS NULL \
-                           AND tournament.start_at<=$3::timestamptz AND tournament.end_at>$3::timestamptz \
-                           AND (existing.time IS NULL OR existing.time>$4 OR NOT zc_private.record_is_eligible(existing.id_record)) ORDER BY tournament.id",
-                    )
-                    .bind::<Integer, _>(input.id_level)
-                    .bind::<Integer, _>(input.id_user)
-                    .bind::<Text, _>(&accepted.accepted_at)
-                    .bind::<Float, _>(input.time)
-                    .load::<TournamentRow>(connection)
                     .await?;
-                    let mut changed_tournaments = Vec::new();
-                    for tournament in tournaments {
-                        sql_query("SELECT pg_advisory_xact_lock($1,$2)")
-                            .bind::<Integer, _>(TRACK_TOURNAMENT_RESULT_LOCK_NAMESPACE)
-                            .bind::<Integer, _>(tournament.id)
-                            .execute(connection)
-                            .await?;
-                        let changed = sql_query(
-                            "INSERT INTO public.track_tournament_result \
-                             (id_tournament,id_user,id_record,time,rank,points,date_created,date_updated) \
-                             VALUES($1,$2,$3,$4,1,1000,clock_timestamp(),clock_timestamp()) \
-                             ON CONFLICT (id_tournament,id_user) DO UPDATE SET \
-                               id_record=excluded.id_record,time=excluded.time,date_updated=excluded.date_updated \
-                             WHERE excluded.time<track_tournament_result.time OR NOT zc_private.record_is_eligible(track_tournament_result.id_record) RETURNING id_tournament AS id",
-                        )
-                        .bind::<Integer, _>(tournament.id)
-                        .bind::<Integer, _>(input.id_user)
-                        .bind::<Integer, _>(created.id)
-                        .bind::<Float, _>(input.time)
-                        .get_result::<IdRow>(connection)
-                        .await
-                        .optional()?;
-                        if changed.is_some() {
-                            changed_tournaments.push(tournament.id);
-                        }
+                    if changed.is_some() {
+                        world_record_user_ids = user_ids;
                     }
-                    for tournament in &changed_tournaments {
-                        rerank_tournament(connection, *tournament).await?;
-                    }
+                }
 
-                    let observed = sql_query(
-                        "SELECT r.id_user,r.time FROM public.record r JOIN public.\"user\" u ON u.id=r.id_user \
-                         WHERE r.id_level=$1 AND r.id<>$2 AND NOT u.banned AND zc_private.record_is_eligible(r.id) ORDER BY r.time,r.date_created,r.id LIMIT 1",
-                    )
-                    .bind::<Integer, _>(input.id_level)
-                    .bind::<Integer, _>(created.id)
-                    .get_result::<WorldRecordRow>(connection)
-                    .await
-                    .optional()?;
-                    let mut world_record_user_ids = Vec::new();
-                    if observed.as_ref().is_none_or(|record| record.time > input.time) {
-                        record_phase(
-                            "world_record_lock",
-                            sql_query("SELECT pg_advisory_xact_lock($1,$2)")
-                                .bind::<Integer, _>(WORLD_RECORD_LOCK_NAMESPACE)
-                                .bind::<Integer, _>(input.id_level)
-                                .execute(connection),
-                        )
-                        .await?;
-                        let previous = sql_query(
-                            "SELECT r.id_user,r.time FROM public.record r JOIN public.\"user\" u ON u.id=r.id_user \
-                             WHERE r.id_level=$1 AND r.id<>$2 AND NOT u.banned AND zc_private.record_is_eligible(r.id) ORDER BY r.time,r.date_created,r.id LIMIT 1",
-                        )
-                        .bind::<Integer, _>(input.id_level)
-                        .bind::<Integer, _>(created.id)
-                        .get_result::<WorldRecordRow>(connection)
-                        .await
-                        .optional()?;
-                        if previous.as_ref().is_some_and(|record| record.time <= input.time) {
-                            return Ok(RecordSubmissionResult {
-                                id_record: created.id,
-                                personal_best_changed,
-                                tournament_result_changed: !changed_tournaments.is_empty(),
-                                world_record_user_ids,
-                            });
-                        }
-                        let mut user_ids = vec![input.id_user];
-                        if let Some(previous) = &previous {
-                            user_ids.push(previous.id_user);
-                        }
-                        user_ids.sort_unstable();
-                        user_ids.dedup();
-                        let changed = record_optional_phase(
-                            "world_record",
-                            sql_query(
-                                "INSERT INTO public.world_record_global \
-                             (id_user,id_level,id_record,date_created,date_updated) \
-                             VALUES($1,$2,$3,clock_timestamp(),clock_timestamp()) \
-                             ON CONFLICT (id_level) DO UPDATE SET \
-                               id_user=excluded.id_user,id_record=excluded.id_record,date_updated=excluded.date_updated \
-                             WHERE (SELECT current_record.time FROM public.record current_record \
-                                    WHERE current_record.id=world_record_global.id_record)>$4 OR NOT zc_private.record_is_eligible(world_record_global.id_record) RETURNING id",
-                            )
-                            .bind::<Integer, _>(input.id_user)
-                            .bind::<Integer, _>(input.id_level)
-                            .bind::<Integer, _>(created.id)
-                            .bind::<Float, _>(input.time)
-                            .get_result::<IdRow>(connection),
-                        )
-                        .await?;
-                        if changed.is_some() {
-                            world_record_user_ids = user_ids;
-                        }
-                    }
-
-                    Ok(RecordSubmissionResult {
-                        id_record: created.id,
-                        personal_best_changed,
-                        tournament_result_changed: !changed_tournaments.is_empty(),
-                        world_record_user_ids,
-                    })
+                Ok(RecordSubmissionResult {
+                    id_record: created.id,
+                    personal_best_changed,
+                    tournament_result_changed: !changed_tournaments.is_empty(),
+                    world_record_user_ids,
                 })
+            })
             .await
     }
 
     pub async fn insert_record_media(&self, id_record: i32, ghost_url: &str) -> Result<()> {
         let mut connection = self.connection().await?;
-        sql_query(
-            "INSERT INTO public.record_media(id_record,ghost_url,date_created,date_updated) \
-             VALUES($1,$2,clock_timestamp(),clock_timestamp())",
-        )
-        .bind::<Integer, _>(id_record)
-        .bind::<Text, _>(ghost_url)
-        .execute(&mut connection)
-        .await?;
+        sql_query(INSERT_RECORD_MEDIA)
+            .bind::<Integer, _>(id_record)
+            .bind::<Text, _>(ghost_url)
+            .execute(&mut connection)
+            .await?;
         Ok(())
     }
 
@@ -418,11 +462,9 @@ impl Database {
         hash: &str,
     ) -> Result<bool> {
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "INSERT INTO public.level_request(workshop_id,hash) \
-             SELECT $2,$3 WHERE NOT EXISTS(SELECT 1 FROM public.level_metadata WHERE id_level=$1) \
-             ON CONFLICT (workshop_id) DO NOTHING RETURNING id",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/records/claim_missing_level_metadata_request.sql"
+        ))
         .bind::<Integer, _>(id_level)
         .bind::<BigInt, _>(workshop_id)
         .bind::<Text, _>(hash)
@@ -437,26 +479,22 @@ async fn level_by_xx(
     connection: &mut diesel_async::AsyncPgConnection,
     xx_hash: &str,
 ) -> Result<Option<Level>> {
-    Ok(sql_query(
-        "SELECT id,hash,xx_hash,adventure,has_records,record_count,publicly_visible \
-         FROM public.level WHERE xx_hash=$1 LIMIT 1 FOR UPDATE",
+    Ok(
+        sql_query(include_str!("../queries/records/level_by_xx.sql"))
+            .bind::<Text, _>(xx_hash)
+            .get_result(connection)
+            .await
+            .optional()?,
     )
-    .bind::<Text, _>(xx_hash)
-    .get_result(connection)
-    .await
-    .optional()?)
 }
 
 async fn lock_level_workshop_items(
     connection: &mut diesel_async::AsyncPgConnection,
     id_level: i32,
 ) -> Result<()> {
-    sql_query(
-        "SELECT wi.workshop_id FROM public.workshop_item wi \
-         WHERE EXISTS(SELECT 1 FROM public.level_item li \
-           WHERE li.id_level=$1 AND li.workshop_id=wi.workshop_id) \
-         ORDER BY wi.workshop_id FOR UPDATE",
-    )
+    sql_query(include_str!(
+        "../queries/records/lock_level_workshop_items.sql"
+    ))
     .bind::<Integer, _>(id_level)
     .execute(connection)
     .await?;
@@ -467,23 +505,10 @@ pub(crate) async fn rerank_tournament(
     connection: &mut diesel_async::AsyncPgConnection,
     id_tournament: i32,
 ) -> Result<()> {
-    sql_query(
-        "WITH next_results AS ( \
-           SELECT id_tournament,id_user,rank() OVER(ORDER BY time)::integer AS next_rank \
-           FROM public.track_tournament_result WHERE id_tournament=$1 \
-         ), scored AS ( \
-           SELECT id_tournament,id_user,next_rank, \
-             greatest(2,(2*ceil((1000*power(0.96,next_rank-1))/2))::integer) AS next_points \
-           FROM next_results \
-         ) UPDATE public.track_tournament_result result SET \
-           rank=scored.next_rank,points=scored.next_points,date_updated=clock_timestamp() \
-         FROM scored WHERE result.id_tournament=scored.id_tournament \
-           AND result.id_user=scored.id_user \
-           AND row(result.rank,result.points) IS DISTINCT FROM row(scored.next_rank,scored.next_points)",
-    )
-    .bind::<Integer, _>(id_tournament)
-    .execute(connection)
-    .await?;
+    sql_query(include_str!("../queries/records/rerank_tournament.sql"))
+        .bind::<Integer, _>(id_tournament)
+        .execute(connection)
+        .await?;
     Ok(())
 }
 

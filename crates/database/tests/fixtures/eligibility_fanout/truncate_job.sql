@@ -1,0 +1,1 @@
+TRUNCATE zc_jobs.job,pgmq.q_zeepcentraal_bulk,pgmq.q_zeepcentraal_fast

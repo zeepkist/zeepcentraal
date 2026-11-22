@@ -1,0 +1,1 @@
+INSERT INTO public.user_points(id_user,points,total_points,date_created,date_updated) VALUES($1,$2,$3,clock_timestamp(),clock_timestamp()) ON CONFLICT(id_user) DO UPDATE SET points=excluded.points,total_points=excluded.total_points, date_updated=excluded.date_updated WHERE ROW(user_points.points,user_points.total_points) IS DISTINCT FROM ROW(excluded.points,excluded.total_points)

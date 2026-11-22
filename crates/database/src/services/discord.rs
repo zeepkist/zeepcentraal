@@ -7,6 +7,9 @@ use diesel::{
 use diesel_async::{AsyncConnection, RunQueryDsl};
 use serde::Serialize;
 
+const SELECT_ID_USER: &str = include_str!("../queries/discord/select_id_user.sql");
+const SET_DISCORD_ID_USER: &str = include_str!("../queries/discord/set_discord_id_user.sql");
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DiscordLinkStatus {
     Linked,
@@ -140,18 +143,15 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<(), anyhow::Error, _>(async move |connection| {
-                sql_query(
-                    "DELETE FROM zc_private.discord_oauth_link_state \
-                         WHERE id_user=$1 OR expires_at<clock_timestamp()",
-                )
+                sql_query(include_str!(
+                    "../queries/discord/delete_discord_oauth_link_state.sql"
+                ))
                 .bind::<Integer, _>(id_user)
                 .execute(connection)
                 .await?;
-                sql_query(
-                    "INSERT INTO zc_private.discord_oauth_link_state \
-                         (state_hash,id_user,expires_at) \
-                         VALUES($1,$2,clock_timestamp()+interval '5 minutes')",
-                )
+                sql_query(include_str!(
+                    "../queries/discord/insert_discord_oauth_link_state.sql"
+                ))
                 .bind::<Text, _>(state_hash)
                 .bind::<Integer, _>(id_user)
                 .execute(connection)
@@ -169,12 +169,9 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<DiscordLinkResult, anyhow::Error, _>(async move |connection| {
-                let state: Option<LinkCode> = sql_query(
-                    "SELECT id_user,expires_at<=clock_timestamp() AS expired, \
-                         consumed_at IS NOT NULL AS consumed \
-                         FROM zc_private.discord_oauth_link_state \
-                         WHERE state_hash=$1 FOR UPDATE",
-                )
+                let state: Option<LinkCode> = sql_query(include_str!(
+                    "../queries/discord/select_id_user_discord_oauth_link_state.sql"
+                ))
                 .bind::<Text, _>(state_hash)
                 .get_result(connection)
                 .await
@@ -188,34 +185,26 @@ impl Database {
                 if state.expired {
                     return Ok(DiscordLinkResult::status(DiscordLinkStatus::Expired));
                 }
-                let existing: Option<UserId> = sql_query(
-                    "SELECT id FROM public.\"user\" \
-                         WHERE discord_id=$1 AND discord_id>0 LIMIT 1",
-                )
-                .bind::<BigInt, _>(discord_id)
-                .get_result(connection)
-                .await
-                .optional()?;
+                let existing: Option<UserId> = sql_query(SELECT_ID_USER)
+                    .bind::<BigInt, _>(discord_id)
+                    .get_result(connection)
+                    .await
+                    .optional()?;
                 if existing.is_some_and(|user| user.id != state.id_user) {
                     return Ok(DiscordLinkResult::status(DiscordLinkStatus::Conflict));
                 }
-                let linked: Option<LinkedUser> = sql_query(
-                    "UPDATE public.\"user\" SET discord_id=$2,date_updated=clock_timestamp() \
-                         WHERE id=$1 AND (discord_id IS NULL OR discord_id=-1 OR discord_id=$2) \
-                         RETURNING id AS id_user,steam_id",
-                )
-                .bind::<Integer, _>(state.id_user)
-                .bind::<BigInt, _>(discord_id)
-                .get_result(connection)
-                .await
-                .optional()?;
+                let linked: Option<LinkedUser> = sql_query(SET_DISCORD_ID_USER)
+                    .bind::<Integer, _>(state.id_user)
+                    .bind::<BigInt, _>(discord_id)
+                    .get_result(connection)
+                    .await
+                    .optional()?;
                 let Some(linked) = linked else {
                     return Ok(DiscordLinkResult::status(DiscordLinkStatus::Conflict));
                 };
-                sql_query(
-                    "UPDATE zc_private.discord_oauth_link_state \
-                         SET consumed_at=clock_timestamp() WHERE state_hash=$1",
-                )
+                sql_query(include_str!(
+                    "../queries/discord/set_consumed_at_discord_oauth_link_state.sql"
+                ))
                 .bind::<Text, _>(state_hash)
                 .execute(connection)
                 .await?;
@@ -236,11 +225,9 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<DiscordLinkResult, anyhow::Error, _>(async move |connection| {
-                let code: Option<LinkCode> = sql_query(
-                    "SELECT id_user,expires_at<=clock_timestamp() AS expired, \
-                         consumed_at IS NOT NULL AS consumed \
-                         FROM zc_private.discord_link_code WHERE code_hash=$1 FOR UPDATE",
-                )
+                let code: Option<LinkCode> = sql_query(include_str!(
+                    "../queries/discord/select_id_user_discord_link_code.sql"
+                ))
                 .bind::<Text, _>(code_hash)
                 .get_result(connection)
                 .await
@@ -254,33 +241,26 @@ impl Database {
                 if code.expired {
                     return Ok(DiscordLinkResult::status(DiscordLinkStatus::Expired));
                 }
-                let existing: Option<UserId> = sql_query(
-                    "SELECT id FROM public.\"user\" WHERE discord_id=$1 AND discord_id>0 LIMIT 1",
-                )
-                .bind::<BigInt, _>(discord_id)
-                .get_result(connection)
-                .await
-                .optional()?;
+                let existing: Option<UserId> = sql_query(SELECT_ID_USER)
+                    .bind::<BigInt, _>(discord_id)
+                    .get_result(connection)
+                    .await
+                    .optional()?;
                 if existing.is_some_and(|user| user.id != code.id_user) {
                     return Ok(DiscordLinkResult::status(DiscordLinkStatus::Conflict));
                 }
-                let linked: Option<LinkedUser> = sql_query(
-                    "UPDATE public.\"user\" SET discord_id=$2,date_updated=clock_timestamp() \
-                         WHERE id=$1 AND (discord_id IS NULL OR discord_id=-1 OR discord_id=$2) \
-                         RETURNING id AS id_user,steam_id",
-                )
-                .bind::<Integer, _>(code.id_user)
-                .bind::<BigInt, _>(discord_id)
-                .get_result(connection)
-                .await
-                .optional()?;
+                let linked: Option<LinkedUser> = sql_query(SET_DISCORD_ID_USER)
+                    .bind::<Integer, _>(code.id_user)
+                    .bind::<BigInt, _>(discord_id)
+                    .get_result(connection)
+                    .await
+                    .optional()?;
                 let Some(linked) = linked else {
                     return Ok(DiscordLinkResult::status(DiscordLinkStatus::Conflict));
                 };
-                sql_query(
-                    "UPDATE zc_private.discord_link_code SET consumed_at=clock_timestamp() \
-                         WHERE code_hash=$1",
-                )
+                sql_query(include_str!(
+                    "../queries/discord/set_consumed_at_discord_link_code.sql"
+                ))
                 .bind::<Text, _>(code_hash)
                 .execute(connection)
                 .await?;
@@ -298,10 +278,9 @@ impl Database {
         discord_id: i64,
     ) -> Result<Option<UnlinkedDiscordUser>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "UPDATE public.\"user\" SET discord_id=-1,date_updated=clock_timestamp() \
-             WHERE discord_id=$1 RETURNING id AS id_user,discord_id",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/discord/unlink_discord_by_discord_id.sql"
+        ))
         .bind::<BigInt, _>(discord_id)
         .get_result(&mut connection)
         .await
@@ -310,32 +289,23 @@ impl Database {
 
     pub async fn discord_user_state(&self, discord_id: i64) -> Result<DiscordUserState> {
         let mut connection = self.connection().await?;
-        let linked_user = sql_query(
-            "SELECT id,steam_name,banned,steam_id,discord_id, \
-             to_char(date_created AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_created, \
-             CASE WHEN date_updated IS NULL THEN NULL ELSE \
-               to_char(date_updated AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') END AS date_updated \
-             FROM public.\"user\" WHERE discord_id=$1 LIMIT 1",
-        )
+        let linked_user = sql_query(include_str!(
+            "../queries/discord/select_id_user_by_discord_id.sql"
+        ))
         .bind::<BigInt, _>(discord_id)
         .get_result(&mut connection)
         .await
         .optional()?;
-        let preference = sql_query(
-            "SELECT discord_id,ping_on_world_record_loss, \
-             to_char(date_updated AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_updated \
-             FROM zc_private.discord_user_preference WHERE discord_id=$1",
-        )
+        let preference = sql_query(include_str!(
+            "../queries/discord/select_discord_id_discord_user_preference.sql"
+        ))
         .bind::<BigInt, _>(discord_id)
         .get_result(&mut connection)
         .await
         .optional()?;
-        let watches = sql_query(
-            "SELECT id,discord_id,kind,target_id,paused,last_error,last_delivery_key, \
-             to_char(date_created AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_created, \
-             to_char(date_updated AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_updated \
-             FROM zc_private.discord_watch WHERE discord_id=$1 ORDER BY date_created DESC",
-        )
+        let watches = sql_query(include_str!(
+            "../queries/discord/select_id_discord_watch.sql"
+        ))
         .bind::<BigInt, _>(discord_id)
         .load(&mut connection)
         .await?;
@@ -352,13 +322,9 @@ impl Database {
         ping_on_world_record_loss: bool,
     ) -> Result<DiscordUserPreference> {
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "INSERT INTO zc_private.discord_user_preference \
-             (discord_id,ping_on_world_record_loss,date_updated) VALUES($1,$2,clock_timestamp()) \
-             ON CONFLICT(discord_id) DO UPDATE SET ping_on_world_record_loss=excluded.ping_on_world_record_loss, \
-             date_updated=clock_timestamp() RETURNING discord_id,ping_on_world_record_loss, \
-             to_char(date_updated AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_updated",
-        )
+        Ok(sql_query(include_str!(
+            "../queries/discord/set_discord_user_preference.sql"
+        ))
         .bind::<BigInt, _>(discord_id)
         .bind::<Bool, _>(ping_on_world_record_loss)
         .get_result(&mut connection)
@@ -373,19 +339,14 @@ impl Database {
     ) -> Result<DiscordWatch> {
         let target_id = target_id.trim().to_lowercase();
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "INSERT INTO zc_private.discord_watch(discord_id,kind,target_id) VALUES($1,$2,$3) \
-             ON CONFLICT(discord_id,kind,target_id) DO UPDATE SET paused=false,last_error=NULL, \
-             date_updated=clock_timestamp() RETURNING id,discord_id,kind,target_id,paused,last_error, \
-             last_delivery_key,to_char(date_created AT TIME ZONE 'UTC', \
-             'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_created,to_char(date_updated AT TIME ZONE 'UTC', \
-             'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_updated",
+        Ok(
+            sql_query(include_str!("../queries/discord/add_discord_watch.sql"))
+                .bind::<BigInt, _>(discord_id)
+                .bind::<Text, _>(kind)
+                .bind::<Text, _>(&target_id)
+                .get_result(&mut connection)
+                .await?,
         )
-        .bind::<BigInt, _>(discord_id)
-        .bind::<Text, _>(kind)
-        .bind::<Text, _>(&target_id)
-        .get_result(&mut connection)
-        .await?)
     }
 
     pub async fn remove_discord_watch(
@@ -394,17 +355,14 @@ impl Database {
         id: i64,
     ) -> Result<Option<DiscordWatch>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "DELETE FROM zc_private.discord_watch WHERE discord_id=$1 AND id=$2 \
-             RETURNING id,discord_id,kind,target_id,paused,last_error,last_delivery_key, \
-             to_char(date_created AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_created, \
-             to_char(date_updated AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS date_updated",
+        Ok(
+            sql_query(include_str!("../queries/discord/remove_discord_watch.sql"))
+                .bind::<BigInt, _>(discord_id)
+                .bind::<BigInt, _>(id)
+                .get_result(&mut connection)
+                .await
+                .optional()?,
         )
-        .bind::<BigInt, _>(discord_id)
-        .bind::<BigInt, _>(id)
-        .get_result(&mut connection)
-        .await
-        .optional()?)
     }
 }
 

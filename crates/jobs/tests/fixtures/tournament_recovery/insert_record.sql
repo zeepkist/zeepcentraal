@@ -1,0 +1,1 @@
+INSERT INTO public.record(id_user,id_level,time,game_version,mod_version,date_created) VALUES($1,$2,30,'test','test',(date_trunc('week',timezone('UTC',clock_timestamp())-interval '6 hours') AT TIME ZONE 'UTC')+interval '6 hours') RETURNING id

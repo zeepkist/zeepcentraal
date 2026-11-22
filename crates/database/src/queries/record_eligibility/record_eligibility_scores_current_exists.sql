@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM jsonb_to_recordset($1::jsonb) expected(id_user integer,rank integer) LEFT JOIN public.user_points p ON p.id_user=expected.id_user WHERE p.rank IS DISTINCT FROM expected.rank) AS value

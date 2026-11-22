@@ -1,0 +1,1 @@
+SELECT l.room_name, array_agg(h.room_name ORDER BY h.change_type DESC) FROM public.lobby l JOIN public.lobby_history h ON h.lobby_id=l.id WHERE l.host_id=76561198000000000 GROUP BY l.id ORDER BY l.master_id

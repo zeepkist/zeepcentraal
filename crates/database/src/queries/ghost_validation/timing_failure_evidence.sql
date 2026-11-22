@@ -1,0 +1,1 @@
+SELECT jsonb_build_object('validation',to_jsonb(v),'record',to_jsonb(r),'steamId',u.steam_id::text,'hash',l.xx_hash) AS data FROM zc_private.record_validation v JOIN public.record r ON r.id=v.id_record JOIN public.level l ON l.id=r.id_level JOIN public."user" u ON u.id=r.id_user WHERE v.id_record=$1 AND zc_private.is_timing_failure(v.status,v.validator_version,v.report)

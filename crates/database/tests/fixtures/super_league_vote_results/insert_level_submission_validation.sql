@@ -1,0 +1,1 @@
+INSERT INTO zc_private.level_submission_validation(id_submission,workshop_updated_at,workshop_file_size,validator_version,rules_hash,measurements,failures,valid,payload) VALUES($1,'fixture',1,'fixture','fixture','{}','[]',$2,$3::text::jsonb) RETURNING id

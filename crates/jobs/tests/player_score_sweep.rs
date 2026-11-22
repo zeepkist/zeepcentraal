@@ -18,6 +18,10 @@ use zc_jobs::{
     runtime::{JobHandler, JobOutcome},
 };
 
+const SET_VT_Q_ZEEPCENTRAAL_BULK: &str =
+    include_str!("fixtures/player_score_sweep/set_vt_q_zeepcentraal_bulk.sql");
+const COUNT_JOB_2: &str = include_str!("fixtures/player_score_sweep/count_job_2.sql");
+
 struct NoStorage;
 
 #[async_trait]
@@ -68,7 +72,14 @@ async fn count(database: &Database, query: &str) -> Result<i64> {
 }
 
 async fn assert_ranks(database: &Database) -> Result<()> {
-    assert_eq!(count(database, "WITH desired AS (SELECT p.id_user,RANK() OVER(ORDER BY p.points DESC)::integer rank FROM public.user_points p JOIN public.\"user\" u ON u.id=p.id_user WHERE NOT u.banned AND EXISTS(SELECT 1 FROM public.record r WHERE r.id_user=u.id AND r.date_created>=now()-interval '6 months')) SELECT count(*)::bigint AS count FROM desired JOIN public.user_points p USING(id_user) WHERE p.rank<>desired.rank").await?, 0);
+    assert_eq!(
+        count(
+            database,
+            include_str!("fixtures/player_score_sweep/select_user_points.sql")
+        )
+        .await?,
+        0
+    );
     Ok(())
 }
 
@@ -103,19 +114,9 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     let queue = Queue::connect(pool.queue()?).await?;
     let service = handler(&database, &queue)?;
     let mut connection = database.pool_partition().connection().await?;
-    connection.batch_execute(r#"
-        INSERT INTO public."user"(id,steam_id,banned) OVERRIDING SYSTEM VALUE
-          SELECT id,100000+id,false FROM generate_series(1,205) id;
-        INSERT INTO public.level(id,hash,xx_hash,adventure) OVERRIDING SYSTEM VALUE VALUES(1,'score-test',repeat('c',32),true);
-        INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version,date_created) OVERRIDING SYSTEM VALUE
-          SELECT id,id,1,id::real,'test','test',CASE WHEN id<=201 THEN now() ELSE '2000-01-01'::timestamptz END FROM generate_series(1,205) id;
-        INSERT INTO public.personal_best_global(id_user,id_level,id_record) SELECT id,1,id FROM generate_series(1,205) id;
-        INSERT INTO public.level_points(id_level,points) VALUES(1,1000);
-        INSERT INTO public.user_point_contribution(id_user,id_level,id_record,contribution_rank,level_position,level_points,level_decayed_points,player_decayed_points,date_calculated)
-          SELECT id,1,id,1,id,1000,(1000-id/2)::real,0,now() FROM generate_series(1,205) id;
-        INSERT INTO public.user_points(id_user,points,total_points,rank) SELECT id,-10,-10,-1 FROM generate_series(1,205) id;
-        TRUNCATE zc_jobs.job,pgmq.q_zeepcentraal_fast,pgmq.q_zeepcentraal_bulk;
-    "#).await?;
+    connection
+        .batch_execute(include_str!("fixtures/player_score_sweep/insert_user.sql"))
+        .await?;
     drop(connection);
 
     queue
@@ -158,7 +159,7 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     assert_eq!(
         count(
             &database,
-            "SELECT count(*)::bigint AS count FROM public.user_points WHERE points<>-10"
+            include_str!("fixtures/player_score_sweep/count_user_points.sql")
         )
         .await?,
         200
@@ -171,7 +172,7 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     assert_eq!(
         count(
             &database,
-            "SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE NOT running"
+            include_str!("fixtures/player_score_sweep/count_job.sql")
         )
         .await?,
         1
@@ -193,12 +194,19 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     assert_eq!(
         count(
             &database,
-            "SELECT count(*)::bigint AS count FROM public.user_points WHERE points=-10"
+            include_str!("fixtures/player_score_sweep/count_user_points_by_points__10.sql")
         )
         .await?,
         0
     );
-    assert_eq!(count(&database,"SELECT count(*)::bigint AS count FROM public.user_points WHERE id_user>201 AND points=0 AND rank=-1").await?,4);
+    assert_eq!(
+        count(
+            &database,
+            include_str!("fixtures/player_score_sweep/count_user_points_by_after_id_user_201.sql")
+        )
+        .await?,
+        4
+    );
 
     let ranks = queue
         .claim(JobLane::Bulk, 1)
@@ -208,20 +216,31 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     assert_eq!(ranks.payload["phase"], "ranks");
     let mut blocker = database.pool_partition().connection().await?;
     blocker
-        .batch_execute("SELECT pg_advisory_lock(-1861284952,1)")
+        .batch_execute(include_str!(
+            "fixtures/player_score_sweep/pg_advisory_lock.sql"
+        ))
         .await?;
     assert_eq!(
         restarted.handle_claimed(&ranks, JobLane::Bulk).await?,
         JobOutcome::Deferred
     );
     assert!(queue.defer(&ranks).await?);
-    assert_eq!(count(&database,"SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE task='updatePlayerScores' AND payload->>'phase'='ranks' AND attempts=0 AND NOT running").await?,1);
+    assert_eq!(
+        count(
+            &database,
+            include_str!("fixtures/player_score_sweep/count_job_by_task_update_player_scores.sql")
+        )
+        .await?,
+        1
+    );
     blocker
-        .batch_execute("SELECT pg_advisory_unlock(-1861284952,1)")
+        .batch_execute(include_str!(
+            "fixtures/player_score_sweep/pg_advisory_unlock.sql"
+        ))
         .await?;
     drop(blocker);
     let mut connection = database.pool_partition().connection().await?;
-    sql_query("UPDATE pgmq.q_zeepcentraal_bulk SET vt=clock_timestamp() WHERE msg_id=$1::bigint")
+    sql_query(SET_VT_Q_ZEEPCENTRAAL_BULK)
         .bind::<Text, _>(&ranks.id)
         .execute(&mut connection)
         .await?;
@@ -239,27 +258,31 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     );
     assert!(queue.finish(&retried, None).await?);
     assert_ranks(&database).await?;
-    assert_eq!(count(&database,"SELECT count(*)::bigint AS count FROM public.user_points WHERE id_user IN (2,3) AND rank=2").await?,2);
-    assert_eq!(count(&database,"SELECT count(*)::bigint AS count FROM public.user_point_contribution WHERE level_position<>id_user").await?,0);
+    assert_eq!(
+        count(
+            &database,
+            include_str!("fixtures/player_score_sweep/count_user_points_2.sql")
+        )
+        .await?,
+        2
+    );
+    assert_eq!(
+        count(
+            &database,
+            include_str!("fixtures/player_score_sweep/count_user_point_contribution.sql")
+        )
+        .await?,
+        0
+    );
 
     // Change an earlier batch's score while a later batch writes its ranks.
     // Batch-local guards all pass; only complete snapshot validation catches this.
     let mut connection = database.pool_partition().connection().await?;
-    connection.batch_execute(r#"
-        UPDATE public.user_points SET rank=-1 WHERE id_user<=201;
-        CREATE TABLE zc_private.score_test_mutation(applied boolean NOT NULL);
-        INSERT INTO zc_private.score_test_mutation VALUES(false);
-        CREATE FUNCTION zc_private.score_test_change_points() RETURNS trigger LANGUAGE plpgsql AS $$
-        BEGIN
-          IF NEW.id_user=51 AND EXISTS(SELECT FROM zc_private.score_test_mutation WHERE NOT applied) THEN
-            UPDATE zc_private.score_test_mutation SET applied=true;
-            UPDATE public.user_points SET points=0 WHERE id_user=1;
-          END IF;
-          RETURN NEW;
-        END $$;
-        CREATE TRIGGER score_test_change_points AFTER UPDATE OF rank ON public.user_points
-          FOR EACH ROW EXECUTE FUNCTION zc_private.score_test_change_points();
-    "#).await?;
+    connection
+        .batch_execute(include_str!(
+            "fixtures/player_score_sweep/set_rank_user_points.sql"
+        ))
+        .await?;
     drop(connection);
     queue
         .enqueue(
@@ -279,16 +302,16 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
         JobOutcome::Completed
     );
     assert!(queue.finish(&changed, None).await?);
-    assert_eq!(count(&database,"SELECT count(*)::bigint AS count FROM public.user_points WHERE id_user=1 AND points=0 AND rank=201").await?,1);
-    assert_ranks(&database).await?;
     assert_eq!(
         count(
             &database,
-            "SELECT count(*)::bigint AS count FROM zc_jobs.job"
+            include_str!("fixtures/player_score_sweep/count_user_points_by_id_user_1.sql")
         )
         .await?,
-        0
+        1
     );
+    assert_ranks(&database).await?;
+    assert_eq!(count(&database, COUNT_JOB_2).await?, 0);
 
     // Quiet ranking waits for score pages, but never waits for verification itself.
     queue
@@ -319,7 +342,12 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     );
     assert!(queue.defer(&quiet).await?);
     let mut connection = database.pool_partition().connection().await?;
-    sql_query("UPDATE pgmq.q_zeepcentraal_bulk SET vt=clock_timestamp()+interval '1 hour' WHERE msg_id=$1::bigint").bind::<Text,_>(&quiet.id).execute(&mut connection).await?;
+    sql_query(include_str!(
+        "fixtures/player_score_sweep/set_vt_q_zeepcentraal_bulk_by_msg_id.sql"
+    ))
+    .bind::<Text, _>(&quiet.id)
+    .execute(&mut connection)
+    .await?;
     drop(connection);
     let page = queue
         .claim(JobLane::Bulk, 1)
@@ -341,7 +369,7 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
         )
         .await?;
     let mut connection = database.pool_partition().connection().await?;
-    sql_query("UPDATE pgmq.q_zeepcentraal_bulk SET vt=clock_timestamp() WHERE msg_id=$1::bigint")
+    sql_query(SET_VT_Q_ZEEPCENTRAAL_BULK)
         .bind::<Text, _>(&quiet.id)
         .execute(&mut connection)
         .await?;
@@ -372,7 +400,9 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     assert!(database.player_rank_snapshot_is_current(&snapshot).await?);
     let mut connection = database.pool_partition().connection().await?;
     connection
-        .batch_execute("UPDATE public.\"user\" SET banned=true WHERE id=201")
+        .batch_execute(include_str!(
+            "fixtures/player_score_sweep/set_banned_user.sql"
+        ))
         .await?;
     drop(connection);
     assert!(!database.player_rank_snapshot_is_current(&snapshot).await?);
@@ -384,26 +414,30 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
     ));
     // Reconciliation queues a paged fan-out instead of a full player-score sweep.
     let mut connection = database.pool_partition().connection().await?;
-    connection.batch_execute("INSERT INTO public.level(id,hash,xx_hash,adventure) OVERRIDING SYSTEM VALUE VALUES(2,'eligibility-score-test',repeat('d',32),true)").await?;
+    connection
+        .batch_execute(include_str!("fixtures/player_score_sweep/insert_level.sql"))
+        .await?;
     drop(connection);
     assert_eq!(
         database.reconcile_record_eligibility(2).await?,
         MaintenanceOutcome::Applied(())
     );
-    assert_eq!(count(&database,"SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE task='fanOutRecordEligibility' AND lock_group='eligibility-player-fanout'").await?,1);
+    assert_eq!(
+        count(
+            &database,
+            include_str!(
+                "fixtures/player_score_sweep/count_job_by_task_fan_out_record_eligibility.sql"
+            )
+        )
+        .await?,
+        1
+    );
     for _ in 0..3 {
         for followup in queue.claim(JobLane::Bulk, 10).await? {
             assert!(queue.finish(&followup, None).await?);
         }
     }
-    assert_eq!(
-        count(
-            &database,
-            "SELECT count(*)::bigint AS count FROM zc_jobs.job"
-        )
-        .await?,
-        0
-    );
+    assert_eq!(count(&database, COUNT_JOB_2).await?, 0);
 
     // Simulate contribution commits followed by a lost player-score enqueue.
     let page_users: Vec<_> = (1..=50).collect();
@@ -434,7 +468,9 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
         assert_eq!(
             count(
                 &database,
-                "SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE task='updatePlayerScore'"
+                include_str!(
+                    "fixtures/player_score_sweep/count_job_by_task_update_player_score.sql"
+                )
             )
             .await?,
             if defer_count == 0 { 0 } else { 50 }
@@ -444,14 +480,7 @@ async fn pages_resume_yield_to_repairs_and_retry_complete_rank_snapshots() -> Re
                 assert!(queue.finish(&followup, None).await?);
             }
         }
-        assert_eq!(
-            count(
-                &database,
-                "SELECT count(*)::bigint AS count FROM zc_jobs.job"
-            )
-            .await?,
-            0
-        );
+        assert_eq!(count(&database, COUNT_JOB_2).await?, 0);
     }
     assert_eq!(
         service

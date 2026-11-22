@@ -1,0 +1,1 @@
+SELECT l.id FROM public.level l WHERE l.id>$1 AND l.id<=$2 AND EXISTS(SELECT 1 FROM public.record r JOIN zc_private.record_validation v ON v.id_record=r.id WHERE r.id_level=l.id AND v.status='fail') ORDER BY l.id LIMIT 100

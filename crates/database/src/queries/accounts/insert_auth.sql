@@ -1,0 +1,1 @@
+INSERT INTO public.auth(id_user,access_token,access_token_expiry,refresh_token,refresh_token_hash,refresh_token_expiry,type,provider,date_created,date_updated) VALUES ($1,$2,$3,NULL,$4,$5,0,$6,clock_timestamp(),clock_timestamp()) RETURNING id

@@ -482,9 +482,9 @@ impl PoolPartition {
                 connection
                     .set_instrumentation(|_: diesel::connection::InstrumentationEvent<'_>| {});
                 let carrier = zc_core::telemetry::trace_carrier();
-                let setup = sql_query("SELECT set_config('zc.traceparent',$1,false),set_config('zc.tracestate',$2,false)")
-                    .bind::<Text,_>(carrier.get("traceparent").map(String::as_str).unwrap_or(""))
-                    .bind::<Text,_>(carrier.get("tracestate").map(String::as_str).unwrap_or(""))
+                let setup = sql_query(include_str!("queries/connections/set_trace_context.sql"))
+                    .bind::<Text, _>(carrier.get("traceparent").map(String::as_str).unwrap_or(""))
+                    .bind::<Text, _>(carrier.get("tracestate").map(String::as_str).unwrap_or(""))
                     .execute(&mut connection);
                 match tokio::time::timeout_at(deadline, setup).await {
                     Ok(Ok(_)) => {}
@@ -805,19 +805,14 @@ fn manager(
                         return Err(error);
                     }
                 };
-                if sql_query(
-                    "SELECT set_config('application_name',$1,false), \
-                     set_config('statement_timeout',$2,false), \
-                     set_config('lock_timeout',$3,false), \
-                     set_config('idle_in_transaction_session_timeout',$4,false)",
-                )
-                .bind::<Text, _>(application_name)
-                .bind::<Text, _>(statement_timeout)
-                .bind::<Text, _>(lock_timeout)
-                .bind::<Text, _>(idle_transaction_timeout)
-                .execute(&mut connection)
-                .await
-                .is_err()
+                if sql_query(include_str!("queries/connections/configure_session.sql"))
+                    .bind::<Text, _>(application_name)
+                    .bind::<Text, _>(statement_timeout)
+                    .bind::<Text, _>(lock_timeout)
+                    .bind::<Text, _>(idle_transaction_timeout)
+                    .execute(&mut connection)
+                    .await
+                    .is_err()
                 {
                     diagnostics.record_failure(
                         PoolFailureStage::SessionSetup,

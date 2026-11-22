@@ -1,0 +1,1 @@
+ALTER TABLE public.track_tournament ADD COLUMN slug text; ALTER TABLE public.track_tournament ADD CONSTRAINT "CK_track_tournament_type" CHECK(type IN(0,1)); CREATE TABLE zc_private.discord_guild_feed(kind text CONSTRAINT "CK_discord_guild_feed_kind" CHECK(kind IN('workshop','world_record','rank','totw','totm'))); CREATE TABLE zc_private.discord_watch(kind text,target_id text)

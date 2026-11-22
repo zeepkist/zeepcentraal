@@ -100,12 +100,9 @@ pub(crate) async fn get_or_insert_user_with_connection(
     steam_id: i64,
 ) -> Result<UserAccount> {
     ensure!(steam_id > 0, "Steam ID must be positive");
-    Ok(sql_query(
-        "INSERT INTO public.\"user\"(steam_id,banned,date_created,date_updated) \
-         VALUES($1,false,clock_timestamp(),clock_timestamp()) \
-         ON CONFLICT (steam_id) DO UPDATE SET steam_id=excluded.steam_id \
-         RETURNING id,steam_name,banned,steam_id,discord_id",
-    )
+    Ok(sql_query(include_str!(
+        "queries/accounts/get_or_insert_user_with_connection.sql"
+    ))
     .bind::<BigInt, _>(steam_id)
     .get_result(connection)
     .await?)
@@ -119,21 +116,29 @@ impl Database {
             allowed: bool,
         }
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM public.\"user\" WHERE steam_id=$1 AND role='admin' AND NOT banned) AS allowed")
-            .bind::<BigInt, _>(steam_id).get_result::<Access>(&mut connection).await?.allowed)
+        Ok(
+            sql_query(include_str!("queries/accounts/is_administrator.sql"))
+                .bind::<BigInt, _>(steam_id)
+                .get_result::<Access>(&mut connection)
+                .await?
+                .allowed,
+        )
     }
 
     pub async fn get_user(&self, steam_id: i64) -> Result<Option<UserAccount>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT id,steam_name,banned,steam_id,discord_id FROM public.\"user\" WHERE steam_id=$1 LIMIT 1")
-            .bind::<BigInt, _>(steam_id).get_result(&mut connection).await.optional()?)
+        Ok(sql_query(include_str!("queries/accounts/get_user.sql"))
+            .bind::<BigInt, _>(steam_id)
+            .get_result(&mut connection)
+            .await
+            .optional()?)
     }
 
     pub async fn upsert_user(&self, steam_id: i64, steam_name: &str) -> Result<UserAccount> {
         ensure!(steam_id > 0, "Steam ID must be positive");
         ensure!(!steam_name.is_empty(), "Steam name must not be empty");
         let mut connection = self.connection().await?;
-        Ok(sql_query("INSERT INTO public.\"user\"(steam_id,steam_name,banned,date_created,date_updated) VALUES ($1,$2,false,clock_timestamp(),clock_timestamp()) ON CONFLICT (steam_id) DO UPDATE SET steam_name=excluded.steam_name,date_updated=clock_timestamp() RETURNING id,steam_name,banned,steam_id,discord_id")
+        Ok(sql_query(include_str!("queries/accounts/upsert_user.sql"))
             .bind::<BigInt, _>(steam_id)
             .bind::<Varchar, _>(steam_name)
             .get_result(&mut connection)
@@ -148,39 +153,52 @@ impl Database {
     pub async fn get_user_by_discord_id(&self, discord_id: i64) -> Result<Option<UserAccount>> {
         ensure!(discord_id > 0, "Discord ID must be positive");
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT id,steam_name,banned,steam_id,discord_id FROM public.\"user\" WHERE discord_id=$1 AND discord_id>0 LIMIT 1")
-            .bind::<BigInt, _>(discord_id).get_result(&mut connection).await.optional()?)
+        Ok(
+            sql_query(include_str!("queries/accounts/get_user_by_discord_id.sql"))
+                .bind::<BigInt, _>(discord_id)
+                .get_result(&mut connection)
+                .await
+                .optional()?,
+        )
     }
 
     pub async fn update_user_name(&self, steam_id: i64, name: &str) -> Result<bool> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("UPDATE public.\"user\" SET steam_name=$2,date_updated=clock_timestamp() WHERE steam_id=$1")
-            .bind::<BigInt, _>(steam_id).bind::<Varchar, _>(name).execute(&mut connection).await? > 0)
+        Ok(
+            sql_query(include_str!("queries/accounts/update_user_name.sql"))
+                .bind::<BigInt, _>(steam_id)
+                .bind::<Varchar, _>(name)
+                .execute(&mut connection)
+                .await?
+                > 0,
+        )
     }
 
     pub async fn update_discord_id(&self, steam_id: i64, discord_id: Option<i64>) -> Result<bool> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("UPDATE public.\"user\" SET discord_id=$2,date_updated=clock_timestamp() WHERE steam_id=$1")
-            .bind::<BigInt, _>(steam_id).bind::<Nullable<BigInt>, _>(discord_id).execute(&mut connection).await? > 0)
+        Ok(
+            sql_query(include_str!("queries/accounts/update_discord_id.sql"))
+                .bind::<BigInt, _>(steam_id)
+                .bind::<Nullable<BigInt>, _>(discord_id)
+                .execute(&mut connection)
+                .await?
+                > 0,
+        )
     }
 
     pub async fn create_discord_link_code(&self, id_user: i32, code_hash: &str) -> Result<String> {
         let mut connection = self.connection().await?;
         connection
             .transaction::<String, anyhow::Error, _>(async move |connection| {
-                sql_query(
-                    "DELETE FROM zc_private.discord_link_code \
-                         WHERE id_user=$1 OR expires_at<clock_timestamp()",
-                )
+                sql_query(include_str!(
+                    "queries/accounts/delete_discord_link_code.sql"
+                ))
                 .bind::<Integer, _>(id_user)
                 .execute(connection)
                 .await?;
-                let row: LinkCodeExpiry = sql_query(
-                    "INSERT INTO zc_private.discord_link_code(code_hash,id_user,expires_at) \
-                         VALUES($1,$2,clock_timestamp()+interval '10 minutes') \
-                         RETURNING to_char(expires_at AT TIME ZONE 'UTC', \
-                           'YYYY-MM-DD\"T\"HH24:MI:SS.MS\"Z\"') AS expires_at",
-                )
+                let row: LinkCodeExpiry = sql_query(include_str!(
+                    "queries/accounts/insert_discord_link_code.sql"
+                ))
                 .bind::<Text, _>(code_hash)
                 .bind::<Integer, _>(id_user)
                 .get_result(connection)
@@ -192,10 +210,9 @@ impl Database {
 
     pub async fn unlink_discord_by_steam_id(&self, steam_id: i64) -> Result<bool> {
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "UPDATE public.\"user\" SET discord_id=-1,date_updated=clock_timestamp() \
-             WHERE steam_id=$1",
-        )
+        Ok(sql_query(include_str!(
+            "queries/accounts/unlink_discord_by_steam_id.sql"
+        ))
         .bind::<BigInt, _>(steam_id)
         .execute(&mut connection)
         .await?
@@ -204,20 +221,28 @@ impl Database {
 
     pub async fn get_level_by_xx_hash(&self, xx_hash: &str) -> Result<Option<Level>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT id,hash,xx_hash,adventure,has_records,record_count,publicly_visible FROM public.level WHERE xx_hash=$1 LIMIT 1")
-            .bind::<Text, _>(xx_hash).get_result(&mut connection).await.optional()?)
+        Ok(
+            sql_query(include_str!("queries/levels/get_level_by_xx_hash.sql"))
+                .bind::<Text, _>(xx_hash)
+                .get_result(&mut connection)
+                .await
+                .optional()?,
+        )
     }
 
     pub async fn add_favourite(&self, id_user: i32, id_level: i32) -> Result<()> {
         let mut connection = self.connection().await?;
-        sql_query("INSERT INTO public.favourite(id_user,id_level) VALUES ($1,$2) ON CONFLICT (id_user,id_level) DO NOTHING")
-            .bind::<Integer, _>(id_user).bind::<Integer, _>(id_level).execute(&mut connection).await?;
+        sql_query(include_str!("queries/levels/add_favourite.sql"))
+            .bind::<Integer, _>(id_user)
+            .bind::<Integer, _>(id_level)
+            .execute(&mut connection)
+            .await?;
         Ok(())
     }
 
     pub async fn remove_favourite(&self, id_user: i32, id_level: i32) -> Result<()> {
         let mut connection = self.connection().await?;
-        sql_query("DELETE FROM public.favourite WHERE id_user=$1 AND id_level=$2")
+        sql_query(include_str!("queries/levels/remove_favourite.sql"))
             .bind::<Integer, _>(id_user)
             .bind::<Integer, _>(id_level)
             .execute(&mut connection)
@@ -228,23 +253,30 @@ impl Database {
     pub async fn upsert_vote(&self, id_user: i32, id_level: i32, value: i32) -> Result<()> {
         ensure!((-2..=2).contains(&value), "Vote must be between -2 and 2");
         let mut connection = self.connection().await?;
-        sql_query("INSERT INTO public.vote(id_user,id_level,value) VALUES ($1,$2,$3) ON CONFLICT (id_user,id_level) DO UPDATE SET value=excluded.value,date_updated=clock_timestamp()")
-            .bind::<Integer, _>(id_user).bind::<Integer, _>(id_level).bind::<Integer, _>(value).execute(&mut connection).await?;
+        sql_query(include_str!("queries/levels/upsert_vote.sql"))
+            .bind::<Integer, _>(id_user)
+            .bind::<Integer, _>(id_level)
+            .bind::<Integer, _>(value)
+            .execute(&mut connection)
+            .await?;
         Ok(())
     }
 
     pub async fn claim_level_request(&self, workshop_id: i64, hash: &str) -> Result<bool> {
         ensure!(workshop_id > 0, "Workshop ID must be positive");
         let mut connection = self.connection().await?;
-        let result = sql_query("INSERT INTO public.level_request(workshop_id,hash) VALUES ($1,$2) ON CONFLICT (workshop_id) DO NOTHING RETURNING id")
-            .bind::<BigInt, _>(workshop_id).bind::<Text, _>(hash)
-            .get_result::<ReturnedId>(&mut connection).await.optional()?;
+        let result = sql_query(include_str!("queries/levels/claim_level_request.sql"))
+            .bind::<BigInt, _>(workshop_id)
+            .bind::<Text, _>(hash)
+            .get_result::<ReturnedId>(&mut connection)
+            .await
+            .optional()?;
         Ok(result.is_some())
     }
 
     pub async fn release_level_request(&self, workshop_id: i64) -> Result<()> {
         let mut connection = self.connection().await?;
-        sql_query("DELETE FROM public.level_request WHERE workshop_id=$1")
+        sql_query(include_str!("queries/levels/release_level_request.sql"))
             .bind::<BigInt, _>(workshop_id)
             .execute(&mut connection)
             .await?;
@@ -255,7 +287,7 @@ impl Database {
         let Ok(mut connection) = self.connection().await else {
             return true;
         };
-        let minimum = sql_query("SELECT minimum FROM public.version LIMIT 1")
+        let minimum = sql_query(include_str!("queries/levels/is_mod_outdated.sql"))
             .get_result::<MinimumVersion>(&mut connection)
             .await
             .optional();
@@ -271,10 +303,15 @@ impl Database {
     pub async fn insert_auth(&self, record: AuthRecord<'_>) -> Result<i32> {
         let refresh_hash = refresh_token_hash(record.refresh_token);
         let mut connection = self.connection().await?;
-        let row: ReturnedId = sql_query("INSERT INTO public.auth(id_user,access_token,access_token_expiry,refresh_token,refresh_token_hash,refresh_token_expiry,type,provider,date_created,date_updated) VALUES ($1,$2,$3,NULL,$4,$5,0,$6,clock_timestamp(),clock_timestamp()) RETURNING id")
-            .bind::<Integer, _>(record.id_user).bind::<Text, _>(record.access_token).bind::<BigInt, _>(record.access_token_expiry)
-            .bind::<Text, _>(refresh_hash).bind::<BigInt, _>(record.refresh_token_expiry).bind::<Varchar, _>(record.provider)
-            .get_result(&mut connection).await?;
+        let row: ReturnedId = sql_query(include_str!("queries/accounts/insert_auth.sql"))
+            .bind::<Integer, _>(record.id_user)
+            .bind::<Text, _>(record.access_token)
+            .bind::<BigInt, _>(record.access_token_expiry)
+            .bind::<Text, _>(refresh_hash)
+            .bind::<BigInt, _>(record.refresh_token_expiry)
+            .bind::<Varchar, _>(record.provider)
+            .get_result(&mut connection)
+            .await?;
         Ok(row.id)
     }
 
@@ -286,16 +323,29 @@ impl Database {
         let current_hash = refresh_token_hash(current_refresh_token);
         let next_hash = refresh_token_hash(next.refresh_token);
         let mut connection = self.connection().await?;
-        connection.transaction::<bool, anyhow::Error, _>(async move |connection| {
-            let deleted = sql_query("DELETE FROM public.auth WHERE id_user=$1 AND refresh_token_hash=$2 AND refresh_token_expiry>extract(epoch from clock_timestamp())::bigint")
-                .bind::<Integer, _>(next.id_user).bind::<Text, _>(&current_hash).execute(connection).await?;
-            if deleted == 0 { return Ok(false); }
-            sql_query("INSERT INTO public.auth(id_user,access_token,access_token_expiry,refresh_token,refresh_token_hash,refresh_token_expiry,type,provider,date_created,date_updated) VALUES ($1,$2,$3,NULL,$4,$5,0,$6,clock_timestamp(),clock_timestamp())")
-                .bind::<Integer, _>(next.id_user).bind::<Text, _>(next.access_token).bind::<BigInt, _>(next.access_token_expiry)
-                .bind::<Text, _>(&next_hash).bind::<BigInt, _>(next.refresh_token_expiry).bind::<Varchar, _>(next.provider)
-                .execute(connection).await?;
-            Ok(true)
-        }).await
+        connection
+            .transaction::<bool, anyhow::Error, _>(async move |connection| {
+                let deleted =
+                    sql_query(include_str!("queries/accounts/rotate_auth_delete_auth.sql"))
+                        .bind::<Integer, _>(next.id_user)
+                        .bind::<Text, _>(&current_hash)
+                        .execute(connection)
+                        .await?;
+                if deleted == 0 {
+                    return Ok(false);
+                }
+                sql_query(include_str!("queries/accounts/rotate_auth_insert_auth.sql"))
+                    .bind::<Integer, _>(next.id_user)
+                    .bind::<Text, _>(next.access_token)
+                    .bind::<BigInt, _>(next.access_token_expiry)
+                    .bind::<Text, _>(&next_hash)
+                    .bind::<BigInt, _>(next.refresh_token_expiry)
+                    .bind::<Varchar, _>(next.provider)
+                    .execute(connection)
+                    .await?;
+                Ok(true)
+            })
+            .await
     }
 }
 

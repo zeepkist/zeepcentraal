@@ -1,0 +1,1 @@
+SELECT to_char(submission_end AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS submission_end, (submission_end<=clock_timestamp()) AS due,(submission_start<=clock_timestamp()) AS started FROM public.zsl_round WHERE id=$1 AND submission_end IS NOT NULL

@@ -1,0 +1,1 @@
+INSERT INTO streamkist.streams(watch_id,policy_watch_id,guild_id,channel_id,stream_id,user_id,snapshot,peak_viewers,is_live,tracking_state,activation_pending) VALUES($1,$1,$2,$3,$4,$5,$6,$7,false,'limit_paused',true) RETURNING {{message_columns}}

@@ -1,0 +1,1 @@
+SELECT id,master_id,room_name,host_id,players,player_limit,is_public,closed_at IS NOT NULL AS closed FROM public.lobby WHERE CASE WHEN $2 THEN master_id IN (SELECT jsonb_array_elements_text($1)) OR closed_at IS NULL ELSE master_id IN (SELECT jsonb_array_elements_text($1)) END

@@ -1,0 +1,1 @@
+INSERT INTO public.zsl_round(id_season,name,round,workshop_id,event_date,submission_start,submission_end,zsl_vote_end,cosmetic_vote_end) VALUES($1,'Fixture round',1,0,now()+interval '1 month',now()-interval '1 day',now()+interval '1 day',now()+interval '8 days',now()+interval '45 days') RETURNING id

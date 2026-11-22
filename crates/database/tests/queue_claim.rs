@@ -2,6 +2,9 @@ use anyhow::{Context, Result, ensure};
 use std::{future::Future, time::Instant};
 use tokio_postgres::{Client, NoTls};
 
+const SET_LEASE_UNTIL_JOB: &str = include_str!("fixtures/queue_claim/set_lease_until_job.sql");
+const SELECT_PROACL_PG_PROC: &str = include_str!("fixtures/queue_claim/select_proacl_pg_proc.sql");
+
 const UP: &str = include_str!("../migrations/20261018000000_optimize_job_claims/up.sql");
 const DOWN: &str = include_str!("../migrations/20261018000000_optimize_job_claims/down.sql");
 
@@ -14,12 +17,18 @@ async fn connect() -> Result<Client> {
     );
     let (client, connection) = tokio_postgres::connect(&url, NoTls).await?;
     tokio::spawn(async move { connection.await.expect("queue test connection") });
-    client.batch_execute("SET statement_timeout='60s'").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/queue_claim/set_statement_timeout_60s.sql"
+        ))
+        .await?;
     Ok(client)
 }
 
 async fn reset(client: &Client) -> Result<()> {
-    client.batch_execute("TRUNCATE zc_jobs.job,pgmq.q_zeepcentraal_fast,pgmq.q_zeepcentraal_bulk,pgmq.a_zeepcentraal_fast,pgmq.a_zeepcentraal_bulk RESTART IDENTITY").await?;
+    client
+        .batch_execute(include_str!("fixtures/queue_claim/truncate_job.sql"))
+        .await?;
     Ok(())
 }
 
@@ -32,14 +41,14 @@ async fn enqueue(
     // Set keys after enqueue to also exercise duplicate keys across different groups.
     let id = client
         .query_one(
-            "SELECT zc_jobs.enqueue($1,'fixture','{}',NULL,$2)",
+            include_str!("fixtures/queue_claim/enqueue.sql"),
             &[&lane, &group],
         )
         .await?
         .get(0);
     client
         .execute(
-            "UPDATE zc_jobs.job SET job_key=$3 WHERE lane=$1 AND id=$2",
+            include_str!("fixtures/queue_claim/set_job_key_job.sql"),
             &[&lane, &id, &key],
         )
         .await?;
@@ -49,7 +58,7 @@ async fn enqueue(
 async fn claim(client: &Client, lane: &str, count: i32) -> Result<Vec<(i64, i64)>> {
     Ok(client
         .query(
-            "SELECT id,generation FROM zc_jobs.claim($1,$2,60)",
+            include_str!("fixtures/queue_claim/select_id_claim.sql"),
             &[&lane, &count],
         )
         .await?
@@ -61,7 +70,7 @@ async fn claim(client: &Client, lane: &str, count: i32) -> Result<Vec<(i64, i64)
 async fn finish(client: &Client, lane: &str, id: i64, generation: i64) -> Result<bool> {
     Ok(client
         .query_one(
-            "SELECT zc_jobs.finish($1,$2,$3)",
+            include_str!("fixtures/queue_claim/finish.sql"),
             &[&lane, &id, &generation],
         )
         .await?
@@ -71,7 +80,7 @@ async fn finish(client: &Client, lane: &str, id: i64, generation: i64) -> Result
 async fn heartbeat(client: &Client, id: i64, generation: i64) -> Result<bool> {
     Ok(client
         .query_one(
-            "SELECT zc_jobs.heartbeat('bulk',$1,$2,60)",
+            include_str!("fixtures/queue_claim/heartbeat.sql"),
             &[&id, &generation],
         )
         .await?
@@ -89,13 +98,19 @@ async fn semantics(client: &Client, lane: &str) -> Result<()> {
     reset(client).await?;
     assert!(
         client
-            .query("SELECT * FROM zc_jobs.claim($1,0,60)", &[&lane])
+            .query(
+                include_str!("fixtures/queue_claim/select_claim.sql"),
+                &[&lane]
+            )
             .await
             .is_err()
     );
     assert!(
         client
-            .query("SELECT * FROM zc_jobs.claim($1,1,0)", &[&lane])
+            .query(
+                include_str!("fixtures/queue_claim/select_claim_2.sql"),
+                &[&lane]
+            )
             .await
             .is_err()
     );
@@ -122,7 +137,7 @@ async fn semantics(client: &Client, lane: &str) -> Result<()> {
     let delayed = enqueue(client, lane, None, Some("delayed")).await?;
     client
         .query_one(
-            "SELECT pgmq.set_vt('zeepcentraal_'||$1,$2::bigint,3600)",
+            include_str!("fixtures/queue_claim/set_vt.sql"),
             &[&lane, &delayed],
         )
         .await?;
@@ -153,28 +168,35 @@ async fn semantics(client: &Client, lane: &str) -> Result<()> {
     let retry = enqueue(client, lane, Some("retry"), Some("retry")).await?;
     assert_eq!(claim(client, lane, 1).await?, vec![(retry, 1)]);
     client
-        .batch_execute(&format!(
-            "UPDATE pgmq.q_zeepcentraal_{lane} SET vt=clock_timestamp()-interval '1 second'"
-        ))
+        .batch_execute(
+            &include_str!("fixtures/queue_claim/set_vt_q_zeepcentraal.sql")
+                .replace("{{lane}}", lane),
+        )
         .await?;
     assert_eq!(claim(client, lane, 1).await?, vec![(retry, 2)]);
     assert!(!finish(client, lane, retry, 1).await?);
     assert!(
         !client
-            .query_one("SELECT zc_jobs.heartbeat($1,$2,1,60)", &[&lane, &retry])
+            .query_one(
+                include_str!("fixtures/queue_claim/heartbeat_2.sql"),
+                &[&lane, &retry]
+            )
             .await?
             .get::<_, bool>(0)
     );
-    client.batch_execute(&format!("UPDATE zc_jobs.job SET lease_until=clock_timestamp()-interval '1 second'; UPDATE pgmq.q_zeepcentraal_{lane} SET vt=clock_timestamp()-interval '1 second'")).await?;
+    client
+        .batch_execute(&SET_LEASE_UNTIL_JOB.replace("{{lane}}", lane))
+        .await?;
     assert_eq!(claim(client, lane, 1).await?, vec![(retry, 3)]);
-    client.batch_execute(&format!("UPDATE zc_jobs.job SET lease_until=clock_timestamp()-interval '1 second'; UPDATE pgmq.q_zeepcentraal_{lane} SET vt=clock_timestamp()-interval '1 second'")).await?;
+    client
+        .batch_execute(&SET_LEASE_UNTIL_JOB.replace("{{lane}}", lane))
+        .await?;
     assert!(claim(client, lane, 1).await?.is_empty());
     assert_eq!(
         client
             .query_one(
-                &format!(
-                    "SELECT message->>'failure' FROM pgmq.a_zeepcentraal_{lane} WHERE msg_id=$1"
-                ),
+                &include_str!("fixtures/queue_claim/select_message_a_zeepcentraal.sql")
+                    .replace("{{lane}}", lane),
                 &[&retry]
             )
             .await?
@@ -197,10 +219,7 @@ fn selection(migration: &str) -> String {
 async fn claim_migration_preserves_semantics_and_removes_backlog_probes() -> Result<()> {
     let client = connect().await?;
     if !client
-        .query_one(
-            "SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='zc_jobs')",
-            &[],
-        )
+        .query_one(include_str!("fixtures/queue_claim/exists.sql"), &[])
         .await?
         .get::<_, bool>(0)
     {
@@ -222,16 +241,22 @@ async fn claim_migration_preserves_semantics_and_removes_backlog_probes() -> Res
     enqueue(&client, "bulk", Some("running"), None).await?;
     claim(&client, "bulk", 1).await?;
     enqueue(&client, "bulk", Some("pending"), None).await?;
-    let snapshot = "SELECT jsonb_build_array((SELECT jsonb_agg(j ORDER BY id) FROM zc_jobs.job j),(SELECT jsonb_agg(q ORDER BY msg_id) FROM pgmq.q_zeepcentraal_bulk q))::text";
+    let snapshot = include_str!("fixtures/queue_claim/select_job.sql");
     let before: String = client.query_one(snapshot, &[]).await?.get(0);
-    let permissions: Option<String> = client.query_one("SELECT proacl::text FROM pg_proc WHERE oid='zc_jobs.claim(text,integer,integer)'::regprocedure", &[]).await?.get(0);
+    let permissions: Option<String> = client.query_one(SELECT_PROACL_PG_PROC, &[]).await?.get(0);
     for migration in [DOWN, UP] {
         client.batch_execute(migration).await?;
         assert_eq!(
             client.query_one(snapshot, &[]).await?.get::<_, String>(0),
             before
         );
-        assert_eq!(client.query_one("SELECT proacl::text FROM pg_proc WHERE oid='zc_jobs.claim(text,integer,integer)'::regprocedure", &[]).await?.get::<_,Option<String>>(0),permissions);
+        assert_eq!(
+            client
+                .query_one(SELECT_PROACL_PG_PROC, &[])
+                .await?
+                .get::<_, Option<String>>(0),
+            permissions
+        );
     }
 
     // Distinct claimers serialize ownership, while acknowledgement and heartbeat remain valid.
@@ -256,7 +281,9 @@ async fn claim_migration_preserves_semantics_and_removes_backlog_probes() -> Res
     assert_eq!(remaining.len(), 10);
 
     reset(&client).await?;
-    client.batch_execute("INSERT INTO zc_jobs.job(lane,id,task,payload,job_key,lock_group,max_attempts,running,lease_until) SELECT 'bulk',pgmq.send('zeepcentraal_bulk','{}'), 'fixture',jsonb_build_object('padding',repeat('x',1000)),'key:'||n,'group:'||(n%56),3,n<=200 AND n%56<24,CASE WHEN n<=200 AND n%56<24 THEN clock_timestamp()+interval '1 hour' END FROM generate_series(1,37000) n; ANALYZE zc_jobs.job; ANALYZE pgmq.q_zeepcentraal_bulk").await?;
+    client
+        .batch_execute(include_str!("fixtures/queue_claim/insert_job.sql"))
+        .await?;
     let baseline = selection(DOWN);
     let optimized = selection(UP);
     let mut times = [Vec::new(), Vec::new()];
@@ -295,7 +322,8 @@ async fn claim_migration_preserves_semantics_and_removes_backlog_probes() -> Res
     );
     let plan = client
         .query(
-            &format!("EXPLAIN (ANALYZE,BUFFERS) {optimized}"),
+            &include_str!("fixtures/queue_claim/explain_optimized.sql")
+                .replace("{{optimized}}", &optimized),
             &[&"bulk", &15_i64],
         )
         .await?

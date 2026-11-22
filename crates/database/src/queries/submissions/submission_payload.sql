@@ -1,0 +1,4 @@
+jsonb_build_object('id',s.id,'roundId',c.id_zsl_round,'workshopId',s.workshop_id::text,'authors',s.authors,'revision',s.revision,
+'authorNames',coalesce((SELECT jsonb_agg(coalesce(u.steam_name,a.id) ORDER BY a.n) FROM unnest(s.authors) WITH ORDINALITY a(id,n) LEFT JOIN public."user" u ON u.steam_id::text=a.id),'[]'::jsonb),
+'status',CASE WHEN s.state='withdrawn' THEN 'withdrawn' WHEN s.retry_category IS NOT NULL THEN 'retrying' WHEN s.inspection_started_at IS NOT NULL THEN 'validating' WHEN v.id IS NULL OR v.submission_revision<>s.revision THEN 'queued' ELSE 'complete' END,
+'validation',CASE WHEN v.id IS NOT NULL AND v.submission_revision=s.revision THEN jsonb_build_object('valid',v.valid,'workshopUpdatedAt',v.workshop_updated_at,'fileUid',v.file_uid,'measurements',v.measurements,'failures',v.failures) END)

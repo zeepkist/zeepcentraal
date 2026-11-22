@@ -74,13 +74,12 @@ impl Database {
             return Ok(Vec::new());
         }
         let mut connection = self.connection().await?;
-        Ok(sql_query(
-            "SELECT id,steam_id::bigint,steam_name::text \
-             FROM public.\"user\" WHERE steam_id=ANY($1)",
+        Ok(
+            sql_query(include_str!("../queries/zsl/existing_zsl_users.sql"))
+                .bind::<Array<BigInt>, _>(steam_ids)
+                .load(&mut connection)
+                .await?,
         )
-        .bind::<Array<BigInt>, _>(steam_ids)
-        .load(&mut connection)
-        .await?)
     }
 
     pub async fn upsert_zsl_users(&self, users: &[(i64, String)]) -> Result<HashMap<i64, i32>> {
@@ -90,19 +89,12 @@ impl Database {
         let steam_ids: Vec<i64> = users.iter().map(|(steam_id, _)| *steam_id).collect();
         let steam_names: Vec<String> = users.iter().map(|(_, name)| name.clone()).collect();
         let mut connection = self.connection().await?;
-        let rows: Vec<ExistingUser> = sql_query(
-            "INSERT INTO public.\"user\" \
-             (steam_id,steam_name,discord_id,banned,date_created,date_updated) \
-             SELECT steam_id,steam_name,-1,false,clock_timestamp(),clock_timestamp() \
-             FROM unnest($1::bigint[],$2::text[]) AS input(steam_id,steam_name) \
-             ON CONFLICT (steam_id) DO UPDATE SET \
-               steam_name=excluded.steam_name,date_updated=clock_timestamp() \
-             RETURNING id,steam_id::bigint,steam_name::text",
-        )
-        .bind::<Array<BigInt>, _>(&steam_ids)
-        .bind::<Array<Text>, _>(&steam_names)
-        .load(&mut connection)
-        .await?;
+        let rows: Vec<ExistingUser> =
+            sql_query(include_str!("../queries/zsl/upsert_zsl_users.sql"))
+                .bind::<Array<BigInt>, _>(&steam_ids)
+                .bind::<Array<Text>, _>(&steam_names)
+                .load(&mut connection)
+                .await?;
         Ok(rows.into_iter().map(|row| (row.steam_id, row.id)).collect())
     }
 
@@ -117,31 +109,25 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<ZslSeason, anyhow::Error, _>(async move |connection| {
-                    if let Some(existing) = sql_query(
-                        "SELECT id,id_points_structure FROM public.zsl_season \
-                         WHERE name=$1 LIMIT 1 FOR UPDATE",
-                    )
-                    .bind::<Text, _>(name)
-                    .get_result(connection)
-                    .await
-                    .optional()?
-                    {
-                        return Ok(existing);
-                    }
-                    Ok(sql_query(
-                        "INSERT INTO public.zsl_season \
-                         (id_points_structure,name,start_date,end_date,date_created) \
-                         VALUES ($1,$2,(($3::date)::timestamp+interval '18 hours') AT TIME ZONE 'UTC', \
-                           (($4::date)::timestamp+interval '18 hours') AT TIME ZONE 'UTC',clock_timestamp()) \
-                         RETURNING id,id_points_structure",
-                    )
-                    .bind::<Integer, _>(id_points_structure)
-                    .bind::<Text, _>(name)
-                    .bind::<Text, _>(start_date)
-                    .bind::<Text, _>(end_date)
-                    .get_result(connection)
-                    .await?)
-                })
+                if let Some(existing) =
+                    sql_query(include_str!("../queries/zsl/select_id_zsl_season.sql"))
+                        .bind::<Text, _>(name)
+                        .get_result(connection)
+                        .await
+                        .optional()?
+                {
+                    return Ok(existing);
+                }
+                Ok(
+                    sql_query(include_str!("../queries/zsl/insert_zsl_season.sql"))
+                        .bind::<Integer, _>(id_points_structure)
+                        .bind::<Text, _>(name)
+                        .bind::<Text, _>(start_date)
+                        .bind::<Text, _>(end_date)
+                        .get_result(connection)
+                        .await?,
+                )
+            })
             .await
     }
 
@@ -156,22 +142,15 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<ZslRound, anyhow::Error, _>(async move |connection| {
-                    let existing: Option<ZslRound> = sql_query(
-                        "SELECT id FROM public.zsl_round \
-                         WHERE id_season=$1 AND round=$2 FOR UPDATE",
-                    )
-                    .bind::<Integer, _>(id_season)
-                    .bind::<Integer, _>(round)
-                    .get_result(connection)
-                    .await
-                    .optional()?;
-                    if let Some(existing) = existing {
-                        let updated = sql_query(
-                            "UPDATE public.zsl_round SET name=$2,workshop_id=CASE WHEN workshop_id=0 THEN $3 ELSE workshop_id END,event_date=$4::timestamptz, \
-                             date_updated=clock_timestamp() WHERE id=$1 AND (name IS DISTINCT FROM $2 \
-                             OR (workshop_id=0 AND workshop_id IS DISTINCT FROM $3) OR event_date IS DISTINCT FROM $4::timestamptz) \
-                             RETURNING id",
-                        )
+                let existing: Option<ZslRound> =
+                    sql_query(include_str!("../queries/zsl/select_id_zsl_round.sql"))
+                        .bind::<Integer, _>(id_season)
+                        .bind::<Integer, _>(round)
+                        .get_result(connection)
+                        .await
+                        .optional()?;
+                if let Some(existing) = existing {
+                    let updated = sql_query(include_str!("../queries/zsl/set_name_zsl_round.sql"))
                         .bind::<Integer, _>(existing.id)
                         .bind::<Text, _>(name)
                         .bind::<BigInt, _>(workshop_id)
@@ -179,27 +158,25 @@ impl Database {
                         .get_result(connection)
                         .await
                         .optional()?;
-                        return Ok(updated.unwrap_or(existing));
-                    }
-                    Ok(sql_query(
-                        "INSERT INTO public.zsl_round \
-                         (id_season,round,name,workshop_id,event_date,date_created) \
-                         VALUES ($1,$2,$3,$4,$5::timestamptz,clock_timestamp()) RETURNING id",
-                    )
-                    .bind::<Integer, _>(id_season)
-                    .bind::<Integer, _>(round)
-                    .bind::<Text, _>(name)
-                    .bind::<BigInt, _>(workshop_id)
-                    .bind::<Text, _>(event_date)
-                    .get_result(connection)
-                    .await?)
-                })
+                    return Ok(updated.unwrap_or(existing));
+                }
+                Ok(
+                    sql_query(include_str!("../queries/zsl/insert_zsl_round.sql"))
+                        .bind::<Integer, _>(id_season)
+                        .bind::<Integer, _>(round)
+                        .bind::<Text, _>(name)
+                        .bind::<BigInt, _>(workshop_id)
+                        .bind::<Text, _>(event_date)
+                        .get_result(connection)
+                        .await?,
+                )
+            })
             .await
     }
 
     pub async fn zsl_event_is_future(&self, event_date: &str) -> Result<bool> {
         let mut connection = self.connection().await?;
-        let row: BooleanValue = sql_query("SELECT $1::timestamptz>clock_timestamp() AS value")
+        let row: BooleanValue = sql_query(include_str!("../queries/zsl/zsl_event_is_future.sql"))
             .bind::<Text, _>(event_date)
             .get_result(&mut connection)
             .await?;
@@ -211,14 +188,10 @@ impl Database {
             return Ok(HashMap::new());
         }
         let mut connection = self.connection().await?;
-        let rows: Vec<LevelUid> = sql_query(
-            "SELECT level.id,level_item.file_uid::text \
-             FROM public.level INNER JOIN public.level_item ON level.id=level_item.id_level \
-             WHERE level_item.file_uid=ANY($1)",
-        )
-        .bind::<Array<Text>, _>(file_uids)
-        .load(&mut connection)
-        .await?;
+        let rows: Vec<LevelUid> = sql_query(include_str!("../queries/zsl/levels_by_file_uids.sql"))
+            .bind::<Array<Text>, _>(file_uids)
+            .load(&mut connection)
+            .await?;
         Ok(rows.into_iter().map(|row| (row.file_uid, row.id)).collect())
     }
 
@@ -226,36 +199,35 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<ZslLevel, anyhow::Error, _>(async move |connection| {
-                sql_query("SELECT pg_advisory_xact_lock(91501,$1)")
-                    .bind::<Integer, _>(id_round)
-                    .execute(connection)
-                    .await?;
-                if let Some(existing) = sql_query(
-                    "SELECT id FROM public.zsl_level \
-                         WHERE id_round=$1 AND id_level=$2 LIMIT 1 FOR UPDATE",
-                )
+                sql_query(include_str!(
+                    "../queries/zsl/get_or_create_zsl_level_pg_advisory_xact_lock.sql"
+                ))
                 .bind::<Integer, _>(id_round)
-                .bind::<Integer, _>(id_level)
-                .get_result::<ZslLevel>(connection)
-                .await
-                .optional()?
+                .execute(connection)
+                .await?;
+                if let Some(existing) =
+                    sql_query(include_str!("../queries/zsl/select_id_zsl_level.sql"))
+                        .bind::<Integer, _>(id_round)
+                        .bind::<Integer, _>(id_level)
+                        .get_result::<ZslLevel>(connection)
+                        .await
+                        .optional()?
                 {
-                    sql_query(
-                        "UPDATE public.zsl_level SET date_updated=clock_timestamp() WHERE id=$1",
-                    )
+                    sql_query(include_str!(
+                        "../queries/zsl/set_date_updated_zsl_level.sql"
+                    ))
                     .bind::<Integer, _>(existing.id)
                     .execute(connection)
                     .await?;
                     return Ok(existing);
                 }
-                Ok(sql_query(
-                    "INSERT INTO public.zsl_level(id_round,id_level,date_created,date_updated) \
-                         VALUES ($1,$2,clock_timestamp(),clock_timestamp()) RETURNING id",
+                Ok(
+                    sql_query(include_str!("../queries/zsl/insert_zsl_level.sql"))
+                        .bind::<Integer, _>(id_round)
+                        .bind::<Integer, _>(id_level)
+                        .get_result(connection)
+                        .await?,
                 )
-                .bind::<Integer, _>(id_round)
-                .bind::<Integer, _>(id_level)
-                .get_result(connection)
-                .await?)
             })
             .await
     }
@@ -278,20 +250,10 @@ impl Database {
         let positions: Vec<i32> = rows.iter().map(|row| row.position).collect();
         let query = match kind {
             "season" => {
-                "INSERT INTO public.zsl_season_result(id_season,id_user,points,position,date_created) \
-                 SELECT parent,user_id,points,position,clock_timestamp() \
-                 FROM unnest($1::integer[],$2::integer[],$3::integer[],$4::integer[]) \
-                   AS input(parent,user_id,points,position) \
-                 ON CONFLICT(id_season,id_user) DO UPDATE SET \
-                   points=excluded.points,position=excluded.position,date_updated=clock_timestamp()"
+                include_str!("../queries/zsl/insert_zsl_season_result.sql")
             }
             "round" => {
-                "INSERT INTO public.zsl_round_result(id_round,id_user,points,position,date_created) \
-                 SELECT parent,user_id,points,position,clock_timestamp() \
-                 FROM unnest($1::integer[],$2::integer[],$3::integer[],$4::integer[]) \
-                   AS input(parent,user_id,points,position) \
-                 ON CONFLICT(id_round,id_user) DO UPDATE SET \
-                   points=excluded.points,position=excluded.position,date_updated=clock_timestamp()"
+                include_str!("../queries/zsl/insert_zsl_round_result.sql")
             }
             _ => anyhow::bail!("Unknown ZSL result kind"),
         };
@@ -316,22 +278,14 @@ impl Database {
         let positions: Vec<i32> = rows.iter().map(|row| row.position).collect();
         let times: Vec<f32> = rows.iter().map(|row| row.time).collect();
         let mut connection = self.connection().await?;
-        sql_query(
-            "INSERT INTO public.zsl_level_result \
-             (id_level,id_user,points,position,time,date_created) \
-             SELECT level_id,user_id,points,position,time,clock_timestamp() \
-             FROM unnest($1::integer[],$2::integer[],$3::integer[],$4::integer[],$5::real[]) \
-               AS input(level_id,user_id,points,position,time) \
-             ON CONFLICT(id_level,id_user) DO UPDATE SET points=excluded.points, \
-               position=excluded.position,time=excluded.time,date_updated=clock_timestamp()",
-        )
-        .bind::<Array<Integer>, _>(&levels)
-        .bind::<Array<Integer>, _>(&users)
-        .bind::<Array<Integer>, _>(&points)
-        .bind::<Array<Integer>, _>(&positions)
-        .bind::<Array<Float>, _>(&times)
-        .execute(&mut connection)
-        .await?;
+        sql_query(include_str!("../queries/zsl/upsert_zsl_level_results.sql"))
+            .bind::<Array<Integer>, _>(&levels)
+            .bind::<Array<Integer>, _>(&users)
+            .bind::<Array<Integer>, _>(&points)
+            .bind::<Array<Integer>, _>(&positions)
+            .bind::<Array<Float>, _>(&times)
+            .execute(&mut connection)
+            .await?;
         Ok(())
     }
 }

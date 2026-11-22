@@ -1,0 +1,1 @@
+INSERT INTO public.track_tournament_result SELECT id,1,100+id,49.332,1,1000 FROM public.track_tournament; CREATE TEMP TABLE original_tournaments ON COMMIT DROP AS SELECT * FROM public.track_tournament; CREATE TEMP TABLE original_results ON COMMIT DROP AS SELECT * FROM public.track_tournament_result

@@ -1,0 +1,1 @@
+INSERT INTO public.record(id,id_user,id_level,time,game_version,mod_version) OVERRIDING SYSTEM VALUE VALUES(63,56,1,0.5,'test','test'); UPDATE public.personal_best_global SET id_record=63 WHERE id_user=56 AND id_level=1

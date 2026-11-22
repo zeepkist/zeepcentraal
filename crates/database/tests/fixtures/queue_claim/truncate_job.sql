@@ -1,0 +1,1 @@
+TRUNCATE zc_jobs.job,pgmq.q_zeepcentraal_fast,pgmq.q_zeepcentraal_bulk,pgmq.a_zeepcentraal_fast,pgmq.a_zeepcentraal_bulk RESTART IDENTITY

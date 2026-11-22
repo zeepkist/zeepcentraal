@@ -12,6 +12,10 @@ use zc_jobs::{
     runtime::{JobHandler, JobOutcome, run},
 };
 
+const COUNT_JOB: &str = include_str!("fixtures/pool_retry/count_job.sql");
+const COUNT_A_ZEEPCENTRAAL_BULK: &str =
+    include_str!("fixtures/pool_retry/count_a_zeepcentraal_bulk.sql");
+
 struct ProbeHandler {
     database: Database,
     shutdown: watch::Sender<bool>,
@@ -93,15 +97,10 @@ async fn pool_timeout_preserves_final_attempt_and_query_errors_still_fail() -> R
     let queue = Queue::connect(queue_pool.clone()).await?;
     let database = Database::from_partition(pool.application());
     ensure!(
-        count(
-            &queue_pool,
-            "SELECT count(*)::bigint AS count FROM zc_jobs.job"
-        )
-        .await?
-            == 0,
+        count(&queue_pool, COUNT_JOB).await? == 0,
         "Test requires empty queue"
     );
-    let archived_failures = count(&queue_pool, "SELECT count(*)::bigint AS count FROM pgmq.a_zeepcentraal_bulk WHERE message->>'failure'='attempts_exhausted'").await?;
+    let archived_failures = count(&queue_pool, COUNT_A_ZEEPCENTRAAL_BULK).await?;
     for query_error in [false, true] {
         queue
             .enqueue(
@@ -111,27 +110,32 @@ async fn pool_timeout_preserves_final_attempt_and_query_errors_still_fail() -> R
                 None,
             )
             .await?;
-        sql_query("UPDATE zc_jobs.job SET attempts=2 WHERE task='reconcileRecordEligibility'")
+        sql_query(include_str!("fixtures/pool_retry/set_attempts_job.sql"))
             .execute(&mut queue_pool.connection().await?)
             .await?;
 
         let held_connection = database.pool_partition().connection().await?;
         run_probe(&queue, &database, false).await?;
-        assert_eq!(count(&queue_pool, "SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE task='reconcileRecordEligibility' AND attempts=2 AND generation=1 AND NOT running AND lease_until IS NULL AND payload->>'idLevel'='86176' AND payload->>'deferCount'='1'").await?, 1);
+        assert_eq!(
+            count(
+                &queue_pool,
+                include_str!(
+                    "fixtures/pool_retry/count_job_by_task_reconcile_record_eligibility.sql"
+                )
+            )
+            .await?,
+            1
+        );
         drop(held_connection);
 
         // Recovery succeeds on the final allowed attempt. Real query failures retain
         // their failure budget and archive when that final attempt fails.
         run_probe(&queue, &database, query_error).await?;
+        assert_eq!(count(&queue_pool, COUNT_JOB).await?, 0);
         assert_eq!(
-            count(
-                &queue_pool,
-                "SELECT count(*)::bigint AS count FROM zc_jobs.job"
-            )
-            .await?,
-            0
+            count(&queue_pool, COUNT_A_ZEEPCENTRAAL_BULK).await?,
+            archived_failures + i64::from(query_error)
         );
-        assert_eq!(count(&queue_pool, "SELECT count(*)::bigint AS count FROM pgmq.a_zeepcentraal_bulk WHERE message->>'failure'='attempts_exhausted'").await?, archived_failures+i64::from(query_error));
     }
     Ok(())
 }

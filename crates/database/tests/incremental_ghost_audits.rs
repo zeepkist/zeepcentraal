@@ -42,7 +42,11 @@ async fn fixture(name: &str) -> Result<(Database, tokio_postgres::Client)> {
             "../migrations/20261106010000_timing_failure_recovery/up.sql"
         ))
         .await?;
-    client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)),(2,repeat('b',32)); CREATE INDEX ON public.level_metadata(id_level); CREATE INDEX ON public.level_item(id_level,workshop_id);").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/insert_user.sql"
+        ))
+        .await?;
     Ok((Database::connect(&url, 2).await?, client))
 }
 
@@ -50,7 +54,11 @@ async fn fixture(name: &str) -> Result<(Database, tokio_postgres::Client)> {
 #[ignore = "requires fresh local ghost_validation_incremental_bounds_test database"]
 async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     let (db, client) = fixture("ghost_validation_incremental_bounds_test").await?;
-    client.batch_execute("INSERT INTO public.record(id,id_user,id_level,time) SELECT id,1,1,10 FROM generate_series(1,2001) id").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/insert_record.sql"
+        ))
+        .await?;
     let bounded = db
         .audit_record_window(&json!({"afterId":1000}), 1500)
         .await?;
@@ -87,7 +95,11 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     terminal.validator_version = "old".into();
     db.save_checked_record_validations(&[1], None, &terminal, &stamp)
         .await?;
-    client.batch_execute("INSERT INTO public.level_metadata(id_level,format,blocks) VALUES(1,1,'[]'); INSERT INTO public.level_item(id_level,workshop_id) VALUES(1,123)").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/insert_level_metadata.sql"
+        ))
+        .await?;
     let rows = db.audit_record_window(&json!({}), 2001).await?;
     assert!(
         rows.iter()
@@ -99,13 +111,21 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     pass.status = "pass".into();
     let before = db.record_validation_attempts(2).await?.remove(0);
     let observed = db.validation_check_timestamp(1).await?;
-    client.batch_execute("UPDATE public.level_metadata SET blocks=blocks,date_updated=date_updated WHERE id_level=1").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/set_blocks_level_metadata.sql"
+        ))
+        .await?;
     assert_eq!(
         db.validation_check_timestamp(1).await?,
         observed,
         "unchanged source rows must not invalidate results"
     );
-    client.batch_execute("UPDATE public.level_metadata SET blocks='[{\"i\":22}]',date_updated=clock_timestamp() WHERE id_level=1").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/set_blocks_level_metadata_by_id_level_1.sql"
+        ))
+        .await?;
     db.save_checked_record_validations(&[2], Some("ignored"), &pass, &observed)
         .await?;
     assert!(
@@ -132,7 +152,9 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
         "older evaluation cannot replace newer result"
     );
     client
-        .batch_execute("UPDATE public.level_item SET id_level=2 WHERE id_level=1")
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/set_id_level_level_item.sql"
+        ))
         .await?;
     assert!(
         !db.audit_record_window(&json!({"idRecord":2}), 2001).await?[0].needs_check,
@@ -142,7 +164,9 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     db.save_checked_record_validations(&[2], None, &pass, &latest)
         .await?;
     client
-        .batch_execute("DELETE FROM public.level_metadata WHERE id_level=1")
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/delete_level_metadata.sql"
+        ))
         .await?;
     assert!(
         db.audit_record_window(&json!({"idRecord":2}), 2001).await?[0].needs_check,
@@ -152,9 +176,9 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     db.save_checked_record_validations(&[2], None, &pass, &stamp)
         .await?;
     client
-        .batch_execute(
-            "UPDATE zc_private.record_validation SET validator_version='old' WHERE id_record=2",
-        )
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/set_validator_version_record_validation.sql"
+        ))
         .await?;
     assert!(db.audit_record_window(&json!({"idRecord":2}), 2001).await?[0].needs_check);
     let v = db.record_validation_attempts(1).await?.remove(0);
@@ -176,12 +200,24 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
         .await?;
     assert_eq!(
         client
-            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
+            .query_one(
+                include_str!("fixtures/incremental_ghost_audits/count_record_validation.sql"),
+                &[]
+            )
             .await?
             .get::<_, i64>(0),
         2001
     );
-    assert_eq!(client.query_one("SELECT count(*) FROM information_schema.columns WHERE column_name IN ('checked_at','validation_inputs_updated_at') AND table_schema IN ('public','zc_private')",&[]).await?.get::<_,i64>(0),0);
+    assert_eq!(
+        client
+            .query_one(
+                include_str!("fixtures/incremental_ghost_audits/count_information_schema.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, i64>(0),
+        0
+    );
     client
         .batch_execute(include_str!(
             "../migrations/20261008040000_incremental_ghost_audits/up.sql"
@@ -190,7 +226,7 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
     assert_eq!(
         client
             .query_one(
-                "SELECT count(*) FROM zc_private.record_validation WHERE checked_at IS NULL",
+                include_str!("fixtures/incremental_ghost_audits/count_record_validation_without_checked_at.sql"),
                 &[]
             )
             .await?
@@ -204,12 +240,21 @@ async fn incremental_skips_watermarks_changes_and_rollback() -> Result<()> {
 #[ignore = "large benchmark requires fresh local ghost_validation_incremental_benchmark_test database"]
 async fn three_million_records_use_bounded_windows() -> Result<()> {
     let (db, client) = fixture("ghost_validation_incremental_benchmark_test").await?;
-    client.batch_execute("INSERT INTO public.record(id,id_user,id_level,time) SELECT id,1,1+(id%2),10 FROM generate_series(1,3000001) id").await?;
-    client.execute("INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version,checked_at) SELECT id,id_user,id_level,CASE WHEN id%3=0 THEN 'pass' WHEN id%3=1 THEN 'fail' ELSE 'uncertain' END,'{\"reasons\":[]}'::jsonb,$1,'epoch' FROM public.record WHERE id NOT IN (2500001,3000001)",&[&VALIDATOR_VERSION]).await?;
     client
-        .batch_execute(
-            "ANALYZE public.record; ANALYZE zc_private.record_validation; ANALYZE public.level",
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/insert_record_2.sql"
+        ))
+        .await?;
+    client
+        .execute(
+            include_str!("fixtures/incremental_ghost_audits/insert_record_validation.sql"),
+            &[&VALIDATOR_VERSION],
         )
+        .await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/incremental_ghost_audits/analyze_record.sql"
+        ))
         .await?;
     let start = std::time::Instant::now();
     assert_eq!(

@@ -9,6 +9,8 @@ use zc_jobs::{
     queue::{JobLane, Queue},
 };
 
+const COUNT_JOB: &str = include_str!("fixtures/fast_projection/count_job.sql");
+
 #[derive(QueryableByName)]
 struct CountRow {
     #[diesel(sql_type = BigInt)]
@@ -47,9 +49,7 @@ async fn fast_level_jobs_coalesce_and_submitter_repairs_keep_order() -> Result<(
     let partition = pool.queue()?;
     let queue = Queue::connect(partition.clone()).await?;
     let mut connection = partition.connection().await?;
-    let initial: CountRow = sql_query("SELECT count(*)::bigint AS count FROM zc_jobs.job")
-        .get_result(&mut connection)
-        .await?;
+    let initial: CountRow = sql_query(COUNT_JOB).get_result(&mut connection).await?;
     ensure!(
         initial.count == 0,
         "Fast projection test requires empty queue"
@@ -124,14 +124,13 @@ async fn fast_level_jobs_coalesce_and_submitter_repairs_keep_order() -> Result<(
     assert_eq!(claimed[0].payload["projectionToken"], "9001");
     assert!(queue.finish(&claimed[0], None).await?);
     let mut connection = partition.connection().await?;
-    let remaining: CountRow = sql_query("SELECT count(*)::bigint AS count FROM zc_jobs.job")
-        .get_result(&mut connection)
-        .await?;
+    let remaining: CountRow = sql_query(COUNT_JOB).get_result(&mut connection).await?;
     assert_eq!(remaining.count, 0);
-    let archived: CountRow =
-        sql_query("SELECT count(*)::bigint AS count FROM pgmq.a_zeepcentraal_fast")
-            .get_result(&mut connection)
-            .await?;
+    let archived: CountRow = sql_query(include_str!(
+        "fixtures/fast_projection/count_a_zeepcentraal_fast.sql"
+    ))
+    .get_result(&mut connection)
+    .await?;
     assert_eq!(archived.count, 0);
 
     let cursor = queue.enqueue_level_projection(12790, 100).await?;
@@ -145,8 +144,11 @@ async fn fast_level_jobs_coalesce_and_submitter_repairs_keep_order() -> Result<(
     assert_ne!(pending.id, cursor.id);
     assert!(queue.defer(&claimed[0]).await?);
     let mut connection = partition.connection().await?;
-    let remaining: CountRow = sql_query("SELECT count(*)::bigint AS count FROM zc_jobs.job WHERE lane='bulk' AND job_key='update-level-contributions:12790'")
-        .get_result(&mut connection).await?;
+    let remaining: CountRow = sql_query(include_str!(
+        "fixtures/fast_projection/count_job_by_lane_bulk.sql"
+    ))
+    .get_result(&mut connection)
+    .await?;
     assert_eq!(remaining.count, 1);
     drop(connection);
     let claimed = queue.claim(JobLane::Bulk, 1).await?;
@@ -165,10 +167,11 @@ async fn fast_level_jobs_coalesce_and_submitter_repairs_keep_order() -> Result<(
         }
     }
     let mut connection = partition.connection().await?;
-    let archived: CountRow =
-        sql_query("SELECT count(*)::bigint AS count FROM pgmq.a_zeepcentraal_bulk")
-            .get_result(&mut connection)
-            .await?;
+    let archived: CountRow = sql_query(include_str!(
+        "fixtures/fast_projection/count_a_zeepcentraal_bulk.sql"
+    ))
+    .get_result(&mut connection)
+    .await?;
     assert_eq!(archived.count, 0);
     drop(connection);
     assert!(!queue.has_pending_score_projections().await?);

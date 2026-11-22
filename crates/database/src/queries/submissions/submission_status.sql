@@ -1,0 +1,1 @@
+SELECT {{submission_json}} AS payload FROM zc_private.level_submissions s JOIN zc_private.level_submission_contest c ON c.id=s.id_contest LEFT JOIN zc_private.level_submission_validation v ON v.id=s.latest_validation_id WHERE s.id=$1 AND $2=ANY(s.authors)

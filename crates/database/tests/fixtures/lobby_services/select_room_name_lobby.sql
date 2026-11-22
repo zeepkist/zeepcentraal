@@ -1,0 +1,1 @@
+SELECT l.room_name, h.room_name, l.host_id, h.host_id, u.steam_name FROM public.lobby l JOIN public.lobby_history h ON h.lobby_id=l.id JOIN public."user" u ON u.steam_id=h.host_id WHERE l.master_id=$1 ORDER BY h.id

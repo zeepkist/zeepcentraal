@@ -1,0 +1,1 @@
+INSERT INTO public.level_item (id_level,workshop_id,author_id,name,image_url,file_author,file_uid, validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze, deleted,created_at,updated_at,date_created,date_updated) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,false,$12::timestamptz,$13::timestamptz,clock_timestamp(),clock_timestamp())

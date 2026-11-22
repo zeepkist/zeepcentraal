@@ -1,0 +1,1 @@
+INSERT INTO zc_private.zsl_practice_playlist (id_zsl_round,playlist_url,object_key,content_sha256,byte_size) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id_zsl_round,playlist_url) DO UPDATE SET object_key=EXCLUDED.object_key,content_sha256=EXCLUDED.content_sha256,byte_size=EXCLUDED.byte_size,date_updated=clock_timestamp()

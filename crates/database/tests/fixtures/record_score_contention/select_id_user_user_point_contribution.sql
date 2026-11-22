@@ -1,0 +1,1 @@
+SELECT contribution.id_user,contribution.id_record,contribution.level_position, pb.id_record FROM public.user_point_contribution contribution JOIN public.personal_best_global pb USING(id_user,id_level) WHERE contribution.id_level=$1 ORDER BY contribution.id_user

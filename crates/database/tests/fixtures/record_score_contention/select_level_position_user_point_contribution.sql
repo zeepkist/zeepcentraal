@@ -1,0 +1,1 @@
+SELECT contribution.level_position,contribution.level_points, contribution.contribution_rank,contribution.player_decayed_points,points.points FROM public.user_point_contribution contribution JOIN public.level_points points ON points.id_level=contribution.id_level WHERE contribution.id_level=$1 AND contribution.id_user=$2

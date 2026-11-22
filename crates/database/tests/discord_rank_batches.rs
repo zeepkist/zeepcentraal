@@ -5,6 +5,9 @@ use zc_database::{
     services::jobs::{MaintenanceOutcome, PlayerRankSnapshot},
 };
 
+const JSONB_ARRAY_LENGTH_2: &str =
+    include_str!("fixtures/discord_rank_batches/jsonb_array_length_2.sql");
+
 fn snapshots(ids: std::ops::RangeInclusive<i32>) -> Vec<PlayerRankSnapshot> {
     ids.map(|id| PlayerRankSnapshot {
         id_user: id,
@@ -15,12 +18,21 @@ fn snapshots(ids: std::ops::RangeInclusive<i32>) -> Vec<PlayerRankSnapshot> {
 }
 
 async fn seed(client: &tokio_postgres::Client, first: i32, last: i32) -> Result<()> {
-    client.execute("INSERT INTO public.user_points(id_user,points,rank) SELECT id,100,id+1 FROM generate_series($1::integer,$2::integer) id", &[&first, &last]).await?;
+    client
+        .execute(
+            include_str!("fixtures/discord_rank_batches/insert_user_points.sql"),
+            &[&first, &last],
+        )
+        .await?;
     Ok(())
 }
 
 async fn expire(client: &tokio_postgres::Client) -> Result<()> {
-    client.batch_execute("UPDATE zc_private.discord_rank_batch_state SET window_started_at=clock_timestamp()-interval '3 minutes',last_change_at=clock_timestamp()-interval '2 minutes' WHERE changes<>'[]'::jsonb").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/discord_rank_batches/set_window_started_at_discord_rank_batch_state.sql"
+        ))
+        .await?;
     Ok(())
 }
 
@@ -38,13 +50,11 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
     tokio::spawn(async move {
         let _ = connection.await;
     });
-    client.batch_execute(
-        "CREATE SCHEMA zc_private; \
-         DO $$ BEGIN IF NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname='zeepcentraal_graphql') THEN CREATE ROLE zeepcentraal_graphql; END IF; END $$; \
-         CREATE TABLE public.user_points (id_user integer PRIMARY KEY,points integer,rank integer,date_updated timestamptz); \
-         CREATE TABLE public.discord_activity_event (id bigserial PRIMARY KEY,kind text,payload jsonb,occurred_at timestamptz DEFAULT clock_timestamp()); \
-         INSERT INTO public.user_points VALUES(1,100,50,NULL)",
-    ).await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/discord_rank_batches/create_zc_private.sql"
+        ))
+        .await?;
     client
         .batch_execute(include_str!(
             "../migrations/20261002010000_discord_rank_batches/up.sql"
@@ -74,7 +84,7 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
     assert_eq!(first? + second?, 1);
     let payload: String = client
         .query_one(
-            "SELECT payload::text FROM public.discord_activity_event",
+            include_str!("fixtures/discord_rank_batches/select_payload_discord_activity_event.sql"),
             &[],
         )
         .await?
@@ -87,18 +97,33 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
 
     // Failure while emitting must roll back rank updates and accumulator changes together.
     seed(&client, 2, 51).await?;
-    client.batch_execute("ALTER TABLE public.discord_activity_event ADD CONSTRAINT fixture_reject CHECK(false) NOT VALID").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/discord_rank_batches/alter_discord_activity_event.sql"
+        ))
+        .await?;
     assert!(
         database
             .persist_player_rank_batch(&snapshots(2..=51))
             .await
             .is_err()
     );
-    assert_eq!(client.query_one("SELECT count(*) FROM public.user_points WHERE id_user BETWEEN 2 AND 51 AND rank=id_user+1", &[]).await?.get::<_, i64>(0), 50);
     assert_eq!(
         client
             .query_one(
-                "SELECT changes::text FROM zc_private.discord_rank_batch_state",
+                include_str!("fixtures/discord_rank_batches/count_user_points.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, i64>(0),
+        50
+    );
+    assert_eq!(
+        client
+            .query_one(
+                include_str!(
+                    "fixtures/discord_rank_batches/select_changes_discord_rank_batch_state.sql"
+                ),
                 &[]
             )
             .await?
@@ -106,7 +131,9 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
         "[]"
     );
     client
-        .batch_execute("ALTER TABLE public.discord_activity_event DROP CONSTRAINT fixture_reject")
+        .batch_execute(include_str!(
+            "fixtures/discord_rank_batches/alter_discord_activity_event_2.sql"
+        ))
         .await?;
     assert_eq!(
         database
@@ -114,7 +141,16 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
             .await?,
         MaintenanceOutcome::Applied(50)
     );
-    assert_eq!(client.query_one("SELECT jsonb_array_length(payload->'changes') FROM public.discord_activity_event ORDER BY id DESC LIMIT 1", &[]).await?.get::<_, i32>(0), 50);
+    assert_eq!(
+        client
+            .query_one(
+                include_str!("fixtures/discord_rank_batches/jsonb_array_length.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, i32>(0),
+        50
+    );
 
     seed(&client, 100, 150).await?;
     database
@@ -122,10 +158,7 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
         .await?;
     assert_eq!(
         client
-            .query_one(
-                "SELECT jsonb_array_length(changes) FROM zc_private.discord_rank_batch_state",
-                &[]
-            )
+            .query_one(JSONB_ARRAY_LENGTH_2, &[])
             .await?
             .get::<_, i32>(0),
         1
@@ -146,10 +179,7 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
     assert_eq!(right?, MaintenanceOutcome::Applied(29));
     assert_eq!(
         client
-            .query_one(
-                "SELECT jsonb_array_length(changes) FROM zc_private.discord_rank_batch_state",
-                &[]
-            )
+            .query_one(JSONB_ARRAY_LENGTH_2, &[])
             .await?
             .get::<_, i32>(0),
         49
@@ -162,7 +192,9 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
         .await?;
     let payload: String = client
         .query_one(
-            "SELECT payload::text FROM public.discord_activity_event ORDER BY id DESC LIMIT 1",
+            include_str!(
+                "fixtures/discord_rank_batches/select_payload_discord_activity_event_2.sql"
+            ),
             &[],
         )
         .await?
@@ -185,7 +217,11 @@ async fn durable_batches_merge_restart_rollback_concurrency_and_deadlines() -> R
             .is_err()
     );
     // Hard cap fires despite recent activity.
-    client.batch_execute("UPDATE zc_private.discord_rank_batch_state SET window_started_at=clock_timestamp()-interval '5 minutes',last_change_at=clock_timestamp()").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/discord_rank_batches/set_window_started_at_discord_rank_batch_state_2.sql"
+        ))
+        .await?;
     assert_eq!(restarted.flush_discord_rank_batches().await?, 1);
     assert_eq!(database.flush_discord_rank_batches().await?, 0);
     client

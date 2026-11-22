@@ -18,6 +18,8 @@ use zc_jobs::{
     queue::{ClaimedJob, JobLane, Queue},
     runtime::JobOutcome,
 };
+const MD5: &str = include_str!("fixtures/ghost_batches/md5.sql");
+
 #[derive(Default)]
 struct Storage {
     downloads: AtomicUsize,
@@ -68,10 +70,12 @@ struct Digest {
 }
 async fn refreshed(db: &Database, job: &ClaimedJob) -> Result<ClaimedJob> {
     let mut connection = db.pool_partition().connection().await?;
-    let data = sql_query("SELECT payload AS data FROM zc_jobs.job WHERE id=$1")
-        .bind::<BigInt, _>(job.id.parse::<i64>()?)
-        .get_result::<Data>(&mut connection)
-        .await?;
+    let data = sql_query(include_str!(
+        "fixtures/ghost_batches/select_payload_job.sql"
+    ))
+    .bind::<BigInt, _>(job.id.parse::<i64>()?)
+    .get_result::<Data>(&mut connection)
+    .await?;
     let mut job = job.clone();
     job.payload = data.data;
     Ok(job)
@@ -79,10 +83,12 @@ async fn refreshed(db: &Database, job: &ClaimedJob) -> Result<ClaimedJob> {
 async fn retry(db: &Database, queue: &Queue, job: &ClaimedJob) -> Result<ClaimedJob> {
     ensure!(queue.finish(job, Some("handler_failed")).await?);
     let mut connection = db.pool_partition().connection().await?;
-    sql_query("UPDATE pgmq.q_zeepcentraal_bulk SET vt=clock_timestamp() WHERE msg_id=$1")
-        .bind::<BigInt, _>(job.id.parse::<i64>()?)
-        .execute(&mut connection)
-        .await?;
+    sql_query(include_str!(
+        "fixtures/ghost_batches/set_vt_q_zeepcentraal_bulk.sql"
+    ))
+    .bind::<BigInt, _>(job.id.parse::<i64>()?)
+    .execute(&mut connection)
+    .await?;
     drop(connection);
     queue
         .claim(JobLane::Bulk, 1)
@@ -117,30 +123,34 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
     ] {
         connection.batch_execute(sql).await?;
     }
-    connection.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(3,repeat('c',32));").await?;
+    connection
+        .batch_execute(include_str!("fixtures/ghost_batches/insert_user.sql"))
+        .await?;
     for (level, x) in [(1, 0), (2, 100)] {
         let blocks =
             json!([{"i":1,"u":"start","p":{"x":x}},{"i":22,"u":"checkpoint"},{"i":2,"u":"finish"}]);
         let hash =
             zc_core::levels::calculate_json_level_xxhash(&json!({"blox":blocks}).to_string())?;
-        sql_query("INSERT INTO public.level(id,xx_hash) VALUES($1,$2)")
+        sql_query(include_str!("fixtures/ghost_batches/insert_level.sql"))
             .bind::<diesel::sql_types::Integer, _>(level)
             .bind::<Text, _>(hash)
             .execute(&mut connection)
             .await?;
-        sql_query("INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2)")
-            .bind::<diesel::sql_types::Integer, _>(level)
-            .bind::<Jsonb, _>(blocks)
-            .execute(&mut connection)
-            .await?;
+        sql_query(include_str!(
+            "fixtures/ghost_batches/insert_level_metadata.sql"
+        ))
+        .bind::<diesel::sql_types::Integer, _>(level)
+        .bind::<Jsonb, _>(blocks)
+        .execute(&mut connection)
+        .await?;
     }
-    connection.batch_execute("INSERT INTO public.record(id,id_user,id_level,time) SELECT id,1,CASE WHEN id<=1250 THEN 1 WHEN id<=2000 THEN 2 ELSE 3 END,2 FROM generate_series(1,2005) id; INSERT INTO public.record_media(id_record,ghost_url) SELECT id,CASE WHEN id=10 THEN 'recover' WHEN id=20 THEN 'outage' ELSE 'fixture' END FROM public.record WHERE id<>2001;").await?;
-    let before = sql_query(
-        "SELECT md5(string_agg(to_jsonb(r)::text,',' ORDER BY id)) AS value FROM public.record r",
-    )
-    .get_result::<Digest>(&mut connection)
-    .await?
-    .value;
+    connection
+        .batch_execute(include_str!("fixtures/ghost_batches/insert_record.sql"))
+        .await?;
+    let before = sql_query(MD5)
+        .get_result::<Digest>(&mut connection)
+        .await?
+        .value;
     drop(connection);
     let queue = Queue::connect(db.pool_partition()).await?;
     let storage = Arc::new(Storage::default());
@@ -217,7 +227,7 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
     ensure!(queue.finish(&job, None).await?);
     let mut connection = db.pool_partition().connection().await?;
     assert_eq!(
-        sql_query("SELECT count(*) AS count FROM zc_jobs.job")
+        sql_query(include_str!("fixtures/ghost_batches/count_job.sql"))
             .get_result::<Count>(&mut connection)
             .await?
             .count,
@@ -258,13 +268,19 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
         "missing_snapshot"
     );
     let mut connection = db.pool_partition().connection().await?;
-    assert_eq!(sql_query("SELECT count(*) AS count FROM zc_private.record_validation WHERE report ?| ARRAY['status','validatorVersion','validator_version']").get_result::<Count>(&mut connection).await?.count,0);
-    let after = sql_query(
-        "SELECT md5(string_agg(to_jsonb(r)::text,',' ORDER BY id)) AS value FROM public.record r",
-    )
-    .get_result::<Digest>(&mut connection)
-    .await?
-    .value;
+    assert_eq!(
+        sql_query(include_str!(
+            "fixtures/ghost_batches/count_record_validation.sql"
+        ))
+        .get_result::<Count>(&mut connection)
+        .await?
+        .count,
+        0
+    );
+    let after = sql_query(MD5)
+        .get_result::<Digest>(&mut connection)
+        .await?
+        .value;
     assert_eq!(before, after);
     let saved = db.record_validation_attempts(10).await?.remove(0);
     connection
@@ -303,9 +319,9 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
     ensure!(queue.finish(&pending, None).await?);
     let mut connection = db.pool_partition().connection().await?;
     connection
-        .batch_execute(
-            "UPDATE zc_private.record_validation SET validator_version='old' WHERE id_record<=1000",
-        )
+        .batch_execute(include_str!(
+            "fixtures/ghost_batches/set_validator_version_record_validation.sql"
+        ))
         .await?;
     drop(connection);
     let expected = db
@@ -356,7 +372,11 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
         ensure!(queue.finish(&job, None).await?);
     }
     let mut connection = db.pool_partition().connection().await?;
-    connection.batch_execute("UPDATE public.level_metadata SET environment='{\"changed\":true}' WHERE id_level=1; INSERT INTO public.level_item(id_level,workshop_id) VALUES(3,888); UPDATE zc_private.record_validation SET validator_version='old' WHERE id_record=2001").await?;
+    connection
+        .batch_execute(include_str!(
+            "fixtures/ghost_batches/set_environment_level_metadata.sql"
+        ))
+        .await?;
     drop(connection);
     let inputs = db
         .audit_level_window(&json!({"recordIds":[10,2001,2002]}), 2002)
@@ -391,9 +411,9 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
         .pop()
         .context("expired lease")?;
     let mut connection = db.pool_partition().connection().await?;
-    sql_query(
-        "UPDATE zc_jobs.job SET lease_until=clock_timestamp()-interval '1 second' WHERE id=$1",
-    )
+    sql_query(include_str!(
+        "fixtures/ghost_batches/set_lease_until_job.sql"
+    ))
     .bind::<BigInt, _>(job.id.parse::<i64>()?)
     .execute(&mut connection)
     .await?;
@@ -406,9 +426,9 @@ async fn batches_reuse_geometry_checkpoint_retries_coalesce_and_compact_reports(
         "Lost lease cannot start downloads"
     );
     let mut connection = db.pool_partition().connection().await?;
-    sql_query(
-        "UPDATE zc_jobs.job SET lease_until=clock_timestamp()+interval '120 seconds' WHERE id=$1",
-    )
+    sql_query(include_str!(
+        "fixtures/ghost_batches/set_lease_until_job_by_id.sql"
+    ))
     .bind::<BigInt, _>(job.id.parse::<i64>()?)
     .execute(&mut connection)
     .await?;

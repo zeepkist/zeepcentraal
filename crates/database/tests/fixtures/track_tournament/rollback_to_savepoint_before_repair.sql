@@ -1,0 +1,1 @@
+ROLLBACK TO SAVEPOINT before_repair

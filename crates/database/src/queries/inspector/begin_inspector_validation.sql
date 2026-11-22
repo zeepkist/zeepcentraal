@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submissions s SET inspection_started_at=now() WHERE s.id=$1 AND s.revision=$2 AND s.state='selected' AND EXISTS(SELECT 1 FROM zc_private.level_submission_contest c WHERE c.id=s.id_contest AND c.state='open')

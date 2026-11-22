@@ -1,0 +1,1 @@
+INSERT INTO public.record(id,id_user,id_level,time) SELECT id,1,CASE WHEN id<=1250 THEN 1 WHEN id<=2000 THEN 2 ELSE 3 END,2 FROM generate_series(1,2005) id; INSERT INTO public.record_media(id_record,ghost_url) SELECT id,CASE WHEN id=10 THEN 'recover' WHEN id=20 THEN 'outage' ELSE 'fixture' END FROM public.record WHERE id<>2001;

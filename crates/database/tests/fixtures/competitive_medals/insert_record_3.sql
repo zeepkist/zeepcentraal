@@ -1,0 +1,1 @@
+INSERT INTO public.record(id,id_user,id_level,time) VALUES(30,12,1,37); INSERT INTO public.personal_best_global VALUES(30,12,1,30,true); INSERT INTO public.level_item(id,id_level,validation_time_author,validation_time_gold,validation_time_silver,validation_time_bronze) VALUES(6,1,42,45,50,60); SELECT zc_private.refresh_level_medals(1)

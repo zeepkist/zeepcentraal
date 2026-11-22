@@ -1,0 +1,1 @@
+INSERT INTO streamkist.guilds(guild_id) VALUES($1) ON CONFLICT DO NOTHING

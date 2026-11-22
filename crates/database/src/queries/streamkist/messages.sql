@@ -1,0 +1,1 @@
+SELECT {{message_columns}} FROM streamkist.streams s WHERE (tracking_state<>'finished' OR activation_pending) AND EXISTS(SELECT 1 FROM streamkist.channels c WHERE c.guild_id=s.guild_id AND c.channel_id=s.channel_id AND c.deleted_at IS NULL) ORDER BY id

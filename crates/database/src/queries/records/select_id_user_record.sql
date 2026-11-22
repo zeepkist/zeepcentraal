@@ -1,0 +1,1 @@
+SELECT r.id_user,r.time FROM public.record r JOIN public."user" u ON u.id=r.id_user WHERE r.id_level=$1 AND r.id<>$2 AND NOT u.banned AND zc_private.record_is_eligible(r.id) ORDER BY r.time,r.date_created,r.id LIMIT 1

@@ -1,0 +1,1 @@
+SELECT level.id FROM public.level level WHERE level.id>$1 AND (NOT $2 OR EXISTS(SELECT 1 FROM (SELECT * FROM public.record WHERE record_eligible) record WHERE record.id_level=level.id AND record.date_created>=statement_timestamp()-interval '1 hour')) ORDER BY level.id LIMIT 200

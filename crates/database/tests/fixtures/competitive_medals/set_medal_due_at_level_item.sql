@@ -1,0 +1,1 @@
+UPDATE public.level_item SET medal_due_at=now()-interval '1 second' WHERE id=2; UPDATE public.record SET record_eligible=false WHERE id=110; UPDATE public.personal_best_global SET record_eligible=false WHERE id=110; SELECT zc_private.refresh_level_medals(2)

@@ -1,0 +1,1 @@
+EXPLAIN (ANALYZE,BUFFERS,FORMAT TEXT) SELECT * FROM public.similar_levels($1,16)

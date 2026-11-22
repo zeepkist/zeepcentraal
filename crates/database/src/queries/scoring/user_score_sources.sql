@@ -1,0 +1,1 @@
+SELECT contribution.id_user,contribution.id_level,contribution.id_record, contribution.level_position::bigint AS level_position,contribution.level_points, contribution.level_decayed_points FROM public.user_point_contribution contribution WHERE contribution.id_user=ANY($1) ORDER BY contribution.id_user,contribution.id_level

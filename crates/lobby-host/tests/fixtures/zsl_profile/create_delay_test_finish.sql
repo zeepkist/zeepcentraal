@@ -1,0 +1,1 @@
+CREATE FUNCTION zc_private.delay_test_finish() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(0.15); RETURN NEW; END $$; CREATE TRIGGER delay_test_finish BEFORE INSERT ON zc_private.zsl_provisional_level_result FOR EACH ROW EXECUTE FUNCTION zc_private.delay_test_finish();

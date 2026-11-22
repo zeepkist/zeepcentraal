@@ -7,6 +7,10 @@ use diesel_async::RunQueryDsl;
 use std::time::Duration;
 use zc_database::{DatabasePool, PoolBudget, PoolSettings};
 
+const SELECT_1: &str = include_str!("fixtures/pool_reliability/select_1.sql");
+const PG_TRY_ADVISORY_LOCK: &str =
+    include_str!("fixtures/pool_reliability/pg_try_advisory_lock.sql");
+
 #[derive(QueryableByName)]
 struct SessionSettings {
     #[diesel(sql_type = Text)]
@@ -83,12 +87,9 @@ async fn warm_pool_and_reserved_partition_survive_idle() -> Result<()> {
     );
     let queue_partition = pool.queue()?;
 
-    let session: SessionSettings = sql_query(
-        "SELECT current_setting('application_name') AS application_name, \
-         current_setting('statement_timeout') AS statement_timeout, \
-         current_setting('lock_timeout') AS lock_timeout, \
-         current_setting('idle_in_transaction_session_timeout') AS idle_transaction_timeout",
-    )
+    let session: SessionSettings = sql_query(include_str!(
+        "fixtures/pool_reliability/current_setting.sql"
+    ))
     .get_result(&mut held_application)
     .await?;
     assert_eq!(session.application_name, "zeepcentraal-pool-test");
@@ -105,37 +106,42 @@ async fn warm_pool_and_reserved_partition_survive_idle() -> Result<()> {
         tokio::join!(queue_partition.connection(), queue_partition.connection());
     let mut queue = first_queue?;
     let mut second_queue = second_queue?;
-    sql_query("SELECT 1").execute(&mut queue).await?;
-    sql_query("SELECT 1").execute(&mut second_queue).await?;
+    sql_query(SELECT_1).execute(&mut queue).await?;
+    sql_query(SELECT_1).execute(&mut second_queue).await?;
     drop(second_queue);
-    sql_query("SELECT pg_advisory_lock(1861284951, 32767)")
-        .execute(&mut scheduler)
+    sql_query(include_str!(
+        "fixtures/pool_reliability/pg_advisory_lock.sql"
+    ))
+    .execute(&mut scheduler)
+    .await?;
+    sql_query(SELECT_1).execute(&mut scheduler).await?;
+    let contested: LockResult = sql_query(PG_TRY_ADVISORY_LOCK)
+        .get_result(&mut queue)
         .await?;
-    sql_query("SELECT 1").execute(&mut scheduler).await?;
-    let contested: LockResult =
-        sql_query("SELECT pg_try_advisory_lock(1861284951, 32767) AS acquired")
-            .get_result(&mut queue)
-            .await?;
     assert!(!contested.acquired);
-    let backend: BackendPid = sql_query("SELECT pg_backend_pid() AS pid")
-        .get_result(&mut scheduler)
-        .await?;
-    let terminated: LockResult = sql_query("SELECT pg_terminate_backend($1) AS acquired")
-        .bind::<Integer, _>(backend.pid)
-        .get_result(&mut held_application)
-        .await?;
+    let backend: BackendPid =
+        sql_query(include_str!("fixtures/pool_reliability/pg_backend_pid.sql"))
+            .get_result(&mut scheduler)
+            .await?;
+    let terminated: LockResult = sql_query(include_str!(
+        "fixtures/pool_reliability/pg_terminate_backend.sql"
+    ))
+    .bind::<Integer, _>(backend.pid)
+    .get_result(&mut held_application)
+    .await?;
     assert!(terminated.acquired);
-    assert!(sql_query("SELECT 1").execute(&mut scheduler).await.is_err());
+    assert!(sql_query(SELECT_1).execute(&mut scheduler).await.is_err());
     drop(scheduler);
 
     let mut recovered_scheduler = pool.scheduler()?.connection().await?;
-    let recovered: LockResult =
-        sql_query("SELECT pg_try_advisory_lock(1861284951, 32767) AS acquired")
-            .get_result(&mut recovered_scheduler)
-            .await?;
-    assert!(recovered.acquired);
-    sql_query("SELECT pg_advisory_unlock(1861284951, 32767)")
-        .execute(&mut recovered_scheduler)
+    let recovered: LockResult = sql_query(PG_TRY_ADVISORY_LOCK)
+        .get_result(&mut recovered_scheduler)
         .await?;
+    assert!(recovered.acquired);
+    sql_query(include_str!(
+        "fixtures/pool_reliability/pg_advisory_unlock.sql"
+    ))
+    .execute(&mut recovered_scheduler)
+    .await?;
     Ok(())
 }

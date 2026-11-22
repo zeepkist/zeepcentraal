@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tracing::Instrument;
 
+const LOCK_BULK_LANE: &str = include_str!("queries/queue/lock_bulk_lane.sql");
+
 const MAX_ENQUEUE_BATCH: usize = 100;
 
 async fn trace_enqueue<T>(operation: impl std::future::Future<Output = Result<T>>) -> Result<T> {
@@ -144,7 +146,7 @@ impl Queue {
     pub async fn verify_contract(&self) -> Result<()> {
         let mut connection = self.partition.connection().await?;
         let version: ExtensionVersion =
-            sql_query("SELECT extversion FROM pg_extension WHERE extname='pgmq'")
+            sql_query(include_str!("queries/queue/read_pgmq_version.sql"))
                 .get_result(&mut connection)
                 .await
                 .context("pgmq extension is missing")?;
@@ -152,13 +154,11 @@ impl Queue {
             version.extversion == "1.12.0",
             "pgmq 1.12.0 migration required"
         );
-        sql_query(
-            "SELECT 'zc_jobs.job'::regclass, 'zc_jobs.claim(text,integer,integer)'::regprocedure",
-        )
-        .execute(&mut connection)
-        .await
-        .context("zc_jobs queue schema is missing")?;
-        sql_query("SELECT traceparent,tracestate FROM zc_jobs.job LIMIT 0")
+        sql_query(include_str!("queries/queue/verify_queue_contract.sql"))
+            .execute(&mut connection)
+            .await
+            .context("zc_jobs queue schema is missing")?;
+        sql_query(include_str!("queries/queue/verify_trace_columns.sql"))
             .execute(&mut connection)
             .await
             .context("queue trace context migration required")?;
@@ -173,7 +173,7 @@ impl Queue {
         }
         let mut connection = self.partition.connection().await?;
         Ok(usize::try_from(
-            sql_query("SELECT count(*) FROM zc_jobs.job WHERE task='validateRecordGhost'")
+            sql_query(include_str!("queries/queue/pending_ghost_checks.sql"))
                 .get_result::<Count>(&mut connection)
                 .await?
                 .count,
@@ -181,16 +181,28 @@ impl Queue {
     }
     pub async fn has_pending_score_projections(&self) -> Result<bool> {
         // Verification waits for score refreshes, so it must not block those refreshes.
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','reconcileRecordEligibility','fanOutRecordEligibility') OR (task='backfillRecordEligibility' AND payload->>'verify' IS DISTINCT FROM 'true')) AS ok")
-            .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
+        Ok(sql_query(include_str!(
+            "queries/queue/has_pending_score_projections.sql"
+        ))
+        .get_result::<BooleanResult>(&mut self.partition.connection().await?)
+        .await?
+        .ok)
     }
     pub async fn has_pending_player_score_pages(&self) -> Result<bool> {
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task='updatePlayerScores' AND payload->>'phase' IS DISTINCT FROM 'ranks') AS ok")
-            .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
+        Ok(sql_query(include_str!(
+            "queries/queue/has_pending_player_score_pages.sql"
+        ))
+        .get_result::<BooleanResult>(&mut self.partition.connection().await?)
+        .await?
+        .ok)
     }
     pub async fn eligibility_pipeline_pending(&self) -> Result<bool> {
-        Ok(sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE task IN ('reconcileRecordEligibility','fanOutRecordEligibility','updateLevelScore','updateLevelScores','updateLevelContributions','updateLevelRecordCounts','updatePlayerScore','updatePlayerScores')) AS ok")
-            .get_result::<BooleanResult>(&mut self.partition.connection().await?).await?.ok)
+        Ok(sql_query(include_str!(
+            "queries/queue/eligibility_pipeline_pending.sql"
+        ))
+        .get_result::<BooleanResult>(&mut self.partition.connection().await?)
+        .await?
+        .ok)
     }
     pub async fn enqueue(
         &self,
@@ -244,7 +256,7 @@ impl Queue {
                     request.key.as_deref(),
                 );
                 let delay_ms = i64::try_from(request.delay.as_millis())?;
-                let job = sql_query("SELECT zc_jobs.enqueue($1,$2,$3,$4,$5,$6,clock_timestamp()+$7*interval '1 millisecond')::text AS id, $2::text AS task_identifier, 0::integer AS attempts, $6::integer AS max_attempts")
+                let job = sql_query(include_str!("queries/queue/enqueue_many.sql"))
                     .bind::<Text, _>(request.lane.as_str())
                     .bind::<Text, _>(request.task.as_str())
                     .bind::<Jsonb, _>(request.payload)
@@ -294,23 +306,40 @@ impl Queue {
             let generation = parent.generation.parse::<i64>()?;
             let started = std::time::Instant::now();
             let mut connection = self.partition.connection().await?;
-            connection.transaction::<bool,anyhow::Error,_>(async move |connection| {
-                sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
-                let acquired=std::time::Instant::now();
-                let live=sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane='bulk' AND id=$1 AND generation=$2 AND running AND lease_until>clock_timestamp()) AS ok")
-                    .bind::<BigInt,_>(id).bind::<BigInt,_>(generation).get_result::<BooleanResult>(connection).await?.ok;
-                if !live { return Ok(false); }
-                let count=requests.len();
-                for (request,key,group) in requests {
-                    sql_query("SELECT zc_jobs.enqueue('bulk',$1,$2,$3,$4,$5,clock_timestamp()+$6*interval '1 millisecond')")
-                        .bind::<Text,_>(request.task.as_str()).bind::<Jsonb,_>(request.payload)
-                        .bind::<Nullable<Text>,_>(key).bind::<Nullable<Text>,_>(group)
-                        .bind::<Integer,_>(request.task.max_attempts())
-                        .bind::<BigInt,_>(i64::try_from(request.delay.as_millis())?).execute(connection).await?;
-                }
-                tracing::info!(requests=count, queue_lock_wait_ms=acquired.duration_since(started).as_millis(),queue_lock_held_ms=acquired.elapsed().as_millis(),"Eligibility fan-out page enqueued");
-                Ok(true)
-            }).await
+            connection
+                .transaction::<bool, anyhow::Error, _>(async move |connection| {
+                    sql_query(LOCK_BULK_LANE).execute(connection).await?;
+                    let acquired = std::time::Instant::now();
+                    let live = sql_query(include_str!("queries/queue/check_bulk_job_lease.sql"))
+                        .bind::<BigInt, _>(id)
+                        .bind::<BigInt, _>(generation)
+                        .get_result::<BooleanResult>(connection)
+                        .await?
+                        .ok;
+                    if !live {
+                        return Ok(false);
+                    }
+                    let count = requests.len();
+                    for (request, key, group) in requests {
+                        sql_query(include_str!("queries/queue/enqueue_bulk_followup.sql"))
+                            .bind::<Text, _>(request.task.as_str())
+                            .bind::<Jsonb, _>(request.payload)
+                            .bind::<Nullable<Text>, _>(key)
+                            .bind::<Nullable<Text>, _>(group)
+                            .bind::<Integer, _>(request.task.max_attempts())
+                            .bind::<BigInt, _>(i64::try_from(request.delay.as_millis())?)
+                            .execute(connection)
+                            .await?;
+                    }
+                    tracing::info!(
+                        requests = count,
+                        queue_lock_wait_ms = acquired.duration_since(started).as_millis(),
+                        queue_lock_held_ms = acquired.elapsed().as_millis(),
+                        "Eligibility fan-out page enqueued"
+                    );
+                    Ok(true)
+                })
+                .await
         })
         .await
     }
@@ -325,19 +354,36 @@ impl Queue {
             let key = format!("update-level-contributions:{id_level}");
             let group = format!("level-maintenance-shard:{}", id_level.rem_euclid(4));
             let mut connection = self.partition.connection().await?;
-            connection.transaction::<EnqueuedJob, anyhow::Error, _>(async move |connection| {
-                sql_query("SELECT zc_jobs.lock_lane('bulk')").execute(connection).await?;
-                let pending = sql_query("SELECT payload FROM zc_jobs.job WHERE lane='bulk' AND job_key=$1 AND NOT running ORDER BY id LIMIT 1")
-                    .bind::<Text,_>(&key).get_result::<PendingPayload>(connection).await.optional()?;
-                let cursor = pending.as_ref().and_then(|row|row.payload["afterUserId"].as_i64())
-                    .and_then(|value|i32::try_from(value).ok()).map_or(after_user_id, |value| value.min(after_user_id));
-                let payload = serde_json::json!({"idLevel":id_level,"afterUserId":cursor});
-                Ok(sql_query("SELECT zc_jobs.enqueue('bulk',$1,$2,$3,$4,$5,clock_timestamp())::text AS id, $1::text AS task_identifier, 0::integer AS attempts, $5::integer AS max_attempts")
-                    .bind::<Text,_>(TaskIdentifier::UpdateLevelContributions.as_str())
-                    .bind::<Jsonb,_>(payload).bind::<Text,_>(&key).bind::<Text,_>(&group)
-                    .bind::<Integer,_>(TaskIdentifier::UpdateLevelContributions.max_attempts())
-                    .get_result(connection).await?)
-            }).await
+            connection
+                .transaction::<EnqueuedJob, anyhow::Error, _>(async move |connection| {
+                    sql_query(LOCK_BULK_LANE).execute(connection).await?;
+                    let pending = sql_query(include_str!(
+                        "queries/queue/read_pending_bulk_job_payload.sql"
+                    ))
+                    .bind::<Text, _>(&key)
+                    .get_result::<PendingPayload>(connection)
+                    .await
+                    .optional()?;
+                    let cursor = pending
+                        .as_ref()
+                        .and_then(|row| row.payload["afterUserId"].as_i64())
+                        .and_then(|value| i32::try_from(value).ok())
+                        .map_or(after_user_id, |value| value.min(after_user_id));
+                    let payload = serde_json::json!({"idLevel":id_level,"afterUserId":cursor});
+                    Ok(
+                        sql_query(include_str!("queries/queue/enqueue_bulk_projection.sql"))
+                            .bind::<Text, _>(TaskIdentifier::UpdateLevelContributions.as_str())
+                            .bind::<Jsonb, _>(payload)
+                            .bind::<Text, _>(&key)
+                            .bind::<Text, _>(&group)
+                            .bind::<Integer, _>(
+                                TaskIdentifier::UpdateLevelContributions.max_attempts(),
+                            )
+                            .get_result(connection)
+                            .await?,
+                    )
+                })
+                .await
         })
         .await
     }
@@ -345,20 +391,22 @@ impl Queue {
     pub async fn claim(&self, lane: JobLane, count: i32) -> Result<Vec<ClaimedJob>> {
         ensure!(count > 0, "Claim count must be positive");
         let mut connection = self.partition.connection().await?;
-        Ok(sql_query("SELECT lane,id::text,task,payload,attempts,max_attempts,generation::text,traceparent,tracestate FROM zc_jobs.claim($1,$2,$3)")
-            .bind::<Text, _>(lane.as_str()).bind::<Integer, _>(count).bind::<Integer, _>(VISIBILITY_SECONDS)
-            .load(&mut connection).await?)
+        Ok(sql_query(include_str!("queries/queue/claim.sql"))
+            .bind::<Text, _>(lane.as_str())
+            .bind::<Integer, _>(count)
+            .bind::<Integer, _>(VISIBILITY_SECONDS)
+            .load(&mut connection)
+            .await?)
     }
 
     pub async fn has_fast_level_score(&self, id_level: i32) -> Result<bool> {
         ensure!(id_level > 0, "idLevel must be positive");
         let mut connection = self.partition.connection().await?;
-        let result: BooleanResult = sql_query(
-            "SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane='fast' AND task='updateLevelScore' AND job_key=$1) AS ok",
-        )
-        .bind::<Text, _>(format!("update-level-score:{id_level}"))
-        .get_result(&mut connection)
-        .await?;
+        let result: BooleanResult =
+            sql_query(include_str!("queries/queue/has_fast_level_score.sql"))
+                .bind::<Text, _>(format!("update-level-score:{id_level}"))
+                .get_result(&mut connection)
+                .await?;
         Ok(result.ok)
     }
 
@@ -369,9 +417,14 @@ impl Queue {
             "Invalid checkpoint payload"
         );
         let mut connection = self.partition.connection().await?;
-        Ok(sql_query("UPDATE zc_jobs.job SET payload=$4 WHERE lane=$1 AND id=$2::bigint AND generation=$3::bigint AND running AND lease_until>clock_timestamp()")
-            .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation).bind::<Jsonb,_>(payload)
-            .execute(&mut connection).await? == 1)
+        Ok(sql_query(include_str!("queries/queue/checkpoint.sql"))
+            .bind::<Text, _>(&job.lane)
+            .bind::<Text, _>(&job.id)
+            .bind::<Text, _>(&job.generation)
+            .bind::<Jsonb, _>(payload)
+            .execute(&mut connection)
+            .await?
+            == 1)
     }
 
     pub async fn enqueue_ghost_audit_levels(&self, levels: &[i32]) -> Result<()> {
@@ -399,52 +452,72 @@ impl Queue {
         .await
     }
     pub async fn heartbeat(&self, job: &ClaimedJob) -> Result<bool> {
-        self.finish_call(
-            "SELECT zc_jobs.heartbeat($1,$2::bigint,$3::bigint,$4) AS ok",
-            job,
-            None,
-        )
-        .await
+        self.finish_call(include_str!("queries/queue/heartbeat.sql"), job, None)
+            .await
     }
 
     pub async fn finish(&self, job: &ClaimedJob, failure: Option<&str>) -> Result<bool> {
-        self.finish_call(
-            "SELECT zc_jobs.finish($1,$2::bigint,$3::bigint,$4) AS ok",
-            job,
-            failure,
-        )
-        .await
+        self.finish_call(include_str!("queries/queue/finish.sql"), job, failure)
+            .await
     }
 
     pub async fn defer(&self, job: &ClaimedJob) -> Result<bool> {
         let delay = defer_delay(job.payload["deferCount"].as_u64().unwrap_or(0));
         let delay_ms = i64::try_from(delay.as_millis())?;
         let mut connection = self.partition.connection().await?;
-        connection.transaction::<bool, anyhow::Error, _>(async move |connection| {
-            sql_query("SELECT zc_jobs.lock_lane($1)").bind::<Text,_>(&job.lane).execute(connection).await?;
-            let current: BooleanResult = sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job WHERE lane=$1 AND id=$2::bigint AND generation=$3::bigint AND running AND lease_until>clock_timestamp()) AS ok")
-                .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation)
-                .get_result(connection).await?;
-            if !current.ok { return Ok(false); }
-            let superseded: BooleanResult = sql_query("SELECT EXISTS(SELECT 1 FROM zc_jobs.job active JOIN zc_jobs.job pending ON pending.lane=active.lane AND pending.job_key=active.job_key AND pending.id<>active.id AND NOT pending.running WHERE active.lane=$1 AND active.id=$2::bigint AND active.job_key IS NOT NULL) AS ok")
-                .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).get_result(connection).await?;
-            if superseded.ok {
-                let result: BooleanResult = sql_query("SELECT zc_jobs.finish($1,$2::bigint,$3::bigint,NULL) AS ok")
-                    .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation)
-                    .get_result(connection).await?;
-                return Ok(result.ok);
-            }
-            sql_query("UPDATE zc_jobs.job SET running=false,lease_until=NULL,attempts=GREATEST(0,attempts-1),payload=jsonb_set(payload,'{deferCount}',to_jsonb(LEAST(4,COALESCE((payload->>'deferCount')::integer,0)+1))) WHERE lane=$1 AND id=$2::bigint AND generation=$3::bigint")
-                .bind::<Text,_>(&job.lane).bind::<Text,_>(&job.id).bind::<Text,_>(&job.generation).execute(connection).await?;
-            let statement = match job.lane.as_str() {
-                "fast" => "UPDATE pgmq.q_zeepcentraal_fast SET vt=clock_timestamp()+$1*interval '1 millisecond' WHERE msg_id=$2::bigint",
-                "bulk" => "UPDATE pgmq.q_zeepcentraal_bulk SET vt=clock_timestamp()+$1*interval '1 millisecond' WHERE msg_id=$2::bigint",
-                _ => anyhow::bail!("invalid job lane"),
-            };
-            let updated = sql_query(statement).bind::<BigInt,_>(delay_ms).bind::<Text,_>(&job.id).execute(connection).await?;
-            ensure!(updated == 1, "job queue message missing during deferral");
-            Ok(true)
-        }).await
+        connection
+            .transaction::<bool, anyhow::Error, _>(async move |connection| {
+                sql_query(include_str!("queries/queue/lock_lane.sql"))
+                    .bind::<Text, _>(&job.lane)
+                    .execute(connection)
+                    .await?;
+                let current: BooleanResult =
+                    sql_query(include_str!("queries/queue/check_deferred_job_lease.sql"))
+                        .bind::<Text, _>(&job.lane)
+                        .bind::<Text, _>(&job.id)
+                        .bind::<Text, _>(&job.generation)
+                        .get_result(connection)
+                        .await?;
+                if !current.ok {
+                    return Ok(false);
+                }
+                let superseded: BooleanResult = sql_query(include_str!(
+                    "queries/queue/check_deferred_job_superseded.sql"
+                ))
+                .bind::<Text, _>(&job.lane)
+                .bind::<Text, _>(&job.id)
+                .get_result(connection)
+                .await?;
+                if superseded.ok {
+                    let result: BooleanResult =
+                        sql_query(include_str!("queries/queue/finish_superseded_job.sql"))
+                            .bind::<Text, _>(&job.lane)
+                            .bind::<Text, _>(&job.id)
+                            .bind::<Text, _>(&job.generation)
+                            .get_result(connection)
+                            .await?;
+                    return Ok(result.ok);
+                }
+                sql_query(include_str!("queries/queue/release_deferred_job.sql"))
+                    .bind::<Text, _>(&job.lane)
+                    .bind::<Text, _>(&job.id)
+                    .bind::<Text, _>(&job.generation)
+                    .execute(connection)
+                    .await?;
+                let statement = match job.lane.as_str() {
+                    "fast" => include_str!("queries/queue/defer_fast_message.sql"),
+                    "bulk" => include_str!("queries/queue/defer_bulk_message.sql"),
+                    _ => anyhow::bail!("invalid job lane"),
+                };
+                let updated = sql_query(statement)
+                    .bind::<BigInt, _>(delay_ms)
+                    .bind::<Text, _>(&job.id)
+                    .execute(connection)
+                    .await?;
+                ensure!(updated == 1, "job queue message missing during deferral");
+                Ok(true)
+            })
+            .await
     }
 
     async fn finish_call(

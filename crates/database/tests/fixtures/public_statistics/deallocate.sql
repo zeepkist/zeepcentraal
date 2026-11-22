@@ -1,0 +1,1 @@
+DEALLOCATE statistics_plan

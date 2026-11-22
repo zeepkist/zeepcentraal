@@ -12,26 +12,9 @@ async fn backfill_redacts_private_closures_and_preserves_other_names() -> Result
     let (mut client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("Lobby test connection") });
     let tx = client.transaction().await?;
-    tx.batch_execute(
-        "INSERT INTO public.\"user\"(steam_id,steam_name,banned) \
-         VALUES (76561198000000000,'Backfill Test Host',false);
-         WITH rooms AS (
-             INSERT INTO public.lobby(master_id,room_name,host_id,players,player_limit,is_public,
-                 peak_players,peak_time,first_seen,last_seen,closed_at)
-             SELECT master_id,room_name,76561198000000000,1,8,is_public,1,now(),now(),now(),closed_at
-             FROM (VALUES ('backfill-removed','Private packet name',false,now()),
-                          ('backfill-inferred','Inferred room',false,now()+interval '1 minute'),
-                          ('backfill-active','Active room',false,NULL),
-                          ('backfill-public','Public room',true,now()))
-               AS sample(master_id,room_name,is_public,closed_at)
-             RETURNING id,room_name,host_id,players,player_limit,is_public,closed_at
-         )
-         INSERT INTO public.lobby_history(lobby_id,host_id,change_type,room_name,players,
-             player_limit,is_public,observed_at)
-         SELECT id,host_id,change_type,room_name,players,player_limit,is_public,now()
-         FROM rooms CROSS JOIN (VALUES ('opened'),('closed')) AS events(change_type)
-         WHERE change_type='opened' OR closed_at IS NOT NULL;",
-    )
+    tx.batch_execute(include_str!(
+        "fixtures/lobby_closure_redaction/insert_user.sql"
+    ))
     .await?;
 
     let up = include_str!("../migrations/20261119000000_redact_private_lobby_closures/up.sql");
@@ -40,9 +23,7 @@ async fn backfill_redacts_private_closures_and_preserves_other_names() -> Result
         tx.batch_execute(sql).await?;
         let rows = tx
             .query(
-                "SELECT l.room_name, array_agg(h.room_name ORDER BY h.change_type DESC) \
-                 FROM public.lobby l JOIN public.lobby_history h ON h.lobby_id=l.id \
-                 WHERE l.host_id=76561198000000000 GROUP BY l.id ORDER BY l.master_id",
+                include_str!("fixtures/lobby_closure_redaction/select_room_name_lobby.sql"),
                 &[],
             )
             .await?;

@@ -1,0 +1,2 @@
+SELECT file_uid,validation_time_author,validation_time_gold,validation_time_silver,
+        validation_time_bronze FROM public.level_item WHERE id<=201 ORDER BY id

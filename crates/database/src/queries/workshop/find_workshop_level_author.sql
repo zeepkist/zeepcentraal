@@ -1,0 +1,1 @@
+SELECT li.author_id FROM public.level_item li JOIN public.level l ON l.id=li.id_level JOIN public.workshop_item wi ON wi.workshop_id=li.workshop_id WHERE l.xx_hash=$1 AND li.author_id<>$2 AND wi.author_id<>$2 ORDER BY li.deleted,li.id LIMIT 1

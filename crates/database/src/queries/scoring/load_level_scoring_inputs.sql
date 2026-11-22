@@ -1,0 +1,1 @@
+SELECT level.id AS id_level,level.adventure,count(item.id)::bigint AS item_count,count(item.id) FILTER(WHERE item.publicly_visible=true AND item.deleted=false)::bigint AS accessible_item_count FROM public.level level LEFT JOIN public.level_item item ON item.id_level=level.id WHERE level.id=ANY($1) GROUP BY level.id,level.adventure

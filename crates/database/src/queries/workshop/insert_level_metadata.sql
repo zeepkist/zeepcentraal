@@ -1,0 +1,1 @@
+INSERT INTO public.level_metadata (id_level,amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks,environment,date_created,date_updated) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,clock_timestamp(),clock_timestamp())

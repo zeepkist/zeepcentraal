@@ -1,0 +1,1 @@
+WITH row AS (UPDATE zc_private.discord_worker_state SET cursor_event_id=$2, date_updated=clock_timestamp() WHERE key=$1 AND cursor_event_id<$2 RETURNING *) SELECT jsonb_build_object('key',key,'cursorEventId',cursor_event_id::text,'dateUpdated', to_char(date_updated AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) AS value FROM row

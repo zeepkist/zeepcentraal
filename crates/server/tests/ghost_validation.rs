@@ -1,3 +1,6 @@
+const SET_ROLE_USER: &str = include_str!("fixtures/ghost_validation/set_role_user.sql");
+const SET_ADVENTURE_LEVEL: &str = include_str!("fixtures/ghost_validation/set_adventure_level.sql");
+
 #[path = "support/ghost_validation.rs"]
 mod support;
 
@@ -185,24 +188,29 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
             StatusCode::FORBIDDEN
         );
     }
-    client
-        .execute(
-            "UPDATE public.\"user\" SET role='admin' WHERE id=$1",
-            &[&user.id],
-        )
-        .await?;
+    client.execute(SET_ROLE_USER, &[&user.id]).await?;
     let counts = || async {
-        Ok::<_,anyhow::Error>(client.query_one("SELECT (SELECT count(*) FROM public.record),(SELECT count(*) FROM public.personal_best_global),(SELECT count(*) FROM zc_private.record_run)", &[]).await?)
+        Ok::<_, anyhow::Error>(
+            client
+                .query_one(
+                    include_str!("fixtures/ghost_validation/select_record.sql"),
+                    &[],
+                )
+                .await?,
+        )
     };
     // Classification comes from trusted catalog, never from missing WorkshopId.
     let rejected = request(&app, "POST", "/record/submit", &token, body.clone()).await?;
     assert_eq!(rejected.0, StatusCode::BAD_REQUEST);
     assert_eq!(rejected.1["errorCode"], zc_server::problem::LEVEL_NOT_FOUND);
     assert_eq!(storage.uploads.load(Ordering::SeqCst), 0);
-    let trusted: i32 = client.query_one(
-        "INSERT INTO public.level(hash,xx_hash,adventure) VALUES('fixture-legacy',$1,false) RETURNING id",
-        &[&"A".repeat(32)],
-    ).await?.get(0);
+    let trusted: i32 = client
+        .query_one(
+            include_str!("fixtures/ghost_validation/insert_level.sql"),
+            &[&"A".repeat(32)],
+        )
+        .await?
+        .get(0);
     assert_eq!(
         request(&app, "POST", "/record/submit", &token, body.clone())
             .await?
@@ -212,18 +220,13 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     assert!(
         !client
             .query_one(
-                "SELECT adventure FROM public.level WHERE id=$1",
+                include_str!("fixtures/ghost_validation/select_adventure_level.sql"),
                 &[&trusted]
             )
             .await?
             .get::<_, bool>(0)
     );
-    client
-        .execute(
-            "UPDATE public.level SET adventure=true WHERE id=$1",
-            &[&trusted],
-        )
-        .await?;
+    client.execute(SET_ADVENTURE_LEVEL, &[&trusted]).await?;
     let failed = request(&app, "POST", "/record/submit", &token, body.clone()).await?;
     assert_eq!(failed.0, StatusCode::SERVICE_UNAVAILABLE);
     let row = counts().await?;
@@ -266,13 +269,19 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     );
     assert_eq!(
         client
-            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
+            .query_one(
+                include_str!("fixtures/ghost_validation/count_record_validation.sql"),
+                &[]
+            )
             .await?
             .get::<_, i64>(0),
         1
     );
     let record: i32 = client
-        .query_one("SELECT id FROM public.record WHERE id_user=$1", &[&user.id])
+        .query_one(
+            include_str!("fixtures/ghost_validation/select_id_record.sql"),
+            &[&user.id],
+        )
         .await?
         .get(0);
     let path = format!("/admin/ghost-validation/records/{record}");
@@ -317,7 +326,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     assert_eq!(review.1["attempts"][0]["status"], "uncertain");
     client
         .execute(
-            "UPDATE public.\"user\" SET banned=true WHERE id=$1",
+            include_str!("fixtures/ghost_validation/set_banned_user.sql"),
             &[&user.id],
         )
         .await?;
@@ -331,7 +340,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     );
     client
         .execute(
-            "UPDATE public.\"user\" SET banned=false,role='user' WHERE id=$1",
+            include_str!("fixtures/ghost_validation/set_banned_user_by_id.sql"),
             &[&user.id],
         )
         .await?;
@@ -343,12 +352,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         request(&app, "GET", &path, &discord, Value::Null).await?.0,
         StatusCode::FORBIDDEN
     );
-    client
-        .execute(
-            "UPDATE public.\"user\" SET role='admin' WHERE id=$1",
-            &[&user.id],
-        )
-        .await?;
+    client.execute(SET_ROLE_USER, &[&user.id]).await?;
     let ghost = request(&app, "GET", &format!("{path}/ghost"), &steam, Value::Null).await?;
     assert_eq!(ghost.0, StatusCode::OK);
     assert_eq!(
@@ -363,14 +367,31 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
             .0,
         StatusCode::OK
     );
-    assert_eq!(client.query_one("SELECT status FROM zc_private.record_validation WHERE id_record=(SELECT id FROM public.record WHERE id_user<>$1)",&[&user.id]).await?.get::<_,String>(0),"fail");
+    assert_eq!(
+        client
+            .query_one(
+                include_str!("fixtures/ghost_validation/select_status_record_validation.sql"),
+                &[&user.id]
+            )
+            .await?
+            .get::<_, String>(0),
+        "fail"
+    );
     let auditor = zc_jobs::ghost_audit::GhostAuditService::new(
         state.database.clone(),
         state.queue.clone(),
         storage.clone(),
     );
     let eligibility = || async {
-        Ok::<_,anyhow::Error>(client.query_one("SELECT jsonb_build_object('records',(SELECT jsonb_agg(to_jsonb(r) ORDER BY id) FROM public.record r),'personalBests',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM public.personal_best_global p),'worldRecords',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM public.world_record_global w))::text", &[]).await?.get::<_,String>(0))
+        Ok::<_, anyhow::Error>(
+            client
+                .query_one(
+                    include_str!("fixtures/ghost_validation/select_record_2.sql"),
+                    &[],
+                )
+                .await?
+                .get::<_, String>(0),
+        )
     };
     // Missing geometry never downloads ghosts. Real storage outages remain retryable.
     let blocks = json!([]);
@@ -381,14 +402,30 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         .await?
         .context("fixture level")?;
     let assigned = state.database.audit_record(record).await?.unwrap().id_level;
-    client.execute("INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2::text::jsonb)", &[&candidate.id,&blocks.to_string()]).await?;
-    for level in [assigned, candidate.id] {
-        client.execute("INSERT INTO public.level_item(id_level,workshop_id,file_uid) VALUES($1,123,'untrusted-fixture')", &[&level]).await?;
-    }
-    let retry_record: i32 = client.query_one("INSERT INTO public.record(id_user,id_level,time,game_version,mod_version) VALUES($1,$2,2,'test','test') RETURNING id", &[&user.id,&candidate.id]).await?.get(0);
     client
         .execute(
-            "INSERT INTO public.record_media(id_record,ghost_url) VALUES($1,'fixture-good')",
+            include_str!("fixtures/ghost_validation/insert_level_metadata.sql"),
+            &[&candidate.id, &blocks.to_string()],
+        )
+        .await?;
+    for level in [assigned, candidate.id] {
+        client
+            .execute(
+                include_str!("fixtures/ghost_validation/insert_level_item.sql"),
+                &[&level],
+            )
+            .await?;
+    }
+    let retry_record: i32 = client
+        .query_one(
+            include_str!("fixtures/ghost_validation/insert_record.sql"),
+            &[&user.id, &candidate.id],
+        )
+        .await?
+        .get(0);
+    client
+        .execute(
+            include_str!("fixtures/ghost_validation/insert_record_media.sql"),
             &[&retry_record],
         )
         .await?;
@@ -529,10 +566,18 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
         "audits must preserve dates, associations, times and leaderboard eligibility"
     );
     let historical: i32 = client
-        .query_one("SELECT id_level FROM public.record WHERE id=$1", &[&record])
+        .query_one(
+            include_str!("fixtures/ghost_validation/select_id_level_record.sql"),
+            &[&record],
+        )
         .await?
         .get(0);
-    client.execute("INSERT INTO public.record(id_user,id_level,time,game_version,mod_version,splits,speeds) SELECT $1,$2,2,'test','test',NULL,NULL FROM generate_series(1,205)", &[&user.id,&historical]).await?;
+    client
+        .execute(
+            include_str!("fixtures/ghost_validation/insert_record_2.sql"),
+            &[&user.id, &historical],
+        )
+        .await?;
     let mut filter =
         json!({"idLevel":historical,"from":"2020-01-01T00:00:00Z","to":"2090-01-01T00:00:00Z"});
     let mut all = Vec::new();
@@ -570,7 +615,7 @@ async fn durable_acceptance_retries_identity_and_private_admin_evidence() -> Res
     assert_eq!(eligibility().await?, before_missing);
     client
         .execute(
-            "INSERT INTO public.record_media(id_record,ghost_url) VALUES($1,'  ')",
+            include_str!("fixtures/ghost_validation/insert_record_media_2.sql"),
             &[&missing],
         )
         .await?;
@@ -632,7 +677,10 @@ async fn adventure_classification_rejects_before_upload_and_survives_storage_fai
     tokio::spawn(async move { connection.await.expect("fixture connection") });
     assert_eq!(
         client
-            .query_one("SELECT count(*) FROM public.level", &[])
+            .query_one(
+                include_str!("fixtures/ghost_validation/count_level.sql"),
+                &[]
+            )
             .await?
             .get::<_, i64>(0),
         0
@@ -657,12 +705,7 @@ async fn adventure_classification_rejects_before_upload_and_survives_storage_fai
             .unwrap()
             .adventure
     );
-    client
-        .execute(
-            "UPDATE public.level SET adventure=true WHERE id=$1",
-            &[&level.id],
-        )
-        .await?;
+    client.execute(SET_ADVENTURE_LEVEL, &[&level.id]).await?;
     storage.failing.store(true, Ordering::SeqCst);
     assert_eq!(
         request(&app, "POST", "/record/submit", &token, body.clone())
@@ -680,7 +723,10 @@ async fn adventure_classification_rejects_before_upload_and_survives_storage_fai
     );
     assert_eq!(
         client
-            .query_one("SELECT count(*) FROM public.record", &[])
+            .query_one(
+                include_str!("fixtures/ghost_validation/count_record.sql"),
+                &[]
+            )
             .await?
             .get::<_, i64>(0),
         0

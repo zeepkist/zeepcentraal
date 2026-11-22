@@ -1,0 +1,1 @@
+ROLLBACK TO SAVEPOINT ambiguous_identifier

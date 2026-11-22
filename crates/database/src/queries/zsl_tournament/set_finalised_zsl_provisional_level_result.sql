@@ -1,0 +1,1 @@
+UPDATE zc_private.zsl_provisional_level_result SET finalised=true,date_updated=clock_timestamp() WHERE id_level IN(SELECT id_level FROM zc_private.zsl_tournament_level_state WHERE id_round=$1 AND timeslot=$2 AND playlist_index=$3)

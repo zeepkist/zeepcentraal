@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM public.record r WHERE r.id_user=$1 AND r.date_created>=clock_timestamp()-interval '6 months' AND NOT EXISTS(SELECT 1 FROM zc_private.record_validation v WHERE v.id_record=r.id AND v.status='fail'))

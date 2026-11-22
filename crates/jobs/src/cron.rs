@@ -105,7 +105,7 @@ async fn run_session(
         if *shutdown.borrow() {
             return Ok(());
         }
-        let lock: LockRow = sql_query("SELECT pg_try_advisory_lock($1,0) AS acquired")
+        let lock: LockRow = sql_query(include_str!("queries/cron/try_leader_lock.sql"))
             .bind::<diesel::sql_types::Integer, _>(SCHEDULER_LOCK_NAMESPACE)
             .get_result(&mut connection)
             .await?;
@@ -122,7 +122,7 @@ async fn run_session(
     // Queue acquisition can fail while this dedicated connection stays healthy.
     // Release leadership before returning it to the shared physical pool on errors too.
     let result = run_leader(&mut connection, queue, shutdown).await;
-    sql_query("SELECT pg_advisory_unlock($1,0)")
+    sql_query(include_str!("queries/cron/release_leader_lock.sql"))
         .bind::<diesel::sql_types::Integer, _>(SCHEDULER_LOCK_NAMESPACE)
         .execute(&mut connection)
         .await?;
@@ -140,19 +140,9 @@ async fn run_leader(
         if *shutdown.borrow() {
             break;
         }
-        let schedule: ScheduleRow = sql_query(
-            "WITH times AS (SELECT timezone('Europe/London',clock_timestamp()) local_time,timezone('UTC',clock_timestamp()) utc_time) SELECT \
-             to_char(utc_time,'YYYY-MM-DD HH24:MI') AS minute_key, \
-             floor(extract(epoch FROM utc_time)/300)::bigint::text AS metrics_slot, \
-             extract(minute FROM local_time)=0 AS recover, \
-             extract(dow FROM local_time)=0 AND extract(hour FROM local_time)=1 AND extract(minute FROM local_time)=0 AS workshop, \
-             extract(isodow FROM local_time)=1 AND extract(hour FROM local_time)=1 AND extract(minute FROM local_time)=0 AS level_full, \
-             extract(minute FROM local_time) IN (0,30) AS level_incremental, \
-             extract(minute FROM local_time)>=5 AND mod(extract(minute FROM local_time)::integer-5,10)=0 AS players, \
-             extract(minute FROM local_time)=0 AS level_history, \
-             extract(hour FROM local_time) IN (0,12) AND extract(minute FROM local_time)=0 AS user_history, \
-             extract(hour FROM local_time)=2 AND extract(minute FROM local_time)=30 AS prune FROM times",
-        ).get_result(&mut **connection).await?;
+        let schedule: ScheduleRow = sql_query(include_str!("queries/cron/claim_due_schedule.sql"))
+            .get_result(&mut **connection)
+            .await?;
         if schedule.metrics_slot != last_metrics_slot {
             enqueue(
                 queue,

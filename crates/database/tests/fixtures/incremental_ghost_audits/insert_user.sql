@@ -1,0 +1,1 @@
+INSERT INTO public."user"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)),(2,repeat('b',32)); CREATE INDEX ON public.level_metadata(id_level); CREATE INDEX ON public.level_item(id_level,workshop_id);

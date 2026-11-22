@@ -1,0 +1,1 @@
+UPDATE public.level_metadata SET amount_checkpoints=$2,amount_finishes=$3, amount_blocks=$4,type_ground=$5,type_skybox=$6,format=$7,blocks=$8,environment=$9, date_updated=clock_timestamp() WHERE id=$1 AND ROW(amount_checkpoints,amount_finishes,amount_blocks,type_ground,type_skybox,format,blocks,environment) IS DISTINCT FROM ROW($2,$3,$4,$5,$6,$7,$8,$9)

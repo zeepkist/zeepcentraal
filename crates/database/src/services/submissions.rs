@@ -10,6 +10,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
 
+const SELECT_ID_LEVEL_SUBMISSION_CONTEST: &str =
+    include_str!("../queries/submissions/select_id_level_submission_contest.sql");
+const SELECT_ID_LEVEL_SUBMISSION_CONTEST_BY_ID: &str =
+    include_str!("../queries/submissions/select_id_level_submission_contest_by_id.sql");
+const SET_PLAYLIST_REVISION_LEVEL_SUBMISSION_CONTEST: &str =
+    include_str!("../queries/submissions/set_playlist_revision_level_submission_contest.sql");
+
 #[derive(Debug, thiserror::Error)]
 pub enum SubmissionError {
     #[error("Submission period is closed")]
@@ -40,17 +47,8 @@ pub fn valid_authors(authors: &[String], viewer: &str) -> bool {
         })
         && authors.iter().collect::<HashSet<_>>().len() == authors.len()
 }
-const CONTEST_JSON: &str = r#"jsonb_build_object('roundId',r.id,'contestId',c.id,'name',r.name,'seasonId',r.id_season,'round',r.round,'rules',c.rules,'steamAnnouncementId',r.steam_announcement_id::text,
-'submissionStart',r.submission_start,'submissionEnd',r.submission_end,'zslVoteEnd',r.zsl_vote_end,'cosmeticVoteEnd',r.cosmetic_vote_end,
-'submissionsOpen',coalesce(c.state='open' AND r.submission_start<=now() AND now()<r.submission_end,false),
-'resultTypes',CASE WHEN c.state='frozen' AND c.finalized_at IS NOT NULL AND c.current_playlist_id IS NOT NULL THEN
-    to_jsonb(array_remove(ARRAY[CASE WHEN clock_timestamp()>=r.zsl_vote_end THEN 1 END,CASE WHEN clock_timestamp()>=r.cosmetic_vote_end THEN 2 END,CASE WHEN clock_timestamp()>=r.cosmetic_vote_end THEN 3 END],NULL)) ELSE '[]'::jsonb END,
-'openTypes',CASE WHEN c.state='frozen' AND c.finalized_at IS NOT NULL AND now()>=r.submission_end THEN
-    to_jsonb(array_remove(ARRAY[CASE WHEN now()<r.zsl_vote_end THEN 1 END,CASE WHEN now()<r.cosmetic_vote_end THEN 2 END,CASE WHEN now()<r.cosmetic_vote_end THEN 3 END],NULL)) ELSE '[]'::jsonb END)"#;
-const SUBMISSION_JSON: &str = r#"jsonb_build_object('id',s.id,'roundId',c.id_zsl_round,'workshopId',s.workshop_id::text,'authors',s.authors,'revision',s.revision,
-'authorNames',coalesce((SELECT jsonb_agg(coalesce(u.steam_name,a.id) ORDER BY a.n) FROM unnest(s.authors) WITH ORDINALITY a(id,n) LEFT JOIN public."user" u ON u.steam_id::text=a.id),'[]'::jsonb),
-'status',CASE WHEN s.state='withdrawn' THEN 'withdrawn' WHEN s.retry_category IS NOT NULL THEN 'retrying' WHEN s.inspection_started_at IS NOT NULL THEN 'validating' WHEN v.id IS NULL OR v.submission_revision<>s.revision THEN 'queued' ELSE 'complete' END,
-'validation',CASE WHEN v.id IS NOT NULL AND v.submission_revision=s.revision THEN jsonb_build_object('valid',v.valid,'workshopUpdatedAt',v.workshop_updated_at,'fileUid',v.file_uid,'measurements',v.measurements,'failures',v.failures) END)"#;
+const CONTEST_JSON: &str = include_str!("../queries/submissions/contest_payload.sql");
+const SUBMISSION_JSON: &str = include_str!("../queries/submissions/submission_payload.sql");
 #[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub struct SubmissionOverview {
@@ -77,9 +75,8 @@ impl Database {
         round: Option<i32>,
     ) -> Result<Value> {
         let mut c = self.connection().await?;
-        let query = format!(
-            "SELECT {CONTEST_JSON} AS payload FROM public.zsl_round r JOIN zc_private.level_submission_contest c ON c.id_zsl_round=r.id WHERE ($1 IS NULL OR r.id_season=$1) AND ($2 IS NULL OR r.id=$2) ORDER BY r.id_season DESC,r.round DESC"
-        );
+        let query = include_str!("../queries/submissions/submission_contests.sql")
+            .replace("{{contest_json}}", CONTEST_JSON.trim_end());
         let rows = sql_query(query)
             .bind::<Nullable<Integer>, _>(season)
             .bind::<Nullable<Integer>, _>(round)
@@ -101,9 +98,8 @@ impl Database {
             return Ok(serde_json::json!({"contest":null,"submission":null}));
         };
         let mut c = self.connection().await?;
-        let query = format!(
-            "SELECT {SUBMISSION_JSON} AS payload FROM zc_private.level_submissions s JOIN zc_private.level_submission_contest c ON c.id=s.id_contest LEFT JOIN zc_private.level_submission_validation v ON v.id=s.latest_validation_id WHERE c.id_zsl_round=$1 AND $2=ANY(s.authors) AND s.state IN ('selected','withdrawn') ORDER BY (s.state='selected') DESC,s.date_updated DESC LIMIT 1"
-        );
+        let query = include_str!("../queries/submissions/viewer_submission.sql")
+            .replace("{{submission_json}}", SUBMISSION_JSON.trim_end());
         let row = sql_query(query)
             .bind::<Integer, _>(contest["roundId"].as_i64().unwrap_or_default() as i32)
             .bind::<Text, _>(steam)
@@ -115,50 +111,8 @@ impl Database {
     /// One statement keeps contest selection, counts, and accepted entries in one MVCC snapshot.
     pub async fn submission_overview(&self, round: Option<i32>) -> Result<SubmissionOverview> {
         let mut connection = self.connection().await?;
-        let query = format!(
-            r#"
-WITH contest AS (
-    SELECT c.id, {CONTEST_JSON} AS payload
-    FROM public.zsl_round r JOIN zc_private.level_submission_contest c ON c.id_zsl_round=r.id
-    WHERE ($1 IS NULL OR r.id=$1)
-    ORDER BY coalesce(c.state='open' AND r.submission_start<=now() AND now()<r.submission_end,false) DESC,
-        r.id_season DESC,r.round DESC LIMIT 1
-), selected AS (
-    SELECT s.* FROM zc_private.level_submissions s JOIN contest c ON c.id=s.id_contest
-    WHERE s.state='selected'
-), accepted AS (
-    SELECT s.id,s.date_created,jsonb_build_object(
-        'id',s.id,'workshopId',s.workshop_id::text,'fileUid',v.file_uid,
-        'name',v.payload->>'name','authors',s.authors,
-        'authorNames',coalesce(a.names,'[]'::jsonb),
-        'level',jsonb_build_object('id',l.id,'xxHash',l.xx_hash,'favourited',false,
-            'fileUid',v.file_uid,'name',v.payload->>'name','authorName',a.label,
-            'workshopId',s.workshop_id::text,'adventure',l.adventure,'dateCreated',s.date_created,
-            'points',p.points,'rating',p.rating,
-            'recordCount',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.record eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id AND invalid.status='fail')) record WHERE record.id_level=l.id),
-            'personalBestCount',(SELECT count(*) FROM (SELECT eligible_source.* FROM public.personal_best_global eligible_source WHERE NOT EXISTS(SELECT 1 FROM zc_private.record_validation invalid WHERE invalid.id_record=eligible_source.id_record AND invalid.status='fail')) pb WHERE pb.id_level=l.id),
-            'voteCount',(SELECT count(*) FROM public.vote vote WHERE vote.id_level=l.id),
-            'imageUrl',CASE WHEN media.url LIKE 'https://%' THEN media.url WHEN media.url IS NOT NULL THEN 'https://cdn.zeepki.st/' || ltrim(media.url,'/') END)) AS payload
-    FROM selected s JOIN zc_private.level_submission_validation v
-        ON v.id=s.latest_validation_id AND v.id_submission=s.id AND v.submission_revision=s.revision
-    JOIN public.level l ON l.xx_hash=s.level_hash
-    LEFT JOIN public.level_points p ON p.id_level=l.id
-    LEFT JOIN public.workshop_item w ON w.workshop_id=s.workshop_id
-    LEFT JOIN LATERAL (SELECT image_url FROM public.level_item
-        WHERE id_level=l.id AND workshop_id=s.workshop_id ORDER BY id DESC LIMIT 1) i ON true
-    LEFT JOIN LATERAL (SELECT coalesce(nullif(v.payload->>'thumbnailUrl',''),nullif(i.image_url,''),nullif(w.image_url,'')) AS url) media ON true
-    LEFT JOIN LATERAL (SELECT jsonb_agg(coalesce(u.steam_name,a.id) ORDER BY a.n) AS names,
-        string_agg(coalesce(u.steam_name,a.id), ', ' ORDER BY a.n) AS label
-        FROM unnest(s.authors) WITH ORDINALITY a(id,n)
-        LEFT JOIN public."user" u ON u.steam_id::text=a.id) a ON true
-    WHERE v.valid AND nullif(v.file_uid,'') IS NOT NULL AND v.payload->>'uid'=v.file_uid
-        AND nullif(v.payload->>'name','') IS NOT NULL AND nullif(v.payload->>'sha256','') IS NOT NULL
-)
-SELECT jsonb_build_object('contest',(SELECT payload FROM contest),
-    'totalCount',(SELECT count(*) FROM selected),'validCount',(SELECT count(*) FROM accepted),
-    'submissions',coalesce((SELECT jsonb_agg(payload ORDER BY date_created,id) FROM accepted),'[]'::jsonb)) AS payload
-"#
-        );
+        let query = include_str!("../queries/submissions/submission_overview.sql")
+            .replace("{{contest_json}}", CONTEST_JSON.trim_end());
         let row = sql_query(query)
             .bind::<Nullable<Integer>, _>(round)
             .get_result::<JsonRow>(&mut connection)
@@ -167,9 +121,8 @@ SELECT jsonb_build_object('contest',(SELECT payload FROM contest),
     }
     pub async fn submission_status(&self, id: i64, steam: &str) -> Result<Option<Value>> {
         let mut c = self.connection().await?;
-        let query = format!(
-            "SELECT {SUBMISSION_JSON} AS payload FROM zc_private.level_submissions s JOIN zc_private.level_submission_contest c ON c.id=s.id_contest LEFT JOIN zc_private.level_submission_validation v ON v.id=s.latest_validation_id WHERE s.id=$1 AND $2=ANY(s.authors)"
-        );
+        let query = include_str!("../queries/submissions/submission_status.sql")
+            .replace("{{submission_json}}", SUBMISSION_JSON.trim_end());
         Ok(sql_query(query)
             .bind::<BigInt, _>(id)
             .bind::<Text, _>(steam)
@@ -190,60 +143,130 @@ SELECT jsonb_build_object('contest',(SELECT payload FROM contest),
         }
         ensure!(round > 0 && workshop > 0, "Invalid submission identifiers");
         let mut c = self.connection().await?;
-        c.transaction::<_,anyhow::Error,_>(async move |c| {
+        c.transaction::<_, anyhow::Error, _>(async move |c| {
             // Every mutation takes this same lock before checking author/workshop conflicts.
-            let contest=sql_query("SELECT c.id FROM zc_private.level_submission_contest c JOIN public.zsl_round r ON r.id=c.id_zsl_round WHERE r.id=$1 AND c.state='open' FOR UPDATE OF c")
-                .bind::<Integer,_>(round).get_result::<IdRow>(c).await.optional()?.ok_or(SubmissionError::Closed)?;
+            let contest = sql_query(SELECT_ID_LEVEL_SUBMISSION_CONTEST)
+                .bind::<Integer, _>(round)
+                .get_result::<IdRow>(c)
+                .await
+                .optional()?
+                .ok_or(SubmissionError::Closed)?;
             // Recheck wall clock after lock acquisition; a waiting mutation can cross the deadline.
-            let available=sql_query("SELECT c.id FROM zc_private.level_submission_contest c JOIN public.zsl_round r ON r.id=c.id_zsl_round WHERE c.id=$1 AND r.submission_start<=clock_timestamp() AND clock_timestamp()<r.submission_end")
-                .bind::<BigInt,_>(contest.id).get_result::<IdRow>(c).await.optional()?;
-            if available.is_none(){return Err(SubmissionError::Closed.into())}
+            let available = sql_query(SELECT_ID_LEVEL_SUBMISSION_CONTEST_BY_ID)
+                .bind::<BigInt, _>(contest.id)
+                .get_result::<IdRow>(c)
+                .await
+                .optional()?;
+            if available.is_none() {
+                return Err(SubmissionError::Closed.into());
+            }
 
-            let own=sql_query("SELECT id FROM zc_private.level_submissions WHERE id_contest=$1 AND $2=ANY(authors) AND state IN ('selected','withdrawn') ORDER BY (state='selected') DESC,date_updated DESC LIMIT 1")
-                .bind::<BigInt,_>(contest.id).bind::<Text,_>(viewer).get_result::<IdRow>(c).await.optional()?;
-            let conflict=sql_query("SELECT id FROM zc_private.level_submissions WHERE id_contest=$1 AND state='selected' AND ($2 IS NULL OR id<>$2) AND (authors && $3 OR workshop_id=$4) LIMIT 1")
-                .bind::<BigInt,_>(contest.id).bind::<Nullable<BigInt>,_>(own.as_ref().map(|r|r.id)).bind::<Array<Text>,_>(authors).bind::<BigInt,_>(workshop).get_result::<IdRow>(c).await.optional()?;
-            if conflict.is_some(){return Err(SubmissionError::Conflict.into())}
+            let own = sql_query(include_str!(
+                "../queries/submissions/select_id_level_submissions.sql"
+            ))
+            .bind::<BigInt, _>(contest.id)
+            .bind::<Text, _>(viewer)
+            .get_result::<IdRow>(c)
+            .await
+            .optional()?;
+            let conflict = sql_query(include_str!(
+                "../queries/submissions/select_id_level_submissions_by_id_contest.sql"
+            ))
+            .bind::<BigInt, _>(contest.id)
+            .bind::<Nullable<BigInt>, _>(own.as_ref().map(|r| r.id))
+            .bind::<Array<Text>, _>(authors)
+            .bind::<BigInt, _>(workshop)
+            .get_result::<IdRow>(c)
+            .await
+            .optional()?;
+            if conflict.is_some() {
+                return Err(SubmissionError::Conflict.into());
+            }
             // Reuse Steam sign-in placeholder creation within this transaction. Stable order
             // avoids deadlocks when different contests share author accounts.
-            let mut steam_ids=authors.iter().map(|id|id.parse::<i64>()).collect::<std::result::Result<Vec<_>,_>>()?;
+            let mut steam_ids = authors
+                .iter()
+                .map(|id| id.parse::<i64>())
+                .collect::<std::result::Result<Vec<_>, _>>()?;
             steam_ids.sort_unstable();
             for steam_id in steam_ids {
-                if super::get_or_insert_user_with_connection(c,steam_id).await?.banned {
-                    return Err(SubmissionError::BannedAuthor.into())
+                if super::get_or_insert_user_with_connection(c, steam_id)
+                    .await?
+                    .banned
+                {
+                    return Err(SubmissionError::BannedAuthor.into());
                 }
             }
-            let row=if let Some(own)=own {
-                sql_query("UPDATE zc_private.level_submissions SET workshop_id=$2,authors=$3,state='selected',revision=revision+1,latest_validation_id=NULL,level_hash=NULL,retry_category=NULL,next_inspection_at=now(),inspection_started_at=NULL,date_updated=now() WHERE id=$1 RETURNING id")
-                    .bind::<BigInt,_>(own.id).bind::<BigInt,_>(workshop).bind::<Array<Text>,_>(authors).get_result::<IdRow>(c).await?
-            }else{
-                sql_query("INSERT INTO zc_private.level_submissions(id_contest,workshop_id,authors,state) VALUES($1,$2,$3,'selected') RETURNING id")
-                    .bind::<BigInt,_>(contest.id).bind::<BigInt,_>(workshop).bind::<Array<Text>,_>(authors).get_result::<IdRow>(c).await?
+            let row = if let Some(own) = own {
+                sql_query(include_str!(
+                    "../queries/submissions/set_workshop_id_level_submissions.sql"
+                ))
+                .bind::<BigInt, _>(own.id)
+                .bind::<BigInt, _>(workshop)
+                .bind::<Array<Text>, _>(authors)
+                .get_result::<IdRow>(c)
+                .await?
+            } else {
+                sql_query(include_str!(
+                    "../queries/submissions/insert_level_submissions.sql"
+                ))
+                .bind::<BigInt, _>(contest.id)
+                .bind::<BigInt, _>(workshop)
+                .bind::<Array<Text>, _>(authors)
+                .get_result::<IdRow>(c)
+                .await?
             };
-            sql_query("UPDATE zc_private.level_submission_contest SET playlist_revision=playlist_revision+1 WHERE id=$1").bind::<BigInt,_>(contest.id).execute(c).await?;
+            sql_query(SET_PLAYLIST_REVISION_LEVEL_SUBMISSION_CONTEST)
+                .bind::<BigInt, _>(contest.id)
+                .execute(c)
+                .await?;
             Ok(row.id)
-        }).await
+        })
+        .await
     }
     pub async fn withdraw_submission(&self, round: i32, viewer: &str) -> Result<()> {
         let mut c = self.connection().await?;
-        c.transaction::<_,anyhow::Error,_>(async move |c| {
-            let contest=sql_query("SELECT c.id FROM zc_private.level_submission_contest c JOIN public.zsl_round r ON r.id=c.id_zsl_round WHERE r.id=$1 AND c.state='open' FOR UPDATE OF c")
-                .bind::<Integer,_>(round).get_result::<IdRow>(c).await.optional()?.ok_or(SubmissionError::Closed)?;
+        c.transaction::<_, anyhow::Error, _>(async move |c| {
+            let contest = sql_query(SELECT_ID_LEVEL_SUBMISSION_CONTEST)
+                .bind::<Integer, _>(round)
+                .get_result::<IdRow>(c)
+                .await
+                .optional()?
+                .ok_or(SubmissionError::Closed)?;
             // Recheck wall clock after lock acquisition; a waiting mutation can cross the deadline.
-            let available=sql_query("SELECT c.id FROM zc_private.level_submission_contest c JOIN public.zsl_round r ON r.id=c.id_zsl_round WHERE c.id=$1 AND r.submission_start<=clock_timestamp() AND clock_timestamp()<r.submission_end")
-                .bind::<BigInt,_>(contest.id).get_result::<IdRow>(c).await.optional()?;
-            if available.is_none(){return Err(SubmissionError::Closed.into())}
+            let available = sql_query(SELECT_ID_LEVEL_SUBMISSION_CONTEST_BY_ID)
+                .bind::<BigInt, _>(contest.id)
+                .get_result::<IdRow>(c)
+                .await
+                .optional()?;
+            if available.is_none() {
+                return Err(SubmissionError::Closed.into());
+            }
 
-            let row=sql_query("UPDATE zc_private.level_submissions SET state='withdrawn',revision=revision+1,inspection_started_at=NULL,retry_category=NULL,date_updated=now() WHERE id_contest=$1 AND $2=ANY(authors) AND state='selected' RETURNING id")
-                .bind::<BigInt,_>(contest.id).bind::<Text,_>(viewer).get_result::<IdRow>(c).await.optional()?;
-            if let Some(row)=row {
+            let row = sql_query(include_str!(
+                "../queries/submissions/set_state_level_submissions.sql"
+            ))
+            .bind::<BigInt, _>(contest.id)
+            .bind::<Text, _>(viewer)
+            .get_result::<IdRow>(c)
+            .await
+            .optional()?;
+            if let Some(row) = row {
                 // Existing notification only: never backfill withdrawal messages.
-                sql_query("UPDATE zc_private.level_submission_notification n SET desired_revision=s.revision,next_attempt_at=now(),date_updated=now() FROM zc_private.level_submissions s WHERE n.id_submission=s.id AND s.id=$1")
-                    .bind::<BigInt,_>(row.id).execute(c).await?;
-                sql_query("UPDATE zc_private.level_submission_contest SET playlist_revision=playlist_revision+1 WHERE id=$1").bind::<BigInt,_>(contest.id).execute(c).await?;
+                sql_query(include_str!(
+                    "../queries/submissions/set_desired_revision_level_submission_notification.sql"
+                ))
+                .bind::<BigInt, _>(row.id)
+                .execute(c)
+                .await?;
+                sql_query(SET_PLAYLIST_REVISION_LEVEL_SUBMISSION_CONTEST)
+                    .bind::<BigInt, _>(contest.id)
+                    .execute(c)
+                    .await?;
             }
             Ok(())
-        }).await
+        })
+        .await
     }
 }
 #[cfg(test)]

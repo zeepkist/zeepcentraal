@@ -5,6 +5,11 @@ use zc_database::{
     services::{ghost_validation::AcceptedEvidence, record::RecordSubmission},
 };
 
+const COUNT_RECORD_VALIDATION: &str =
+    include_str!("fixtures/ghost_validation/count_record_validation.sql");
+const INSERT_LEVEL_METADATA: &str =
+    include_str!("fixtures/ghost_validation/insert_level_metadata.sql");
+
 async fn fixture_url(database_name: &str) -> Result<String> {
     zc_core::environment::initialize()?;
     let value =
@@ -47,10 +52,20 @@ async fn mutable_results_preserve_identity_timestamps_and_record_eligibility() -
             "../migrations/20261018010000_validation_metadata_guards/up.sql"
         ))
         .await?;
-    client.batch_execute("INSERT INTO public.\"user\"(id,steam_id) VALUES(1,42); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)); INSERT INTO public.record(id,id_user,id_level,time,date_created) VALUES(1276,1,1,10,'2020-01-01'); INSERT INTO public.personal_best_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.world_record_global(id_record,id_user,id_level) VALUES(1276,1,1); INSERT INTO public.level_points(id_level,points) VALUES(1,100); INSERT INTO public.level_item(id_level,workshop_id) VALUES(1,123);").await?;
+    client
+        .batch_execute(include_str!("fixtures/ghost_validation/insert_user.sql"))
+        .await?;
     let database = Database::connect(&url, 2).await?;
     let eligibility = || async {
-        Ok::<_,anyhow::Error>(client.query_one("SELECT jsonb_build_object('record',(SELECT to_jsonb(r) FROM public.record r WHERE id=1276),'pb',(SELECT jsonb_agg(p) FROM public.personal_best_global p),'wr',(SELECT jsonb_agg(w) FROM public.world_record_global w),'points',(SELECT jsonb_agg(s) FROM public.level_points s))::text", &[]).await?.get::<_,String>(0))
+        Ok::<_, anyhow::Error>(
+            client
+                .query_one(
+                    include_str!("fixtures/ghost_validation/select_record.sql"),
+                    &[],
+                )
+                .await?
+                .get::<_, String>(0),
+        )
     };
     let before = eligibility().await?;
     let mut report = ValidationReport::uncertain("test_evidence");
@@ -101,13 +116,19 @@ async fn mutable_migration_reset_constraints_and_rollback() -> Result<()> {
     transaction
         .batch_execute(include_str!("fixtures/ghost_validation.sql"))
         .await?;
-    transaction.batch_execute("INSERT INTO public.\"user\"(id) VALUES(1); INSERT INTO public.level(id,xx_hash) VALUES(1,repeat('a',32)); INSERT INTO public.record(id,id_user,id_level) VALUES(1,1,1);").await?;
+    transaction
+        .batch_execute(include_str!("fixtures/ghost_validation/insert_user_2.sql"))
+        .await?;
     transaction
         .batch_execute(include_str!(
             "../migrations/20261006180000_ghost_validation/up.sql"
         ))
         .await?;
-    transaction.batch_execute("INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(1,1,1,'fail','{}','old'),(1,1,1,'pass','{}','old'),(NULL,1,NULL,'fail','{}','old');").await?;
+    transaction
+        .batch_execute(include_str!(
+            "fixtures/ghost_validation/insert_record_validation.sql"
+        ))
+        .await?;
     transaction
         .batch_execute(include_str!(
             "../migrations/20261008020000_mutable_record_validation/up.sql"
@@ -115,26 +136,51 @@ async fn mutable_migration_reset_constraints_and_rollback() -> Result<()> {
         .await?;
     assert_eq!(
         transaction
-            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
+            .query_one(COUNT_RECORD_VALIDATION, &[])
             .await?
             .get::<_, i64>(0),
         0
     );
-    assert!(transaction.query_one("SELECT to_regclass('zc_private.level_version_lineage') IS NULL AND to_regprocedure('zc_private.immutable_validation_evidence()') IS NULL",&[]).await?.get::<_,bool>(0));
-    assert_eq!(transaction.query_one("SELECT count(*) FROM information_schema.columns WHERE table_schema='zc_private' AND table_name='record_validation' AND column_name='level_xx_hash'",&[]).await?.get::<_,i64>(0),0);
-    transaction.batch_execute("INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(1,1,1,'pass','{}','new'); UPDATE zc_private.record_validation SET status='uncertain';").await?;
+    assert!(
+        transaction
+            .query_one(
+                include_str!("fixtures/ghost_validation/to_regclass.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
+    assert_eq!(
+        transaction
+            .query_one(
+                include_str!("fixtures/ghost_validation/count_information_schema.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, i64>(0),
+        0
+    );
+    transaction
+        .batch_execute(include_str!(
+            "fixtures/ghost_validation/insert_record_validation_uncertain.sql"
+        ))
+        .await?;
     for sql in [
-        "INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(1,1,1,'pass','{}','new')",
-        "INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(NULL,1,1,'pass','{}','new')",
-        "INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(999,1,1,'pass','{}','new')",
-        "INSERT INTO zc_private.record_validation(id_record,id_user,id_level,status,report,validator_version) VALUES(2,1,NULL,'pass','{}','new')",
+        include_str!("fixtures/ghost_validation/insert_record_validation_2.sql"),
+        include_str!("fixtures/ghost_validation/insert_record_validation_3.sql"),
+        include_str!("fixtures/ghost_validation/insert_record_validation_4.sql"),
+        include_str!("fixtures/ghost_validation/insert_record_validation_5.sql"),
     ] {
         transaction
-            .batch_execute("SAVEPOINT constraint_test")
+            .batch_execute(include_str!(
+                "fixtures/ghost_validation/savepoint_constraint_test.sql"
+            ))
             .await?;
         assert!(transaction.batch_execute(sql).await.is_err());
         transaction
-            .batch_execute("ROLLBACK TO SAVEPOINT constraint_test")
+            .batch_execute(include_str!(
+                "fixtures/ghost_validation/rollback_to_savepoint_constraint_test.sql"
+            ))
             .await?;
     }
     transaction
@@ -142,10 +188,18 @@ async fn mutable_migration_reset_constraints_and_rollback() -> Result<()> {
             "../migrations/20261008020000_mutable_record_validation/down.sql"
         ))
         .await?;
-    assert!(transaction.query_one("SELECT to_regclass('zc_private.level_version_lineage') IS NOT NULL AND to_regprocedure('zc_private.immutable_validation_evidence()') IS NOT NULL",&[]).await?.get::<_,bool>(0));
+    assert!(
+        transaction
+            .query_one(
+                include_str!("fixtures/ghost_validation/to_regclass_2.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
     assert_eq!(
         transaction
-            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
+            .query_one(COUNT_RECORD_VALIDATION, &[])
             .await?
             .get::<_, i64>(0),
         1,
@@ -158,7 +212,7 @@ async fn mutable_migration_reset_constraints_and_rollback() -> Result<()> {
         .await?;
     assert_eq!(
         transaction
-            .query_one("SELECT count(*) FROM zc_private.record_validation", &[])
+            .query_one(COUNT_RECORD_VALIDATION, &[])
             .await?
             .get::<_, i64>(0),
         0
@@ -307,14 +361,11 @@ async fn version_candidates_share_workshop_without_trusting_builder_uid() -> Res
             .await?
             .context("fixture level")?;
         client
-            .execute(
-                "INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2::text::jsonb)",
-                &[&level.id, &blocks.to_string()],
-            )
+            .execute(INSERT_LEVEL_METADATA, &[&level.id, &blocks.to_string()])
             .await?;
         client
             .execute(
-                "INSERT INTO public.level_item(id_level,workshop_id,file_uid) VALUES($1,$2,$3)",
+                include_str!("fixtures/ghost_validation/insert_level_item.sql"),
                 &[
                     &level.id,
                     &(900_000_000 + suffix),
@@ -345,7 +396,9 @@ async fn submission_classification_uses_catalog_and_verified_legacy_metadata() -
         .batch_execute(include_str!("fixtures/ghost_validation.sql"))
         .await?;
     client
-        .batch_execute("CREATE UNIQUE INDEX canonical_hash ON public.level(xx_hash)")
+        .batch_execute(include_str!(
+            "fixtures/ghost_validation/create_fixture_schema.sql"
+        ))
         .await?;
     let database = Database::connect(&url, 2).await?;
     let hash = "A".repeat(32);
@@ -357,7 +410,10 @@ async fn submission_classification_uses_catalog_and_verified_legacy_metadata() -
     );
     assert_eq!(
         client
-            .query_one("SELECT count(*) FROM public.level", &[])
+            .query_one(
+                include_str!("fixtures/ghost_validation/count_level.sql"),
+                &[]
+            )
             .await?
             .get::<_, i64>(0),
         0
@@ -375,7 +431,7 @@ async fn submission_classification_uses_catalog_and_verified_legacy_metadata() -
     assert!(
         !client
             .query_one(
-                "SELECT adventure FROM public.level WHERE id=$1",
+                include_str!("fixtures/ghost_validation/select_adventure_level.sql"),
                 &[&workshop.id]
             )
             .await?
@@ -383,7 +439,7 @@ async fn submission_classification_uses_catalog_and_verified_legacy_metadata() -
     );
     client
         .execute(
-            "UPDATE public.level SET adventure=true WHERE id=$1",
+            include_str!("fixtures/ghost_validation/set_adventure_level.sql"),
             &[&workshop.id],
         )
         .await?;
@@ -407,16 +463,13 @@ async fn submission_classification_uses_catalog_and_verified_legacy_metadata() -
     )?;
     let legacy: i32 = client
         .query_one(
-            "INSERT INTO public.level(hash,adventure) VALUES('legacy-adventure',true) RETURNING id",
+            include_str!("fixtures/ghost_validation/insert_level.sql"),
             &[],
         )
         .await?
         .get(0);
     client
-        .execute(
-            "INSERT INTO public.level_metadata(id_level,format,blocks) VALUES($1,1,$2::text::jsonb)",
-            &[&legacy, &blocks.to_string()],
-        )
+        .execute(INSERT_LEVEL_METADATA, &[&legacy, &blocks.to_string()])
         .await?;
     assert!(
         database

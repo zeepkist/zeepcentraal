@@ -64,7 +64,12 @@ async fn guarded_recovery_retains_evidence_and_restores_eligibility() -> Result<
     );
     assert!(db.timing_failure_evidence(1).await?.is_some());
     assert!(db.timing_failure_evidence(2).await?.is_none());
-    client.batch_execute(&format!("DO $${assertions}")).await?;
+    client
+        .batch_execute(
+            &include_str!("fixtures/timing_failure_recovery/run_recovery_assertions.sql")
+                .replace("{{assertions}}", assertions),
+        )
+        .await?;
     assert!(
         db.audit_record_window(&serde_json::json!({"recoverTimingFailures":true}), 3)
             .await?
@@ -77,13 +82,15 @@ async fn guarded_recovery_retains_evidence_and_restores_eligibility() -> Result<
     );
     let previous = client
         .query_one(
-            "SELECT (report->'timingRecovery')::text FROM zc_private.record_validation WHERE id_record=1",
+            include_str!("fixtures/timing_failure_recovery/select_record_validation.sql"),
             &[],
         )
         .await?
         .get::<_, String>(0);
     client
-        .batch_execute("INSERT INTO public.level_metadata(id_level,blocks) VALUES(1,'[]')")
+        .batch_execute(include_str!(
+            "fixtures/timing_failure_recovery/insert_level_metadata.sql"
+        ))
         .await?;
     let checked = db.validation_check_timestamp(1).await?;
     db.save_checked_record_validations(
@@ -97,7 +104,12 @@ async fn guarded_recovery_retains_evidence_and_restores_eligibility() -> Result<
         &checked,
     )
     .await?;
-    let updated=client.query_one("SELECT status,(report->'timingRecovery')::text FROM zc_private.record_validation WHERE id_record=1",&[]).await?;
+    let updated = client
+        .query_one(
+            include_str!("fixtures/timing_failure_recovery/select_status_record_validation.sql"),
+            &[],
+        )
+        .await?;
     assert_eq!(updated.get::<_, String>(0), "pass");
     assert_eq!(updated.get::<_, String>(1), previous);
     client
@@ -106,12 +118,14 @@ async fn guarded_recovery_retains_evidence_and_restores_eligibility() -> Result<
         ))
         .await?;
     client
-        .batch_execute("DELETE FROM zc_private.record_validation WHERE id_record=2")
+        .batch_execute(include_str!(
+            "fixtures/timing_failure_recovery/delete_record_validation.sql"
+        ))
         .await?;
     assert_eq!(
         client
             .query_one(
-                "SELECT status FROM zc_private.record_validation WHERE id_record=2",
+                include_str!("fixtures/timing_failure_recovery/select_status_record_validation_by_id_record_2.sql"),
                 &[]
             )
             .await?

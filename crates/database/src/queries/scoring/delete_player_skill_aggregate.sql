@@ -1,0 +1,1 @@
+DELETE FROM public.player_skill_aggregate

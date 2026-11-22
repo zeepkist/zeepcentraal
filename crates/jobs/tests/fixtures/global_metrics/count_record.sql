@@ -1,0 +1,1 @@
+SELECT count(*)=1 AND bool_and(records=(SELECT count(*) FROM public.record WHERE record_eligible) AND as_of>statement_timestamp()-interval '10 seconds' AND ($1 OR mod(floor(extract(epoch FROM as_of))::bigint,300)<15)) AS valid FROM public.statistics

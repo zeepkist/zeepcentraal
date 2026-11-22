@@ -5,6 +5,9 @@ use zc_database::{
     services::jobs::{LevelScoreUpdate, MaintenanceOutcome},
 };
 
+const SELECT_XMIN_LEVEL_POINTS: &str =
+    include_str!("fixtures/workshop_catalog/select_xmin_level_points.sql");
+
 #[tokio::test(flavor = "multi_thread")]
 #[ignore = "requires empty disposable local PostgreSQL named workshop_catalog_test"]
 async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<()> {
@@ -20,18 +23,9 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     client
         .batch_execute(include_str!("fixtures/workshop_catalog.sql"))
         .await?;
-    client.batch_execute(
-        "INSERT INTO public.level(id,adventure) SELECT id,id IN(3,5) FROM generate_series(1,11) id;
-         INSERT INTO public.workshop_item SELECT id FROM generate_series(10,80,10) id;
-         INSERT INTO public.workshop_item VALUES(-1);
-         INSERT INTO public.level_item(id,id_level,workshop_id,deleted,publicly_visible) VALUES
-         (1,1,10,false,true),(2,2,20,false,true),(3,2,30,false,true),
-         (4,3,40,false,true),(5,4,40,false,true),(6,6,50,true,true),
-         (7,7,60,false,true),(8,7,30,false,false),(9,9,70,false,true),
-         (10,10,80,false,true),(11,10,80,false,true),(12,11,30,false,true),(13,5,-1,false,true);
-         INSERT INTO public.level_points(id_level,points) SELECT id,1000 FROM public.level WHERE id<>4;
-         INSERT INTO public.user_point_contribution VALUES(1,1,1,1,1000,1000);"
-    ).await?;
+    client
+        .batch_execute(include_str!("fixtures/workshop_catalog/insert_level.sql"))
+        .await?;
     let database = Database::connect(&url, 4).await?;
     assert!(!database.workshop_sync_state().await?.contains_key(&-1));
     assert!(
@@ -53,10 +47,12 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
             .is_err()
     );
     let missing = [10, 20, 40, 50, 60, 80];
-    client.execute(
-        "ALTER TABLE public.level_points ADD CONSTRAINT catalog_zero_failure CHECK(id_level<>4)",
-        &[],
-    ).await?;
+    client
+        .execute(
+            include_str!("fixtures/workshop_catalog/alter_level_points.sql"),
+            &[],
+        )
+        .await?;
     assert!(
         database
             .reconcile_missing_workshop_items(&missing)
@@ -65,14 +61,17 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     );
     assert!(
         !client
-            .query_one("SELECT deleted FROM public.level_item WHERE id=1", &[])
+            .query_one(
+                include_str!("fixtures/workshop_catalog/select_deleted_level_item.sql"),
+                &[]
+            )
             .await?
             .get::<_, bool>(0)
     );
     assert_eq!(
         client
             .query_one(
-                "SELECT points FROM public.level_points WHERE id_level=1",
+                include_str!("fixtures/workshop_catalog/select_points_level_points.sql"),
                 &[]
             )
             .await?
@@ -81,7 +80,7 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     );
     client
         .execute(
-            "ALTER TABLE public.level_points DROP CONSTRAINT catalog_zero_failure",
+            include_str!("fixtures/workshop_catalog/alter_level_points_2.sql"),
             &[],
         )
         .await?;
@@ -90,7 +89,10 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
         vec![1, 2, 4, 6, 7, 10]
     );
     let items = client
-        .query("SELECT id,deleted FROM public.level_item ORDER BY id", &[])
+        .query(
+            include_str!("fixtures/workshop_catalog/select_id_level_item.sql"),
+            &[],
+        )
         .await?;
     let deleted = items
         .iter()
@@ -100,7 +102,7 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     assert_eq!(deleted, vec![1, 2, 5, 6, 7, 10, 11]);
     let points = client
         .query(
-            "SELECT id_level,points FROM public.level_points ORDER BY id_level",
+            include_str!("fixtures/workshop_catalog/select_id_level_level_points.sql"),
             &[],
         )
         .await?;
@@ -118,10 +120,7 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     }
     // Simulate a failed enqueue after commit: deletion is complete, contribution repair remains.
     let versions = client
-        .query(
-            "SELECT xmin::text FROM public.level_points ORDER BY id_level",
-            &[],
-        )
+        .query(SELECT_XMIN_LEVEL_POINTS, &[])
         .await?
         .into_iter()
         .map(|row| row.get::<_, String>(0))
@@ -138,10 +137,7 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
         })
     );
     let repeated = client
-        .query(
-            "SELECT xmin::text FROM public.level_points ORDER BY id_level",
-            &[],
-        )
+        .query(SELECT_XMIN_LEVEL_POINTS, &[])
         .await?
         .into_iter()
         .map(|row| row.get::<_, String>(0))
@@ -149,7 +145,7 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     assert_eq!(versions, repeated);
     client
         .execute(
-            "DELETE FROM public.user_point_contribution WHERE id_level=1",
+            include_str!("fixtures/workshop_catalog/delete_user_point_contribution.sql"),
             &[],
         )
         .await?;
@@ -168,7 +164,9 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     assert_eq!(
         client
             .query_one(
-                "SELECT points FROM public.level_points WHERE id_level=2",
+                include_str!(
+                    "fixtures/workshop_catalog/select_points_level_points_by_id_level_2.sql"
+                ),
                 &[]
             )
             .await?
@@ -179,7 +177,10 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     // A concurrent scoring transaction holds the same lock. No deletion may commit before it releases.
     let blocker = client.transaction().await?;
     blocker
-        .execute("SELECT pg_advisory_xact_lock(1861284954,9)", &[])
+        .execute(
+            include_str!("fixtures/workshop_catalog/pg_advisory_xact_lock.sql"),
+            &[],
+        )
         .await?;
     let concurrent_database = database.clone();
     let mut reconcile = tokio::spawn(async move {
@@ -195,7 +196,9 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     assert!(
         !blocker
             .query_one(
-                "SELECT deleted FROM public.level_item WHERE id_level=9",
+                include_str!(
+                    "fixtures/workshop_catalog/select_deleted_level_item_by_id_level_9.sql"
+                ),
                 &[]
             )
             .await?
@@ -203,7 +206,7 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     );
     blocker
         .execute(
-            "UPDATE public.level_points SET points=2000 WHERE id_level=9",
+            include_str!("fixtures/workshop_catalog/set_points_level_points.sql"),
             &[],
         )
         .await?;
@@ -217,7 +220,9 @@ async fn catalog_deletion_zeroing_retry_adventure_and_scoring_lock() -> Result<(
     assert_eq!(
         client
             .query_one(
-                "SELECT points FROM public.level_points WHERE id_level=9",
+                include_str!(
+                    "fixtures/workshop_catalog/select_points_level_points_by_id_level_9.sql"
+                ),
                 &[]
             )
             .await?

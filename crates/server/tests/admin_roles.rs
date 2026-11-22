@@ -51,7 +51,9 @@ async fn database_roles_control_access_and_migration_rolls_back() -> Result<()> 
     );
     let (client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("role fixture connection") });
-    client.batch_execute("CREATE TABLE public.\"user\"(id integer PRIMARY KEY,steam_id bigint,banned boolean NOT NULL DEFAULT false); INSERT INTO public.\"user\" VALUES(1,42,false); CREATE TABLE public.record(id integer,id_level integer,date_created timestamptz); CREATE SCHEMA zc_private; CREATE TABLE zc_private.record_validation(id bigint,id_record integer,id_level integer,status text); CREATE TABLE zc_private.level_version_lineage(id_level integer,workshop_id bigint); DO $$ BEGIN IF NOT EXISTS(SELECT FROM pg_roles WHERE rolname='zeepcentraal_graphql') THEN CREATE ROLE zeepcentraal_graphql; END IF; END $$; GRANT UPDATE ON public.\"user\" TO zeepcentraal_graphql;").await?;
+    client
+        .batch_execute(include_str!("fixtures/admin_roles/create_user.sql"))
+        .await?;
     client
         .batch_execute(include_str!(
             "../../database/migrations/20261006223000_user_admin_role/up.sql"
@@ -59,22 +61,45 @@ async fn database_roles_control_access_and_migration_rolls_back() -> Result<()> 
         .await?;
     assert_eq!(
         client
-            .query_one("SELECT role FROM public.\"user\" WHERE id=1", &[])
+            .query_one(
+                include_str!("fixtures/admin_roles/select_role_user.sql"),
+                &[]
+            )
             .await?
             .get::<_, String>(0),
         "user"
     );
-    assert!(!client.query_one("SELECT has_column_privilege('zeepcentraal_graphql','public.\"user\"','role','UPDATE')", &[]).await?.get::<_,bool>(0));
-    assert_eq!(client.query_one("SELECT col_description('public.\"user\"'::regclass,attnum) FROM pg_attribute WHERE attrelid='public.\"user\"'::regclass AND attname='role'", &[]).await?.get::<_,String>(0), "@omit all");
+    assert!(
+        !client
+            .query_one(
+                include_str!("fixtures/admin_roles/has_column_privilege.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, bool>(0)
+    );
+    assert_eq!(
+        client
+            .query_one(
+                include_str!("fixtures/admin_roles/col_description.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, String>(0),
+        "@omit all"
+    );
     assert!(
         client
-            .execute("UPDATE public.\"user\" SET role='owner'", &[])
+            .execute(include_str!("fixtures/admin_roles/set_role_user.sql"), &[])
             .await
             .is_err()
     );
     assert!(
         client
-            .execute("UPDATE public.\"user\" SET role=NULL", &[])
+            .execute(
+                include_str!("fixtures/admin_roles/set_role_user_2.sql"),
+                &[]
+            )
             .await
             .is_err()
     );
@@ -95,19 +120,25 @@ async fn database_roles_control_access_and_migration_rolls_back() -> Result<()> 
     assert_eq!(access(&app, &steam).await?, StatusCode::FORBIDDEN);
     assert_eq!(access(&app, &missing).await?, StatusCode::FORBIDDEN);
     client
-        .execute("UPDATE public.\"user\" SET role='admin' WHERE id=1", &[])
+        .execute(
+            include_str!("fixtures/admin_roles/set_role_user_by_id_1.sql"),
+            &[],
+        )
         .await?;
     assert_eq!(access(&app, &steam).await?, StatusCode::OK);
     assert_eq!(access(&app, &gtr).await?, StatusCode::FORBIDDEN);
     assert_eq!(access(&app, &discord).await?, StatusCode::FORBIDDEN);
     assert_eq!(access(&app, "forged").await?, StatusCode::UNAUTHORIZED);
     client
-        .execute("UPDATE public.\"user\" SET banned=true WHERE id=1", &[])
+        .execute(
+            include_str!("fixtures/admin_roles/set_banned_user.sql"),
+            &[],
+        )
         .await?;
     assert_eq!(access(&app, &steam).await?, StatusCode::FORBIDDEN);
     client
         .execute(
-            "UPDATE public.\"user\" SET banned=false,role='user' WHERE id=1",
+            include_str!("fixtures/admin_roles/set_banned_user_by_id_1.sql"),
             &[],
         )
         .await?;
@@ -117,6 +148,15 @@ async fn database_roles_control_access_and_migration_rolls_back() -> Result<()> 
             "../../database/migrations/20261006223000_user_admin_role/down.sql"
         ))
         .await?;
-    assert_eq!(client.query_one("SELECT count(*) FROM information_schema.columns WHERE table_schema='public' AND table_name='user' AND column_name='role'", &[]).await?.get::<_,i64>(0), 0);
+    assert_eq!(
+        client
+            .query_one(
+                include_str!("fixtures/admin_roles/count_information_schema.sql"),
+                &[]
+            )
+            .await?
+            .get::<_, i64>(0),
+        0
+    );
     Ok(())
 }

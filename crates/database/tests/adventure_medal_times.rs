@@ -1,6 +1,10 @@
 use anyhow::{Result, ensure};
 use std::collections::BTreeMap;
 
+const COUNT_CHANGES: &str = include_str!("fixtures/adventure_medal_times/count_changes.sql");
+const SELECT_VALIDATION_TIME_GOLD_LEVEL_ITEM: &str =
+    include_str!("fixtures/adventure_medal_times/select_validation_time_gold_level_item.sql");
+
 const UP: &str = include_str!("../migrations/20261110010000_adventure_medal_times/up.sql");
 const DOWN: &str = include_str!("../migrations/20261110010000_adventure_medal_times/down.sql");
 // Exact serialized v18.2 scriptable asset values, independently readable without Unity exports.
@@ -77,54 +81,30 @@ async fn exact_real_values_alias_scope_idempotency_and_rollback() -> Result<()> 
     let (mut client, connection) = tokio_postgres::connect(&url, tokio_postgres::NoTls).await?;
     tokio::spawn(async move { connection.await.expect("Adventure medal test connection") });
     let tx = client.transaction().await?;
-    tx.batch_execute(r#"
-        CREATE TABLE public.level(id integer PRIMARY KEY, adventure boolean NOT NULL, hash text NOT NULL);
-        CREATE TABLE public.level_item(
-            id integer PRIMARY KEY, id_level integer REFERENCES public.level,
-            workshop_id bigint NOT NULL DEFAULT 0, author_id bigint NOT NULL DEFAULT 76561198041027402,
-            file_uid text NOT NULL, deleted boolean NOT NULL DEFAULT false,
-            validation_time_author real NOT NULL DEFAULT 0, validation_time_gold real NOT NULL DEFAULT 0,
-            validation_time_silver real NOT NULL DEFAULT 0, validation_time_bronze real NOT NULL DEFAULT 0,
-            updated_at timestamptz NOT NULL DEFAULT '2000-01-01', date_updated timestamptz
-        );
-        CREATE TABLE public.changes(id integer);
-        CREATE FUNCTION public.capture_medal_change() RETURNS trigger LANGUAGE plpgsql AS $$
-        BEGIN INSERT INTO public.changes VALUES(NEW.id); RETURN NEW; END $$;
-        CREATE TRIGGER medal_change AFTER UPDATE ON public.level_item
-            FOR EACH ROW EXECUTE FUNCTION public.capture_medal_change();
-        INSERT INTO public.level VALUES (1,true,'preserved'),(2,false,'non-adventure');
-    "#).await?;
+    tx.batch_execute(include_str!(
+        "fixtures/adventure_medal_times/create_level.sql"
+    ))
+    .await?;
     let source = source_times();
     for (index, uid) in source.keys().enumerate() {
         tx.execute(
-            "INSERT INTO public.level_item(id,id_level,file_uid) VALUES($1,1,$2)",
+            include_str!("fixtures/adventure_medal_times/insert_level_item.sql"),
             &[&((index + 1) as i32), uid],
         )
         .await?;
     }
-    tx.batch_execute(
-        r#"
-        INSERT INTO public.level_item(id,id_level,file_uid,deleted,validation_time_author,
-            validation_time_gold,validation_time_silver,validation_time_bronze)
-        VALUES(201,1,'ea1',true,1,2,3,4);
-        INSERT INTO public.level_item(id,id_level,file_uid,workshop_id) VALUES(202,1,'ea1',123);
-        INSERT INTO public.level_item(id,id_level,file_uid,author_id) VALUES(203,1,'ea1',42);
-        INSERT INTO public.level_item(id,id_level,file_uid) VALUES(204,1,'unknown'),(205,2,'ea1');
-        INSERT INTO public.level_item(id,id_level,file_uid,workshop_id) VALUES(206,1,'ea1',-1);
-    "#,
-    )
+    tx.batch_execute(include_str!(
+        "fixtures/adventure_medal_times/insert_level_item_2.sql"
+    ))
     .await?;
     tx.batch_execute(UP).await?;
     assert_eq!(
-        tx.query_one("SELECT count(*)::int FROM public.changes", &[])
-            .await?
-            .get::<_, i32>(0),
+        tx.query_one(COUNT_CHANGES, &[]).await?.get::<_, i32>(0),
         121
     );
     let rows = tx
         .query(
-            "SELECT file_uid,validation_time_author,validation_time_gold,validation_time_silver,
-        validation_time_bronze FROM public.level_item WHERE id<=201 ORDER BY id",
+            include_str!("fixtures/adventure_medal_times/select_file_uid_level_item.sql"),
             &[],
         )
         .await?;
@@ -137,16 +117,12 @@ async fn exact_real_values_alias_scope_idempotency_and_rollback() -> Result<()> 
     }
     tx.batch_execute(UP).await?;
     assert_eq!(
-        tx.query_one("SELECT count(*)::int FROM public.changes", &[])
-            .await?
-            .get::<_, i32>(0),
+        tx.query_one(COUNT_CHANGES, &[]).await?.get::<_, i32>(0),
         121
     );
     assert_eq!(
         tx.query_one(
-            "SELECT count(*)::int FROM public.level_item WHERE id>=202
-        AND validation_time_author=0 AND validation_time_gold=0 AND validation_time_silver=0
-        AND validation_time_bronze=0 AND updated_at='2000-01-01' AND date_updated IS NULL",
+            include_str!("fixtures/adventure_medal_times/count_level_item.sql"),
             &[]
         )
         .await?
@@ -155,29 +131,26 @@ async fn exact_real_values_alias_scope_idempotency_and_rollback() -> Result<()> 
     );
     assert_eq!(
         tx.query_one(
-            "SELECT count(*)::int FROM public.level_item WHERE id<=201
-        AND updated_at>'2000-01-01' AND date_updated IS NOT NULL",
+            include_str!("fixtures/adventure_medal_times/count_level_item_by_before_id.sql"),
             &[]
         )
         .await?
         .get::<_, i32>(0),
         121
     );
-    tx.batch_execute("UPDATE public.level_item SET validation_time_gold=999 WHERE id=201")
-        .await?;
+    tx.batch_execute(include_str!(
+        "fixtures/adventure_medal_times/set_validation_time_gold_level_item.sql"
+    ))
+    .await?;
     // Excluded aliases must survive rollback even when their values match the imported tuple.
-    tx.batch_execute(
-        "UPDATE public.level_item SET validation_time_author=40.10766::real,
-        validation_time_gold=44::real, validation_time_silver=48::real,
-        validation_time_bronze=90::real WHERE id>=202",
-    )
+    tx.batch_execute(include_str!(
+        "fixtures/adventure_medal_times/set_validation_time_author_level_item.sql"
+    ))
     .await?;
     tx.batch_execute(DOWN).await?;
     assert_eq!(
         tx.query_one(
-            "SELECT count(*)::int FROM public.level_item WHERE id>=202
-            AND validation_time_author=40.10766::real AND validation_time_gold=44::real
-            AND validation_time_silver=48::real AND validation_time_bronze=90::real",
+            include_str!("fixtures/adventure_medal_times/count_level_item_by_after_id.sql"),
             &[]
         )
         .await?
@@ -186,9 +159,7 @@ async fn exact_real_values_alias_scope_idempotency_and_rollback() -> Result<()> 
     );
     assert_eq!(
         tx.query_one(
-            "SELECT count(*)::int FROM public.level_item WHERE id<=120
-        AND validation_time_author=0 AND validation_time_gold=0 AND validation_time_silver=0
-        AND validation_time_bronze=0",
+            include_str!("fixtures/adventure_medal_times/count_level_item_by_before_id_2.sql"),
             &[]
         )
         .await?
@@ -196,44 +167,39 @@ async fn exact_real_values_alias_scope_idempotency_and_rollback() -> Result<()> 
         120
     );
     assert_eq!(
-        tx.query_one(
-            "SELECT validation_time_gold FROM public.level_item WHERE id=201",
-            &[]
-        )
-        .await?
-        .get::<_, f32>(0),
+        tx.query_one(SELECT_VALIDATION_TIME_GOLD_LEVEL_ITEM, &[])
+            .await?
+            .get::<_, f32>(0),
         999.0
     );
-    let count: i32 = tx
-        .query_one("SELECT count(*)::int FROM public.changes", &[])
-        .await?
-        .get(0);
+    let count: i32 = tx.query_one(COUNT_CHANGES, &[]).await?.get(0);
     tx.batch_execute(DOWN).await?;
     assert_eq!(
-        tx.query_one("SELECT count(*)::int FROM public.changes", &[])
-            .await?
-            .get::<_, i32>(0),
+        tx.query_one(COUNT_CHANGES, &[]).await?.get::<_, i32>(0),
         count
     );
     tx.batch_execute(UP).await?;
     assert_eq!(
-        tx.query_one(
-            "SELECT validation_time_gold FROM public.level_item WHERE id=201",
-            &[]
-        )
-        .await?
-        .get::<_, f32>(0),
+        tx.query_one(SELECT_VALIDATION_TIME_GOLD_LEVEL_ITEM, &[])
+            .await?
+            .get::<_, f32>(0),
         44.0
     );
     assert!(
-        tx.query_one("SELECT deleted FROM public.level_item WHERE id=201", &[])
-            .await?
-            .get::<_, bool>(0)
+        tx.query_one(
+            include_str!("fixtures/adventure_medal_times/select_deleted_level_item.sql"),
+            &[]
+        )
+        .await?
+        .get::<_, bool>(0)
     );
     assert_eq!(
-        tx.query_one("SELECT hash FROM public.level WHERE id=1", &[])
-            .await?
-            .get::<_, String>(0),
+        tx.query_one(
+            include_str!("fixtures/adventure_medal_times/select_hash_level.sql"),
+            &[]
+        )
+        .await?
+        .get::<_, String>(0),
         "preserved"
     );
     tx.rollback().await?;

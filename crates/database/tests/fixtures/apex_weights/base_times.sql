@@ -1,0 +1,1 @@
+SELECT json_agg(json_build_array(id,validation_time_bronze,validation_time_silver,validation_time_gold,validation_time_author,validation_time_expert) ORDER BY id)::text FROM public.level_item

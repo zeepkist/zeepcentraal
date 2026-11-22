@@ -1,0 +1,1 @@
+UPDATE public.zsl_round SET submission_end=now()-interval '1 minute' WHERE id=1

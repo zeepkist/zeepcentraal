@@ -1,0 +1,1 @@
+SELECT zc_private.refresh_track_tournament_overall(0)

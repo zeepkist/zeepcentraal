@@ -1,9 +1,13 @@
 use anyhow::{Result, ensure};
 use diesel::migration::MigrationSource;
 
+const MEDAL_MILLISECONDS: &str = include_str!("fixtures/apex_weights/medal_milliseconds.sql");
+const SELECT_VALIDATION_TIME_EXPERT_LEVEL_ITEM: &str =
+    include_str!("fixtures/apex_weights/select_validation_time_expert_level_item.sql");
+
 const UP: &str = include_str!("../migrations/20261112040000_apex_top_weighted/up.sql");
 const DOWN: &str = include_str!("../migrations/20261112040000_apex_top_weighted/down.sql");
-const BASE_TIMES: &str = "SELECT json_agg(json_build_array(id,validation_time_bronze,validation_time_silver,validation_time_gold,validation_time_author,validation_time_expert) ORDER BY id)::text FROM public.level_item";
+const BASE_TIMES: &str = include_str!("fixtures/apex_weights/base_times.sql");
 
 #[test]
 fn rebalance_migration_is_embedded() {
@@ -47,9 +51,11 @@ async fn rebalance_frozen_targets_counts_future_calculations_and_rollback() -> R
     .await?;
 
     // Unavailable content retains its one authoritative item, ready for reactivation.
-    tx.batch_execute("INSERT INTO public.record(id,id_user,id_level,time) SELECT 300+id,id_user,3,time FROM public.record WHERE id BETWEEN 1 AND 10; INSERT INTO public.personal_best_global(id,id_user,id_level,id_record,record_eligible) SELECT id,id_user,id_level,id,true FROM public.record WHERE id BETWEEN 301 AND 310; UPDATE public.level_item SET validation_time_expert=38.251,validation_time_apex=36.433,medal_calculation_version=2,medal_calculated_at=now(),medal_qualified_at=now(),deleted=true WHERE id=3").await?;
+    tx.batch_execute(include_str!("fixtures/apex_weights/insert_record.sql"))
+        .await?;
     // Failure after updating level 1 must roll the entire rebalance back.
-    tx.batch_execute("SAVEPOINT insufficient; UPDATE public.personal_best_global SET record_eligible=false WHERE id=301").await?;
+    tx.batch_execute(include_str!("fixtures/apex_weights/savepoint.sql"))
+        .await?;
     let error = tx
         .batch_execute(UP)
         .await
@@ -61,9 +67,16 @@ async fn rebalance_frozen_targets_counts_future_calculations_and_rollback() -> R
             .message()
             .contains("fewer than 10 eligible PBs")
     );
-    tx.batch_execute("ROLLBACK TO SAVEPOINT insufficient")
-        .await?;
-    assert_eq!(tx.query_one("SELECT zc_private.medal_milliseconds(validation_time_apex) FROM public.level_item WHERE id=1", &[]).await?.get::<_, Option<i64>>(0),Some(36433));
+    tx.batch_execute(include_str!(
+        "fixtures/apex_weights/rollback_to_savepoint_insufficient.sql"
+    ))
+    .await?;
+    assert_eq!(
+        tx.query_one(MEDAL_MILLISECONDS, &[])
+            .await?
+            .get::<_, Option<i64>>(0),
+        Some(36433)
+    );
 
     let base_times: String = tx.query_one(BASE_TIMES, &[]).await?.get(0);
     tx.batch_execute(UP).await?;
@@ -72,14 +85,19 @@ async fn rebalance_frozen_targets_counts_future_calculations_and_rollback() -> R
         base_times
     );
     for id in [1, 3] {
-        let row=tx.query_one("SELECT zc_private.medal_milliseconds(validation_time_apex),medal_calculation_version,medal_eligible_pb_count FROM public.level_item WHERE id=$1", &[&id]).await?;
+        let row = tx
+            .query_one(
+                include_str!("fixtures/apex_weights/medal_milliseconds_by_id.sql"),
+                &[&id],
+            )
+            .await?;
         assert_eq!(row.get::<_, Option<i64>>(0), Some(36152));
         assert_eq!(row.get::<_, Option<i32>>(1), Some(3));
         assert_eq!(row.get::<_, i32>(2), 10);
     }
     assert_eq!(
         tx.query_one(
-            "SELECT medal FROM public.personal_best_global WHERE id=4",
+            include_str!("fixtures/apex_weights/select_medal_personal_best_global.sql"),
             &[]
         )
         .await?
@@ -88,7 +106,7 @@ async fn rebalance_frozen_targets_counts_future_calculations_and_rollback() -> R
     );
     let counts = tx
         .query_one(
-            "SELECT medal_apex,medal_expert,points FROM public.user_points WHERE id_user=4",
+            include_str!("fixtures/apex_weights/select_medal_apex_user_points.sql"),
             &[],
         )
         .await?;
@@ -100,40 +118,72 @@ async fn rebalance_frozen_targets_counts_future_calculations_and_rollback() -> R
         ),
         (0, 1, 123)
     );
-    tx.batch_execute("SET LOCAL ROLE zeepcentraal_graphql")
+    tx.batch_execute(include_str!(
+        "fixtures/apex_weights/set_local_role_zeepcentraal_graphql.sql"
+    ))
+    .await?;
+    assert_eq!(
+        tx.query_one(include_str!("fixtures/apex_weights/record_medal.sql"), &[])
+            .await?
+            .get::<_, Option<i16>>(0),
+        Some(4)
+    );
+    tx.batch_execute(include_str!("fixtures/apex_weights/savepoint_by_id_1.sql"))
         .await?;
     assert_eq!(
+        tx.query_one(MEDAL_MILLISECONDS, &[])
+            .await?
+            .get::<_, Option<i64>>(0),
+        Some(36152)
+    );
+    tx.batch_execute(include_str!(
+        "fixtures/apex_weights/rollback_to_savepoint_improvement.sql"
+    ))
+    .await?;
+
+    // Newly qualifying levels still settle for seven days, then publish version 3.
+    tx.batch_execute(include_str!("fixtures/apex_weights/insert_record_2.sql"))
+        .await?;
+    assert!(
         tx.query_one(
-            "SELECT public.record_medal(r) FROM public.record r WHERE id=4",
+            include_str!("fixtures/apex_weights/select_validation_time_apex_level_item.sql"),
             &[]
         )
         .await?
-        .get::<_, Option<i16>>(0),
-        Some(4)
+        .get::<_, bool>(0)
     );
-    tx.batch_execute("RESET ROLE; SAVEPOINT improvement; INSERT INTO public.record(id,id_user,id_level,time) VALUES(500,1,1,34); UPDATE public.personal_best_global SET id_record=500 WHERE id=1; SELECT zc_private.refresh_level_medals(1)").await?;
-    assert_eq!(tx.query_one("SELECT zc_private.medal_milliseconds(validation_time_apex) FROM public.level_item WHERE id=1", &[]).await?.get::<_, Option<i64>>(0),Some(36152));
-    tx.batch_execute("ROLLBACK TO SAVEPOINT improvement")
-        .await?;
-
-    // Newly qualifying levels still settle for seven days, then publish version 3.
-    tx.batch_execute("INSERT INTO public.record(id,id_user,id_level,time) VALUES(210,10,2,36.2); INSERT INTO public.personal_best_global(id,id_user,id_level,id_record,record_eligible) VALUES(210,10,2,210,true); SELECT zc_private.refresh_level_medals(2)").await?;
-    assert!(tx.query_one("SELECT validation_time_apex IS NULL AND medal_due_at-medal_qualified_at>=interval '7 days' FROM public.level_item WHERE id=2", &[]).await?.get::<_,bool>(0));
-    tx.batch_execute("UPDATE public.level_item SET medal_due_at=now()-interval '1 day' WHERE id=2; SELECT zc_private.refresh_level_medals(2)").await?;
-    assert!(tx.query_one("SELECT validation_time_apex IS NOT NULL AND medal_calculation_version=3 AND medal_due_at IS NULL FROM public.level_item WHERE id=2", &[]).await?.get::<_,bool>(0));
-    let frozen_expert = tx
-        .query_one(
-            "SELECT validation_time_expert FROM public.level_item WHERE id=2",
-            &[],
+    tx.batch_execute(include_str!(
+        "fixtures/apex_weights/set_medal_due_at_level_item.sql"
+    ))
+    .await?;
+    assert!(
+        tx.query_one(
+            include_str!(
+                "fixtures/apex_weights/select_validation_time_apex_level_item_by_id_2.sql"
+            ),
+            &[]
         )
+        .await?
+        .get::<_, bool>(0)
+    );
+    let frozen_expert = tx
+        .query_one(SELECT_VALIDATION_TIME_EXPERT_LEVEL_ITEM, &[])
         .await?
         .get::<_, f64>(0);
 
     tx.batch_execute(DOWN).await?;
-    assert_eq!(tx.query_one("SELECT zc_private.medal_milliseconds(validation_time_apex),medal_calculation_version FROM public.level_item WHERE id=1", &[]).await?.get::<_, Option<i64>>(0),Some(36433));
     assert_eq!(
         tx.query_one(
-            "SELECT medal_calculation_version FROM public.level_item WHERE id=1",
+            include_str!("fixtures/apex_weights/medal_milliseconds_by_id_1.sql"),
+            &[]
+        )
+        .await?
+        .get::<_, Option<i64>>(0),
+        Some(36433)
+    );
+    assert_eq!(
+        tx.query_one(
+            include_str!("fixtures/apex_weights/select_medal_calculation_version_level_item.sql"),
             &[]
         )
         .await?
@@ -141,17 +191,14 @@ async fn rebalance_frozen_targets_counts_future_calculations_and_rollback() -> R
         Some(2)
     );
     assert_eq!(
-        tx.query_one(
-            "SELECT validation_time_expert FROM public.level_item WHERE id=2",
-            &[]
-        )
-        .await?
-        .get::<_, f64>(0),
+        tx.query_one(SELECT_VALIDATION_TIME_EXPERT_LEVEL_ITEM, &[])
+            .await?
+            .get::<_, f64>(0),
         frozen_expert
     );
     assert_eq!(
         tx.query_one(
-            "SELECT medal_apex FROM public.user_points WHERE id_user=4",
+            include_str!("fixtures/apex_weights/select_medal_apex_user_points_by_id_user_4.sql"),
             &[]
         )
         .await?
@@ -159,8 +206,17 @@ async fn rebalance_frozen_targets_counts_future_calculations_and_rollback() -> R
         2
     );
     tx.batch_execute(UP).await?;
-    assert_eq!(tx.query_one("SELECT zc_private.medal_milliseconds(validation_time_apex) FROM public.level_item WHERE id=1", &[]).await?.get::<_, Option<i64>>(0),Some(36152));
-    assert!(tx.query_one("SELECT to_regclass('public.level_medal_threshold') IS NULL AND to_regclass('zc_private.level_medal_revision') IS NULL", &[]).await?.get::<_,bool>(0));
+    assert_eq!(
+        tx.query_one(MEDAL_MILLISECONDS, &[])
+            .await?
+            .get::<_, Option<i64>>(0),
+        Some(36152)
+    );
+    assert!(
+        tx.query_one(include_str!("fixtures/apex_weights/to_regclass.sql"), &[])
+            .await?
+            .get::<_, bool>(0)
+    );
     tx.rollback().await?;
     Ok(())
 }

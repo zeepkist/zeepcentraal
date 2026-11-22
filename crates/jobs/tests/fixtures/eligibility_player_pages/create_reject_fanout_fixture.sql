@@ -1,0 +1,1 @@
+CREATE FUNCTION public.reject_fanout_fixture() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.task='updatePlayerScore' AND NEW.payload->>'idUser'='102' THEN RAISE EXCEPTION 'fixture rollback'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_fanout_fixture BEFORE INSERT ON zc_jobs.job FOR EACH ROW EXECUTE FUNCTION public.reject_fanout_fixture()

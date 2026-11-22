@@ -1,0 +1,1 @@
+SELECT EXISTS(SELECT 1 FROM zc_jobs.job active JOIN zc_jobs.job pending ON pending.lane=active.lane AND pending.job_key=active.job_key AND pending.id<>active.id AND NOT pending.running WHERE active.lane=$1 AND active.id=$2::bigint AND active.job_key IS NOT NULL) AS ok

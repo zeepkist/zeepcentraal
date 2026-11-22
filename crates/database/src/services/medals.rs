@@ -27,21 +27,18 @@ impl Database {
     pub async fn refresh_medals(&self, id_level: Option<i32>) -> Result<bool> {
         let mut connection = self.connection().await?;
         if let Some(id_level) = id_level {
-            let row = sql_query("SELECT zc_private.refresh_level_medals($1) AS refreshed")
-                .bind::<Integer, _>(id_level)
-                .get_result::<Refreshed>(&mut connection)
-                .await?;
+            let row = sql_query(include_str!(
+                "../queries/medals/refresh_medals_refresh_level_medals.sql"
+            ))
+            .bind::<Integer, _>(id_level)
+            .get_result::<Refreshed>(&mut connection)
+            .await?;
             return Ok(row.refreshed);
         }
         // Persistent deadlines survive worker restarts. Stable keys coalesce retries.
-        sql_query(
-            "SELECT zc_jobs.enqueue('bulk','refreshMedals',jsonb_build_object('idLevel',id_level), \
-            'refresh-medals:'||id_level,'medals:'||id_level,3,clock_timestamp()) \
-            FROM public.level_item WHERE medal_due_at<=statement_timestamp() \
-            GROUP BY id_level ORDER BY min(medal_evaluated_at),id_level LIMIT 100",
-        )
-        .execute(&mut connection)
-        .await?;
+        sql_query(include_str!("../queries/medals/refresh_medals_enqueue.sql"))
+            .execute(&mut connection)
+            .await?;
         Ok(true)
     }
 }

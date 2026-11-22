@@ -1,0 +1,1 @@
+SELECT delivered_playlist_id FROM zc_private.level_submission_playlist_notification WHERE id_contest=$1

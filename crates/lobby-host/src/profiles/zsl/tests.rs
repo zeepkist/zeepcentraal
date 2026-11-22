@@ -846,7 +846,11 @@ async fn delayed_finish_finalisation_barrier(
     client: &tokio_postgres::Client,
     finish: &GameHostPacket,
 ) -> Result<()> {
-    client.batch_execute("CREATE FUNCTION zc_private.delay_test_finish() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(0.15); RETURN NEW; END $$; CREATE TRIGGER delay_test_finish BEFORE INSERT ON zc_private.zsl_provisional_level_result FOR EACH ROW EXECUTE FUNCTION zc_private.delay_test_finish();").await?;
+    client
+        .batch_execute(include_str!(
+            "../../../tests/fixtures/zsl_profile/create_delay_test_finish.sql"
+        ))
+        .await?;
     let received = session
         .context
         .receive_for_test(session.as_ref(), finish.clone(), jiff::Timestamp::now())
@@ -870,7 +874,15 @@ async fn delayed_finish_finalisation_barrier(
     assert!(session.live.try_lock().is_ok());
     assert!(session.board.try_lock().is_ok());
     assert!(!finalising.is_finished());
-    let rows: i64=client.query_one("SELECT count(*) FROM zc_private.zsl_tournament_level_state WHERE id_round=7 AND timeslot=1 AND playlist_index=0 AND closed",&[]).await?.get(0);
+    let rows: i64 = client
+        .query_one(
+            include_str!(
+                "../../../tests/fixtures/zsl_profile/count_zsl_tournament_level_state.sql"
+            ),
+            &[],
+        )
+        .await?
+        .get(0);
     assert_eq!(rows, 0);
     finalising.await??;
     assert!(started.elapsed() >= Duration::from_millis(150));
@@ -879,7 +891,11 @@ async fn delayed_finish_finalisation_barrier(
     assert!(finishes[0].finalised);
     assert!(session.shared.saved.lock().await.pending.is_empty());
     session.on_received(&received).await?;
-    client.batch_execute("DROP TRIGGER delay_test_finish ON zc_private.zsl_provisional_level_result; DROP FUNCTION zc_private.delay_test_finish();").await?;
+    client
+        .batch_execute(include_str!(
+            "../../../tests/fixtures/zsl_profile/drop_delay_test_finish.sql"
+        ))
+        .await?;
     Ok(())
 }
 
@@ -974,7 +990,10 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     });
     ensure!(
         client
-            .query_one("SELECT to_regclass('public.zsl_round') IS NULL", &[])
+            .query_one(
+                include_str!("../../../tests/fixtures/zsl_profile/to_regclass.sql"),
+                &[]
+            )
             .await?
             .get::<_, bool>(0),
         "Empty test database required"
@@ -989,7 +1008,11 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
             "../../../../database/migrations/20261010120000_zsl_tournament/up.sql"
         ))
         .await?;
-    client.batch_execute("INSERT INTO zsl_points_structure VALUES(1,'Test',ARRAY[100,80,60],5,4); INSERT INTO zsl_season(id,id_points_structure,name) VALUES(1,1,'Season 1'); INSERT INTO zsl_round(id,id_season,name,round,event_date,event2_date) VALUES(7,1,'Test Round',1,now()+interval '1 day',now()+interval '2 days'); INSERT INTO level(id,hash,xx_hash) SELECT i,'legacy-'||i,lpad(to_hex(i),32,'0') FROM generate_series(1,15) i;").await?;
+    client
+        .batch_execute(include_str!(
+            "../../../tests/fixtures/zsl_profile/insert_zsl_points_structure.sql"
+        ))
+        .await?;
     let database = Database::connect(&url, 5).await?;
     let storage: Arc<dyn ObjectStorage> = Arc::new(TestStorage);
     let profile = ZslProfile::new(
@@ -1335,7 +1358,11 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     )?;
     assert!(restarted.prepare().await?.is_none());
     restarted.stop().await?;
-    client.batch_execute("INSERT INTO zsl_round(id,id_season,name,round,event_date,event2_date) VALUES(8,1,'Failed Round',2,now()-interval '1 second',now()+interval '1 day')").await?;
+    client
+        .batch_execute(include_str!(
+            "../../../tests/fixtures/zsl_profile/insert_zsl_round.sql"
+        ))
+        .await?;
     let mut tournament_config = config(true)?;
     let RoomProfile::Zsl { round_id, .. } = &mut tournament_config.profile else {
         unreachable!()

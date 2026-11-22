@@ -1,0 +1,1 @@
+ROLLBACK TO SAVEPOINT zsl_medal_checks; INSERT INTO public.level_item(id,id_level,validation_time_author,validation_time_expert,validation_time_apex,updated_at) VALUES(900,1,39,37,36,now()+interval '1 day')

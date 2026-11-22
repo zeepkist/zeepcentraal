@@ -1,0 +1,1 @@
+WITH source AS (SELECT * FROM jsonb_to_recordset($1::jsonb) AS value(id_user integer,points integer,rank integer)) SELECT count(*)=(SELECT count(*) FROM source) AS value FROM source JOIN public.user_points target USING(id_user) WHERE target.points=source.points

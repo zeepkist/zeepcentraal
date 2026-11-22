@@ -1,0 +1,1 @@
+SELECT c.id,c.guild_id,c.channel_id,c.game_id,t.name AS game_name,c.minimum_viewers,c.allow_category_switches,CASE WHEN g.watch_limit=1 THEN 15 ELSE 30 END AS stream_limit FROM streamkist.channels c JOIN streamkist.twitch_categories t USING(game_id) JOIN streamkist.guilds g USING(guild_id) WHERE c.deleted_at IS NULL AND ($1::text IS NULL OR c.guild_id=$1) ORDER BY c.id

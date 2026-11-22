@@ -1,0 +1,1 @@
+SELECT li.id,li.id_level,li.deleted,l.xx_hash FROM public.level_item li JOIN public.level l ON l.id=li.id_level WHERE li.workshop_id=$1 AND l.xx_hash=$2 ORDER BY li.deleted,li.id LIMIT 1 FOR UPDATE OF li

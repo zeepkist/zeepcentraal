@@ -112,9 +112,11 @@ async fn scheduler_startup_and_next_slot_publish_statistics_through_real_handler
     let scheduler_connection = scheduler_partition.connection().await?;
     {
         let mut connection = pool.application().connection().await?;
-        sql_query("UPDATE public.statistics SET records=-7,as_of='2000-01-01Z'")
-            .execute(&mut connection)
-            .await?;
+        sql_query(include_str!(
+            "fixtures/global_metrics/set_records_statistics.sql"
+        ))
+        .execute(&mut connection)
+        .await?;
     }
     let scheduler = tokio::spawn(zc_jobs::cron::run(
         scheduler_partition,
@@ -126,14 +128,23 @@ async fn scheduler_startup_and_next_slot_publish_statistics_through_real_handler
         for (startup, timeout_secs) in [(true, 40), (false, 315)] {
             refresh(&queue, &handler, Duration::from_secs(timeout_secs)).await?;
             let mut connection = pool.application().connection().await?;
-            let check: Check = sql_query("SELECT count(*)=1 AND bool_and(records=(SELECT count(*) FROM public.record WHERE record_eligible) AND as_of>statement_timestamp()-interval '10 seconds' AND ($1 OR mod(floor(extract(epoch FROM as_of))::bigint,300)<15)) AS valid FROM public.statistics")
+            let check: Check = sql_query(include_str!("fixtures/global_metrics/count_record.sql"))
                 .bind::<Bool, _>(startup)
-                .get_result(&mut connection).await?;
-            ensure!(check.valid,"Scheduled refresh did not publish exact statistics in its expected slot");
-            sql_query("UPDATE public.statistics SET records=-8,as_of='2000-01-01Z'").execute(&mut connection).await?;
+                .get_result(&mut connection)
+                .await?;
+            ensure!(
+                check.valid,
+                "Scheduled refresh did not publish exact statistics in its expected slot"
+            );
+            sql_query(include_str!(
+                "fixtures/global_metrics/set_records_statistics_8.sql"
+            ))
+            .execute(&mut connection)
+            .await?;
         }
-        Ok::<_,anyhow::Error>(())
-    }.await;
+        Ok::<_, anyhow::Error>(())
+    }
+    .await;
     let _ = shutdown.send(true);
     scheduler.await??;
     result?;
@@ -192,8 +203,9 @@ async fn scheduler_releases_leadership_when_queue_checkout_times_out() -> Result
     let result = tokio::time::timeout(Duration::from_secs(5), async {
         for expected in [true, false] {
             loop {
-                let check: Check = sql_query("SELECT EXISTS(SELECT 1 FROM pg_locks WHERE locktype='advisory' AND classid=1861284951 AND objid=0 AND granted) AS valid")
-                    .get_result(&mut observer).await?;
+                let check: Check = sql_query(include_str!("fixtures/global_metrics/exists.sql"))
+                    .get_result(&mut observer)
+                    .await?;
                 if check.valid == expected {
                     break;
                 }

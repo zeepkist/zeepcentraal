@@ -27,6 +27,10 @@ use zc_jobs::{
     runtime::{JobHandler, JobOutcome},
 };
 
+const SELECT_TRACEPARENT_JOB_BY_JOB_KEY_FIXTURE: &str =
+    include_str!("fixtures/telemetry_pipeline/select_traceparent_job_by_job_key_fixture.sql");
+const SET_CONFIG_4: &str = include_str!("fixtures/telemetry_pipeline/set_config_4.sql");
+
 #[path = "../../telemetry/tests/support/collector.rs"]
 mod collector;
 
@@ -70,7 +74,7 @@ impl JobHandler for Handler {
         _: JobLane,
         attempts: i32,
     ) -> Result<JobOutcome> {
-        sql_query("SELECT 43")
+        sql_query(include_str!("fixtures/telemetry_pipeline/select_43.sql"))
             .execute(&mut self.pool.application().connection().await?)
             .await?;
         if task == TaskIdentifier::RefreshGlobalMetrics {
@@ -105,7 +109,7 @@ struct Api {
     done: watch::Sender<bool>,
 }
 async fn request(State(state): State<Api>) -> &'static str {
-    sql_query("SELECT 42")
+    sql_query(include_str!("fixtures/telemetry_pipeline/select_42.sql"))
         .execute(&mut state.pool.application().connection().await.unwrap())
         .await
         .unwrap();
@@ -113,15 +117,18 @@ async fn request(State(state): State<Api>) -> &'static str {
     {
         let mut connection = state.pool.application().connection().await.unwrap();
         assert!(
-            sql_query("SELECT 'private-sql-literal'::integer")
-                .execute(&mut connection)
-                .await
-                .is_err()
+            sql_query(include_str!(
+                "fixtures/telemetry_pipeline/read_fixture_state.sql"
+            ))
+            .execute(&mut connection)
+            .await
+            .is_err()
         );
         assert!(
             tokio::time::timeout(
                 Duration::from_millis(5),
-                sql_query("SELECT pg_sleep(0.1)").execute(&mut connection)
+                sql_query(include_str!("fixtures/telemetry_pipeline/pg_sleep.sql"))
+                    .execute(&mut connection)
             )
             .await
             .is_err()
@@ -134,12 +141,15 @@ async fn request(State(state): State<Api>) -> &'static str {
                 .remove("traceparent")
                 .unwrap();
             let mut connection = partition.connection().await?;
-            let session: SessionContext =
-                sql_query("SELECT current_setting('zc.traceparent') AS value")
-                    .get_result(&mut connection)
-                    .await?;
+            let session: SessionContext = sql_query(include_str!(
+                "fixtures/telemetry_pipeline/current_setting.sql"
+            ))
+            .get_result(&mut connection)
+            .await?;
             assert_eq!(session.value, expected);
-            sql_query("SELECT 44").execute(&mut connection).await?;
+            sql_query(include_str!("fixtures/telemetry_pipeline/select_44.sql"))
+                .execute(&mut connection)
+                .await?;
             Ok::<_, anyhow::Error>(())
         })
     };
@@ -246,9 +256,7 @@ async fn distributed_pipeline() -> Result<()> {
     });
     // Database name guard above prevents any production or shared database reset.
     client
-        .batch_execute(
-            "DROP SCHEMA IF EXISTS zc_jobs CASCADE; DROP EXTENSION IF EXISTS pgmq CASCADE",
-        )
+        .batch_execute(include_str!("fixtures/telemetry_pipeline/drop_zc_jobs.sql"))
         .await?;
     client
         .batch_execute(include_str!(
@@ -270,9 +278,7 @@ async fn distributed_pipeline() -> Result<()> {
     let started = std::time::Instant::now();
     for _ in 0..20 {
         client
-            .batch_execute(
-                "SELECT set_config('zc.traceparent','',false),set_config('zc.tracestate','',false)",
-            )
+            .batch_execute(include_str!("fixtures/telemetry_pipeline/set_config.sql"))
             .await?;
     }
     println!(
@@ -318,7 +324,9 @@ async fn distributed_pipeline() -> Result<()> {
         String::from_utf8_lossy(&web.stderr)
     );
     ensure!(api.wait()?.success(), "API fixture failed");
-    client.batch_execute("SELECT zc_jobs.enqueue('fast','refreshMedals','{\"idLevel\":101}','legacy-fixture',NULL,3); SELECT zc_jobs.enqueue('fast','refreshMedals','{\"idLevel\":102}','invalid-fixture',NULL,3); UPDATE zc_jobs.job SET traceparent='invalid' WHERE job_key='invalid-fixture'").await?;
+    client
+        .batch_execute(include_str!("fixtures/telemetry_pipeline/enqueue.sql"))
+        .await?;
     let mut worker = child("worker", &endpoint)?;
     let _ = drain.join();
     ensure!(worker.wait()?.success(), "worker fixture failed");
@@ -453,17 +461,22 @@ async fn queue_context_contract(client: &tokio_postgres::Client) -> Result<()> {
     const FIRST: &str = "00-11111111111111111111111111111111-1111111111111111-01";
     const LATEST: &str = "00-22222222222222222222222222222222-2222222222222222-01";
     for context in [FIRST, LATEST] {
-        client.query_one("SELECT set_config('zc.traceparent',$1,false),set_config('zc.tracestate','fixture=ok',false)", &[&context]).await?;
         client
             .query_one(
-                "SELECT zc_jobs.enqueue('fast','refreshGlobalMetrics','{}','fixture',NULL,3)",
+                include_str!("fixtures/telemetry_pipeline/set_config_2.sql"),
+                &[&context],
+            )
+            .await?;
+        client
+            .query_one(
+                include_str!("fixtures/telemetry_pipeline/enqueue_2.sql"),
                 &[],
             )
             .await?;
     }
     let stored = client
         .query_one(
-            "SELECT traceparent,tracestate FROM zc_jobs.job WHERE job_key='fixture'",
+            include_str!("fixtures/telemetry_pipeline/select_traceparent_job.sql"),
             &[],
         )
         .await?;
@@ -473,43 +486,45 @@ async fn queue_context_contract(client: &tokio_postgres::Client) -> Result<()> {
         Some("fixture=ok")
     );
     // Legacy producers have no context; latest pending update clears old context.
-    client.batch_execute("SELECT set_config('zc.traceparent','',false),set_config('zc.tracestate','',false); SELECT zc_jobs.enqueue('fast','refreshGlobalMetrics','{}','fixture',NULL,3)").await?;
+    client
+        .batch_execute(include_str!("fixtures/telemetry_pipeline/set_config_3.sql"))
+        .await?;
     assert!(
         client
-            .query_one(
-                "SELECT traceparent FROM zc_jobs.job WHERE job_key='fixture'",
-                &[]
-            )
+            .query_one(SELECT_TRACEPARENT_JOB_BY_JOB_KEY_FIXTURE, &[])
             .await?
             .get::<_, Option<String>>(0)
             .is_none()
     );
+    client.query_one(SET_CONFIG_4, &[&FIRST]).await?;
     client
-        .query_one("SELECT set_config('zc.traceparent',$1,false)", &[&FIRST])
+        .batch_execute(include_str!("fixtures/telemetry_pipeline/enqueue_3.sql"))
         .await?;
-    client.batch_execute("SELECT zc_jobs.enqueue('fast','refreshGlobalMetrics','{}','fixture',NULL,3); SELECT * FROM zc_jobs.claim('fast',1,120)").await?;
-    client
-        .query_one("SELECT set_config('zc.traceparent',$1,false)", &[&LATEST])
-        .await?;
+    client.query_one(SET_CONFIG_4, &[&LATEST]).await?;
     // Checkpoint and defer payload updates preserve original enqueue context.
-    client.batch_execute("UPDATE zc_jobs.job SET payload='{}' WHERE job_key='fixture'; UPDATE zc_jobs.job SET running=false,payload='{\"deferCount\":1}' WHERE job_key='fixture'").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/telemetry_pipeline/set_payload_job.sql"
+        ))
+        .await?;
     assert_eq!(
         client
-            .query_one(
-                "SELECT traceparent FROM zc_jobs.job WHERE job_key='fixture'",
-                &[]
-            )
+            .query_one(SELECT_TRACEPARENT_JOB_BY_JOB_KEY_FIXTURE, &[])
             .await?
             .get::<_, Option<String>>(0)
             .as_deref(),
         Some(FIRST)
     );
     // A SQL trigger can enqueue without carrying metadata in task payloads.
-    client.batch_execute("CREATE TABLE zc_jobs.trace_fixture(id integer); CREATE FUNCTION zc_jobs.trace_fixture_enqueue() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM zc_jobs.enqueue('bulk','refreshGlobalMetrics','{}','trigger-fixture',NULL,3); RETURN NEW; END $$; CREATE TRIGGER trace_fixture_enqueue AFTER INSERT ON zc_jobs.trace_fixture FOR EACH ROW EXECUTE FUNCTION zc_jobs.trace_fixture_enqueue(); INSERT INTO zc_jobs.trace_fixture VALUES(1)").await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/telemetry_pipeline/create_trace_fixture.sql"
+        ))
+        .await?;
     assert_eq!(
         client
             .query_one(
-                "SELECT traceparent FROM zc_jobs.job WHERE job_key='trigger-fixture'",
+                include_str!("fixtures/telemetry_pipeline/select_traceparent_job_by_job_key_trigger_fixture.sql"),
                 &[]
             )
             .await?
@@ -517,6 +532,8 @@ async fn queue_context_contract(client: &tokio_postgres::Client) -> Result<()> {
             .as_deref(),
         Some(LATEST)
     );
-    client.batch_execute("TRUNCATE zc_jobs.job,pgmq.q_zeepcentraal_fast,pgmq.q_zeepcentraal_bulk; SELECT set_config('zc.traceparent','',false),set_config('zc.tracestate','',false)").await?;
+    client
+        .batch_execute(include_str!("fixtures/telemetry_pipeline/truncate_job.sql"))
+        .await?;
     Ok(())
 }

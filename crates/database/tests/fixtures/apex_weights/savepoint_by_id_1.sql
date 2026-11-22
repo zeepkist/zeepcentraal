@@ -1,0 +1,1 @@
+RESET ROLE; SAVEPOINT improvement; INSERT INTO public.record(id,id_user,id_level,time) VALUES(500,1,1,34); UPDATE public.personal_best_global SET id_record=500 WHERE id=1; SELECT zc_private.refresh_level_medals(1)

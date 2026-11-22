@@ -19,30 +19,26 @@ async fn moves_public_diesel_ledger_without_replaying_migrations() -> Result<()>
         let _ = connection.await;
     });
     client
-        .batch_execute(
-            "CREATE SCHEMA zc_private; \
-         CREATE TABLE public.__diesel_schema_migrations (\
-             version varchar(50) PRIMARY KEY NOT NULL, \
-             run_on timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP); \
-         INSERT INTO public.__diesel_schema_migrations(version) VALUES \
-             ('20260919000000'),('20260927010000')",
-        )
+        .batch_execute(include_str!(
+            "fixtures/private_diesel_ledger/create_zc_private.sql"
+        ))
         .await?;
     assert!(run_pending(&url).await?.is_empty());
     assert!(run_pending(&url).await?.is_empty());
     let row = client
         .query_one(
-            "SELECT to_regclass('public.__diesel_schema_migrations') IS NULL AS public_gone, \
-         count(*)::bigint AS versions FROM zc_private.__diesel_schema_migrations",
+            include_str!("fixtures/private_diesel_ledger/to_regclass.sql"),
             &[],
         )
         .await?;
     assert!(row.get::<_, bool>(0));
     assert_eq!(row.get::<_, i64>(1), 2);
 
-    client.batch_execute(
-        "CREATE TABLE public.__diesel_schema_migrations (version varchar(50) PRIMARY KEY NOT NULL)",
-    ).await?;
+    client
+        .batch_execute(include_str!(
+            "fixtures/private_diesel_ledger/create_diesel_schema_migrations.sql"
+        ))
+        .await?;
     let conflict = format!("{:#}", run_pending(&url).await.unwrap_err());
     assert!(conflict.contains("Both public and zc_private Diesel ledgers exist"));
     Ok(())

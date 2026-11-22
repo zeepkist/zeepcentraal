@@ -1,0 +1,1 @@
+SELECT l.id::bigint AS id,l.id AS id_level,l.xx_hash AS canonical_hash,m.format,m.blocks,m.environment,m.type_ground,m.type_skybox,ARRAY(SELECT DISTINCT file_uid FROM public.level_item o WHERE o.id_level=l.id) AS file_uids FROM public.level l JOIN public.level_metadata m ON m.id_level=l.id WHERE l.xx_hash=$1 AND pg_column_size(m.blocks)<=16777216 ORDER BY m.id DESC LIMIT 16

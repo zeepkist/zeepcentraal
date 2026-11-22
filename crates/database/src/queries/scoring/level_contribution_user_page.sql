@@ -1,0 +1,1 @@
+SELECT affected.id_user AS id FROM (SELECT id_user FROM (SELECT * FROM public.personal_best_global WHERE record_eligible) WHERE id_level=$1 UNION SELECT id_user FROM public.user_point_contribution WHERE id_level=$1) affected WHERE affected.id_user>$2 ORDER BY affected.id_user LIMIT $3

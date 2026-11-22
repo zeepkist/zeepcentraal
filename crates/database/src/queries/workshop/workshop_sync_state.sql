@@ -1,0 +1,1 @@
+SELECT workshop_id,count(*) FILTER(WHERE NOT deleted)::bigint AS active_item_count, extract(epoch FROM max(updated_at))::bigint AS updated_epoch FROM public.level_item WHERE workshop_id>0 GROUP BY workshop_id

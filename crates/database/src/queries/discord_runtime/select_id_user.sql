@@ -1,0 +1,1 @@
+SELECT account.id AS id_user,unnest(ARRAY[account.id::text,account.steam_id::text,account.steam_name, account.discord_id::text,'<@' || account.discord_id::text || '>', '<@!' || account.discord_id::text || '>']) AS value FROM public."user" account WHERE account.id=ANY($1)

@@ -1,0 +1,1 @@
+UPDATE public.level_metadata SET environment='{"changed":true}' WHERE id_level=1; INSERT INTO public.level_item(id_level,workshop_id) VALUES(3,888); UPDATE zc_private.record_validation SET validator_version='old' WHERE id_record=2001

@@ -1,6 +1,22 @@
 use super::*;
 use diesel_async::{AsyncPgConnection, SimpleAsyncConnection};
 
+const CREATE_ONCE_REPAIRED: &str =
+    include_str!("../../tests/fixtures/track_tournament/create_once_repaired.sql");
+const SELECT_TRACK_TOURNAMENT_2: &str =
+    include_str!("../../tests/fixtures/track_tournament/select_track_tournament_2.sql");
+const SAVEPOINT_BEFORE_DOWN: &str =
+    include_str!("../../tests/fixtures/track_tournament/savepoint_before_down.sql");
+const ROLLBACK_TO_SAVEPOINT_BEFORE_DOWN: &str =
+    include_str!("../../tests/fixtures/track_tournament/rollback_to_savepoint_before_down.sql");
+const INSERT_LEVEL: &str = include_str!("../../tests/fixtures/track_tournament/insert_level.sql");
+const JSONB_AGG: &str = include_str!("../../tests/fixtures/track_tournament/jsonb_agg.sql");
+const SELECT_TOTAL_POINTS_TRACK_TOURNAMENT_OVERALL_STANDING: &str = include_str!(
+    "../../tests/fixtures/track_tournament/select_total_points_track_tournament_overall_standing.sql"
+);
+const SELECT_ID_LEVEL_TRACK_TOURNAMENT: &str =
+    include_str!("../../tests/fixtures/track_tournament/select_id_level_track_tournament.sql");
+
 const REPAIR_UP: &str =
     include_str!("../../migrations/20260930010000_track_tournament_utc_boundaries/up.sql");
 const REPAIR_DOWN: &str =
@@ -24,52 +40,24 @@ async fn fixture() -> Result<AsyncPgConnection> {
     let mut connection = AsyncPgConnection::establish(&url).await?;
     connection.begin_test_transaction().await?;
     // Serialize fixture DDL; every test rolls back its tables on disconnect.
-    sql_query("SELECT pg_advisory_xact_lock(1953744431,99)")
-        .execute(&mut connection)
-        .await?;
+    sql_query(include_str!(
+        "../../tests/fixtures/track_tournament/pg_advisory_xact_lock.sql"
+    ))
+    .execute(&mut connection)
+    .await?;
     connection
-        .batch_execute(
-            r#"
-CREATE TABLE public.level (
-    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    publicly_visible boolean NOT NULL,
-    date_created timestamptz NOT NULL
-);
-CREATE TABLE public.level_points (id_level integer PRIMARY KEY, points integer NOT NULL);
-CREATE TABLE public."user" (id integer PRIMARY KEY, banned boolean NOT NULL DEFAULT false);
-CREATE TABLE public.record (id integer PRIMARY KEY, id_user integer NOT NULL, id_level integer NOT NULL,
-    time real NOT NULL, record_eligible boolean NOT NULL DEFAULT true, date_created timestamptz NOT NULL);
-CREATE TABLE public.level_item (
-    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    id_level integer NOT NULL, publicly_visible boolean NOT NULL, deleted boolean NOT NULL
-);
-CREATE TABLE public.track_tournament (
-    id integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    type integer NOT NULL, slug text NOT NULL, id_level integer NOT NULL,
-    start_at timestamptz NOT NULL, end_at timestamptz NOT NULL,
-    points_version integer NOT NULL DEFAULT 1, finalized_at timestamptz,
-    date_created timestamptz NOT NULL DEFAULT now(), date_updated timestamptz,
-    UNIQUE(type, id_level), UNIQUE(type, start_at), UNIQUE(type, slug),
-    CHECK(end_at > start_at)
-);
-CREATE TABLE public.track_tournament_result (
-    id_tournament integer NOT NULL, id_user integer NOT NULL, id_record integer NOT NULL,
-    time real NOT NULL, rank integer NOT NULL, points integer NOT NULL,
-    date_created timestamptz NOT NULL DEFAULT now(), date_updated timestamptz,
-    PRIMARY KEY(id_tournament, id_user)
-);
-"#,
-        )
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/create_level.sql"
+        ))
         .await?;
     Ok(connection)
 }
 
 async fn clear_fixture(connection: &mut AsyncPgConnection) -> Result<()> {
     connection
-        .batch_execute(
-            "TRUNCATE public.track_tournament_result, public.track_tournament, \
-             public.level_item, public.level_points, public.level, public.record, public.\"user\" RESTART IDENTITY",
-        )
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/truncate_track_tournament_result.sql"
+        ))
         .await?;
     Ok(())
 }
@@ -89,64 +77,24 @@ struct PeriodRow {
 async fn slug_repair_preserves_tournaments_and_results_and_is_idempotent() -> Result<()> {
     let mut connection = fixture().await?;
     connection
-        .batch_execute(
-            r#"
-INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at,finalized_at,date_updated)
-SELECT kind,slug,n,statement_timestamp()+offset_days*interval '1 day',
-       statement_timestamp()+(offset_days+7)*interval '1 day',
-       CASE WHEN finalized THEN statement_timestamp()-interval '1 day' END,
-       statement_timestamp()-interval '2 days'
-FROM (VALUES
-    (1,0,'2026-W41',-1,false),
-    (2,0,'2025-W01',-400,false),
-    (3,0,'2026-W40',-8,true),
-    (4,0,'2027-W01',100,false),
-    (5,0,'2026-w39',-15,false),
-    (6,1,'2026-10',-2,false),
-    (7,1,'2026-W41',-3,false),
-    (8,0,'custom-W41',-4,false),
-    (9,0,'2026-W1',-5,false),
-    (10,0,'2026-W410',-6,false)
-) AS fixtures(n,kind,slug,offset_days,finalized);
-INSERT INTO public.track_tournament_result
-SELECT id,1,100+id,49.332,1,1000 FROM public.track_tournament;
-CREATE TEMP TABLE original_tournaments ON COMMIT DROP AS SELECT * FROM public.track_tournament;
-CREATE TEMP TABLE original_results ON COMMIT DROP AS SELECT * FROM public.track_tournament_result;
-"#,
-        )
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/insert_track_tournament.sql"
+        ))
         .await?;
     connection.batch_execute(SLUG_UP).await?;
-    let preserved: BooleanRow = sql_query(
-        r#"
-SELECT (SELECT count(*)=10 FROM public.track_tournament)
-   AND (SELECT bool_and(
-       to_jsonb(t)-'slug'=to_jsonb(o)-'slug'
-       AND t.slug=CASE WHEN o.id_level<=4 THEN replace(o.slug,'W','w') ELSE o.slug END
-   ) FROM public.track_tournament t JOIN original_tournaments o USING(id))
-   AND NOT EXISTS(
-       (SELECT * FROM public.track_tournament_result EXCEPT SELECT * FROM original_results)
-       UNION ALL
-       (SELECT * FROM original_results EXCEPT SELECT * FROM public.track_tournament_result)
-   ) AS value
-"#,
-    )
+    let preserved: BooleanRow = sql_query(include_str!(
+        "../../tests/fixtures/track_tournament/select_track_tournament.sql"
+    ))
     .get_result(&mut connection)
     .await?;
     assert!(preserved.value);
-    connection
-        .batch_execute(
-            "CREATE TEMP TABLE once_repaired ON COMMIT DROP AS SELECT * FROM public.track_tournament",
-        )
-        .await?;
+    connection.batch_execute(CREATE_ONCE_REPAIRED).await?;
     connection.batch_execute(SLUG_UP).await?;
-    let repeated: BooleanRow = sql_query(
-        "SELECT NOT EXISTS((SELECT * FROM public.track_tournament EXCEPT SELECT * FROM once_repaired) \
-         UNION ALL (SELECT * FROM once_repaired EXCEPT SELECT * FROM public.track_tournament)) AS value",
-    )
-    .get_result(&mut connection)
-    .await?;
+    let repeated: BooleanRow = sql_query(SELECT_TRACK_TOURNAMENT_2)
+        .get_result(&mut connection)
+        .await?;
     assert!(repeated.value);
-    connection.batch_execute("SAVEPOINT before_down").await?;
+    connection.batch_execute(SAVEPOINT_BEFORE_DOWN).await?;
     let error = connection.batch_execute(SLUG_DOWN).await.unwrap_err();
     assert!(
         error
@@ -154,7 +102,7 @@ SELECT (SELECT count(*)=10 FROM public.track_tournament)
             .contains("Corrected tournament slugs cannot be automatically reverted")
     );
     connection
-        .batch_execute("ROLLBACK TO SAVEPOINT before_down")
+        .batch_execute(ROLLBACK_TO_SAVEPOINT_BEFORE_DOWN)
         .await?;
     Ok(())
 }
@@ -164,19 +112,9 @@ SELECT (SELECT count(*)=10 FROM public.track_tournament)
 async fn slug_repair_conflict_fails_without_partial_changes() -> Result<()> {
     let mut connection = fixture().await?;
     connection
-        .batch_execute(
-            r#"
-INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at)
-SELECT 0,slug,n,statement_timestamp()+n*interval '1 week',
-       statement_timestamp()+(n+1)*interval '1 week'
-FROM (VALUES (1,'2026-W40'),(2,'2026-W41'),(3,'2026-w41')) AS fixtures(n,slug);
-INSERT INTO public.track_tournament_result
-SELECT id,1,100+id,49.332,1,1000 FROM public.track_tournament;
-CREATE TEMP TABLE original_tournaments ON COMMIT DROP AS SELECT * FROM public.track_tournament;
-CREATE TEMP TABLE original_results ON COMMIT DROP AS SELECT * FROM public.track_tournament_result;
-SAVEPOINT before_repair;
-"#,
-        )
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/insert_track_tournament_2.sql"
+        ))
         .await?;
     let error = connection.batch_execute(SLUG_UP).await.unwrap_err();
     assert!(matches!(
@@ -184,19 +122,13 @@ SAVEPOINT before_repair;
         diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)
     ));
     connection
-        .batch_execute("ROLLBACK TO SAVEPOINT before_repair")
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/rollback_to_savepoint_before_repair.sql"
+        ))
         .await?;
-    let preserved: BooleanRow = sql_query(
-        r#"
-SELECT NOT EXISTS(
-    (SELECT * FROM public.track_tournament EXCEPT SELECT * FROM original_tournaments)
-    UNION ALL (SELECT * FROM original_tournaments EXCEPT SELECT * FROM public.track_tournament)
-) AND NOT EXISTS(
-    (SELECT * FROM public.track_tournament_result EXCEPT SELECT * FROM original_results)
-    UNION ALL (SELECT * FROM original_results EXCEPT SELECT * FROM public.track_tournament_result)
-) AS value
-"#,
-    )
+    let preserved: BooleanRow = sql_query(include_str!(
+        "../../tests/fixtures/track_tournament/select_track_tournament_3.sql"
+    ))
     .get_result(&mut connection)
     .await?;
     assert!(preserved.value);
@@ -208,10 +140,12 @@ SELECT NOT EXISTS(
 async fn rotation_uses_utc_six_am_periods_and_is_idempotent() -> Result<()> {
     let mut connection = fixture().await?;
     for zone in ["UTC", "Europe/London", "America/New_York"] {
-        sql_query("SELECT set_config('TimeZone',$1,true)")
-            .bind::<Text, _>(zone)
-            .execute(&mut connection)
-            .await?;
+        sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/set_config.sql"
+        ))
+        .bind::<Text, _>(zone)
+        .execute(&mut connection)
+        .await?;
         for (kind, at, slug, end) in [
             (
                 0,
@@ -259,27 +193,21 @@ async fn rotation_uses_utc_six_am_periods_and_is_idempotent() -> Result<()> {
             (1, "2026-10-01T06:00:00Z", "2026-10", "2026-11-01T06:00:00Z"),
         ] {
             clear_fixture(&mut connection).await?;
-            sql_query(
-                "INSERT INTO public.level(publicly_visible,date_created) \
-                 VALUES(true,$1::text::timestamptz-interval '1 day')",
-            )
-            .bind::<Text, _>(at)
-            .execute(&mut connection)
-            .await?;
+            sql_query(INSERT_LEVEL)
+                .bind::<Text, _>(at)
+                .execute(&mut connection)
+                .await?;
             connection
-                .batch_execute(
-                    "INSERT INTO public.level_points VALUES(1,1000); \
-                     INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false)",
-                )
+                .batch_execute(include_str!(
+                    "../../tests/fixtures/track_tournament/insert_level_points.sql"
+                ))
                 .await?;
             let created = rotate_track_tournament_at(&mut connection, kind, Some(at)).await?;
             assert!(created.created, "{zone}: {at}");
             let id = created.id_tournament.unwrap();
-            let period: PeriodRow = sql_query(
-                "SELECT slug,to_char(start_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS start_at, \
-                 to_char(end_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS end_at \
-                 FROM public.track_tournament WHERE id=$1",
-            )
+            let period: PeriodRow = sql_query(include_str!(
+                "../../tests/fixtures/track_tournament/select_slug_track_tournament.sql"
+            ))
             .bind::<Integer, _>(id)
             .get_result(&mut connection)
             .await?;
@@ -293,10 +221,9 @@ async fn rotation_uses_utc_six_am_periods_and_is_idempotent() -> Result<()> {
             // Finalization uses the injected database instant too.
             let finalized = rotate_track_tournament_at(&mut connection, kind, Some(end)).await?;
             assert!(!finalized.created); // Fixture's only eligible level was already used.
-            let matches: BooleanRow = sql_query(
-                "SELECT finalized_at=$2::text::timestamptz AND date_updated=$2::text::timestamptz AS value \
-                 FROM public.track_tournament WHERE id=$1",
-            )
+            let matches: BooleanRow = sql_query(include_str!(
+                "../../tests/fixtures/track_tournament/select_finalized_at_track_tournament.sql"
+            ))
             .bind::<Integer, _>(id)
             .bind::<Text, _>(end)
             .get_result(&mut connection)
@@ -312,7 +239,9 @@ async fn rotation_uses_utc_six_am_periods_and_is_idempotent() -> Result<()> {
 async fn repair_moves_only_active_canonical_midnight_periods_and_preserves_results() -> Result<()> {
     let mut connection = fixture().await?;
     connection
-        .batch_execute("SET LOCAL TimeZone='America/New_York'")
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/set_local_time_zone_america_new_york.sql"
+        ))
         .await?;
     for case in [
         "active",
@@ -325,64 +254,47 @@ async fn repair_moves_only_active_canonical_midnight_periods_and_preserves_resul
         "future",
     ] {
         clear_fixture(&mut connection).await?;
-        sql_query(
-            "WITH periods AS (SELECT kind,CASE WHEN kind=0 \
-             THEN date_trunc('week',statement_timestamp() AT TIME ZONE 'UTC') \
-             ELSE date_trunc('month',statement_timestamp() AT TIME ZONE 'UTC') END AS utc_start \
-             FROM generate_series(0,1) kind), shifted AS (SELECT kind, \
-             utc_start+CASE WHEN $1='expired' THEN CASE WHEN kind=0 THEN interval '-1 week' ELSE interval '-1 month' END \
-             WHEN $1='future' THEN CASE WHEN kind=0 THEN interval '1 week' ELSE interval '1 month' END \
-             ELSE interval '0' END AS utc_start FROM periods) \
-             INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at,finalized_at) \
-             SELECT kind,CASE WHEN $1='custom-slug' THEN 'custom' WHEN kind=0 \
-             THEN to_char(utc_start,'IYYY-\"W\"IW') ELSE to_char(utc_start,'YYYY-MM') END,kind+1, \
-             (utc_start AT TIME ZONE 'UTC')+CASE WHEN $1='correct' THEN interval '6 hours' \
-             WHEN $1='custom-start' THEN interval '-1 hour' ELSE interval '0' END, \
-             ((utc_start+CASE WHEN kind=0 THEN interval '1 week' ELSE interval '1 month' END) AT TIME ZONE 'UTC') \
-             +CASE WHEN $1='correct' THEN interval '6 hours' WHEN $1='custom-end' THEN interval '1 hour' ELSE interval '0' END, \
-             CASE WHEN $1='finalized' THEN statement_timestamp() END FROM shifted",
-        )
+        sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/select_generate_series.sql"
+        ))
         .bind::<Text, _>(case)
         .execute(&mut connection)
         .await?;
-        connection.batch_execute(
-            "INSERT INTO public.track_tournament_result \
-             SELECT id,1,100+id,49.332,1,1000 FROM public.track_tournament; \
-             CREATE TEMP TABLE original_tournaments ON COMMIT DROP AS SELECT * FROM public.track_tournament; \
-             CREATE TEMP TABLE original_results ON COMMIT DROP AS SELECT * FROM public.track_tournament_result",
-        ).await?;
+        connection
+            .batch_execute(include_str!(
+                "../../tests/fixtures/track_tournament/insert_track_tournament_result.sql"
+            ))
+            .await?;
         connection.batch_execute(REPAIR_UP).await?;
-        let preserved: BooleanRow = sql_query(
-            "SELECT NOT EXISTS((SELECT * FROM public.track_tournament_result EXCEPT SELECT * FROM original_results) \
-             UNION ALL (SELECT * FROM original_results EXCEPT SELECT * FROM public.track_tournament_result)) AS value",
-        ).get_result(&mut connection).await?;
+        let preserved: BooleanRow = sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/select_track_tournament_result.sql"
+        ))
+        .get_result(&mut connection)
+        .await?;
         assert!(preserved.value, "{case}");
-        let correct: BooleanRow = sql_query(
-            "SELECT bool_and(ROW(t.id,t.type,t.slug,t.id_level,t.points_version,t.finalized_at,t.date_created) \
-             IS NOT DISTINCT FROM ROW(o.id,o.type,o.slug,o.id_level,o.points_version,o.finalized_at,o.date_created) \
-             AND t.start_at=o.start_at+CASE WHEN $1='active' THEN interval '6 hours' ELSE interval '0' END \
-             AND t.end_at=o.end_at+CASE WHEN $1='active' THEN interval '6 hours' ELSE interval '0' END \
-             AND CASE WHEN $1='active' THEN t.date_updated IS NOT NULL ELSE t.date_updated IS NOT DISTINCT FROM o.date_updated END) AS value \
-             FROM public.track_tournament t JOIN original_tournaments o USING(id)",
-        ).bind::<Text, _>(case).get_result(&mut connection).await?;
+        let correct: BooleanRow = sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/select_row.sql"
+        ))
+        .bind::<Text, _>(case)
+        .get_result(&mut connection)
+        .await?;
         assert!(correct.value, "{case}");
-        connection.batch_execute(
-            "CREATE TEMP TABLE once_repaired ON COMMIT DROP AS SELECT * FROM public.track_tournament",
-        ).await?;
+        connection.batch_execute(CREATE_ONCE_REPAIRED).await?;
         connection.batch_execute(REPAIR_UP).await?;
-        let repeated: BooleanRow = sql_query(
-            "SELECT NOT EXISTS((SELECT * FROM public.track_tournament EXCEPT SELECT * FROM once_repaired) \
-             UNION ALL (SELECT * FROM once_repaired EXCEPT SELECT * FROM public.track_tournament)) AS value",
-        ).get_result(&mut connection).await?;
+        let repeated: BooleanRow = sql_query(SELECT_TRACK_TOURNAMENT_2)
+            .get_result(&mut connection)
+            .await?;
         assert!(repeated.value, "{case}");
         connection
-            .batch_execute("DROP TABLE original_tournaments,original_results,once_repaired")
+            .batch_execute(include_str!(
+                "../../tests/fixtures/track_tournament/drop_original_tournaments.sql"
+            ))
             .await?;
     }
-    connection.batch_execute("SAVEPOINT before_down").await?;
+    connection.batch_execute(SAVEPOINT_BEFORE_DOWN).await?;
     assert!(connection.batch_execute(REPAIR_DOWN).await.is_err());
     connection
-        .batch_execute("ROLLBACK TO SAVEPOINT before_down")
+        .batch_execute(ROLLBACK_TO_SAVEPOINT_BEFORE_DOWN)
         .await?;
     Ok(())
 }
@@ -448,16 +360,31 @@ async fn delayed_rotation_recovers_original_period_and_eligible_records() -> Res
         ),
     ] {
         clear_fixture(&mut connection).await?;
-        sql_query("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,$1::text::timestamptz-interval '1 day')")
-            .bind::<Text,_>(start).execute(&mut connection).await?;
-        connection.batch_execute("INSERT INTO public.level_points VALUES(1,1000); INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false); INSERT INTO public.\"user\"(id,banned) VALUES(1,false),(2,false),(3,true),(4,false)").await?;
-        sql_query("INSERT INTO public.record(id,id_user,id_level,time,date_created,record_eligible) VALUES (1,1,1,10,$1::text::timestamptz,true),(2,1,1,9,$1::text::timestamptz+interval '1 second',true),(3,1,1,9,$1::text::timestamptz+interval '2 seconds',true),(4,2,1,9,$1::text::timestamptz,true),(5,3,1,1,$1::text::timestamptz,true),(6,4,1,2,$1::text::timestamptz,false),(7,4,1,11,$1::text::timestamptz,true),(8,4,1,0.5,$1::text::timestamptz-interval '1 second',true),(9,4,1,0.1,$2::text::timestamptz,true)")
-            .bind::<Text,_>(start).bind::<Text,_>(end).execute(&mut connection).await?;
+        sql_query(INSERT_LEVEL)
+            .bind::<Text, _>(start)
+            .execute(&mut connection)
+            .await?;
+        connection
+            .batch_execute(include_str!(
+                "../../tests/fixtures/track_tournament/insert_level_points_2.sql"
+            ))
+            .await?;
+        sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/insert_record.sql"
+        ))
+        .bind::<Text, _>(start)
+        .bind::<Text, _>(end)
+        .execute(&mut connection)
+        .await?;
         let created = rotate_track_tournament_at(&mut connection, kind, Some(at)).await?;
         assert!(created.created, "{at}");
         let id = created.id_tournament.unwrap();
-        let period = sql_query("SELECT slug,to_char(start_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS start_at,to_char(end_at AT TIME ZONE 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS end_at FROM public.track_tournament WHERE id=$1")
-            .bind::<Integer,_>(id).get_result::<PeriodRow>(&mut connection).await?;
+        let period = sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/select_slug_track_tournament_by_id.sql"
+        ))
+        .bind::<Integer, _>(id)
+        .get_result::<PeriodRow>(&mut connection)
+        .await?;
         assert_eq!(
             (
                 period.slug.as_str(),
@@ -466,32 +393,42 @@ async fn delayed_rotation_recovers_original_period_and_eligible_records() -> Res
             ),
             (slug, start, end)
         );
-        let winners = sql_query(
-            "SELECT id_record AS id FROM public.track_tournament_result ORDER BY id_user",
-        )
+        let winners = sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/select_id_record_track_tournament_result.sql"
+        ))
         .load::<IdRow>(&mut connection)
         .await?;
         assert_eq!(
             winners.into_iter().map(|r| r.id).collect::<Vec<_>>(),
             vec![2, 4, 7]
         );
-        let ranks =
-            sql_query("SELECT rank AS id FROM public.track_tournament_result ORDER BY id_user")
-                .load::<IdRow>(&mut connection)
-                .await?;
+        let ranks = sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/select_rank_track_tournament_result.sql"
+        ))
+        .load::<IdRow>(&mut connection)
+        .await?;
         assert_eq!(
             ranks.into_iter().map(|r| r.id).collect::<Vec<_>>(),
             vec![1, 1, 3]
         );
-        let before = sql_query("SELECT jsonb_agg(to_jsonb(r) ORDER BY id_user) AS value FROM public.track_tournament_result r").get_result::<Snapshot>(&mut connection).await?.value;
+        let before = sql_query(JSONB_AGG)
+            .get_result::<Snapshot>(&mut connection)
+            .await?
+            .value;
         let repeated = rotate_track_tournament_at(&mut connection, kind, Some(at)).await?;
         assert!(!repeated.created);
         assert_eq!(repeated.id_tournament, Some(id));
-        assert_eq!(sql_query("SELECT jsonb_agg(to_jsonb(r) ORDER BY id_user) AS value FROM public.track_tournament_result r").get_result::<Snapshot>(&mut connection).await?.value, before);
+        assert_eq!(
+            sql_query(JSONB_AGG)
+                .get_result::<Snapshot>(&mut connection)
+                .await?
+                .value,
+            before
+        );
         rotate_track_tournament_at(&mut connection, kind, Some(end)).await?;
         assert!(
             sql_query(
-                "SELECT finalized_at IS NOT NULL AS value FROM public.track_tournament WHERE id=$1"
+                include_str!("../../tests/fixtures/track_tournament/select_finalized_at_track_tournament_by_id.sql")
             )
             .bind::<Integer, _>(id)
             .get_result::<BooleanRow>(&mut connection)
@@ -512,12 +449,18 @@ async fn delayed_rotation_recovers_original_period_and_eligible_records() -> Res
 async fn rotation_waits_for_shared_submission_level_lock() -> Result<()> {
     use std::time::Duration;
     let mut connection = fixture().await?;
-    connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2026-09-27'); INSERT INTO public.level_points VALUES(1,1000); INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false)").await?;
+    connection
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/insert_level_2.sql"
+        ))
+        .await?;
     let mut submitter =
         AsyncPgConnection::establish(&std::env::var("ZC_TEST_DATABASE_URL")?).await?;
-    sql_query("SELECT pg_advisory_lock_shared(0,1)")
-        .execute(&mut submitter)
-        .await?;
+    sql_query(include_str!(
+        "../../tests/fixtures/track_tournament/pg_advisory_lock_shared.sql"
+    ))
+    .execute(&mut submitter)
+    .await?;
     let mut rotation = tokio::spawn(async move {
         let result =
             rotate_track_tournament_at(&mut connection, 0, Some("2026-09-29T12:00:00Z")).await;
@@ -528,9 +471,11 @@ async fn rotation_waits_for_shared_submission_level_lock() -> Result<()> {
             .await
             .is_err()
     );
-    sql_query("SELECT pg_advisory_unlock_shared(0,1)")
-        .execute(&mut submitter)
-        .await?;
+    sql_query(include_str!(
+        "../../tests/fixtures/track_tournament/pg_advisory_unlock_shared.sql"
+    ))
+    .execute(&mut submitter)
+    .await?;
     let (result, _connection) = tokio::time::timeout(Duration::from_secs(5), rotation).await??;
     assert!(result?.created);
     Ok(())
@@ -541,29 +486,40 @@ async fn rotation_waits_for_shared_submission_level_lock() -> Result<()> {
 async fn rotation_finalization_publishes_overall_cache_atomically() -> Result<()> {
     let mut connection = fixture().await?;
     connection
-        .batch_execute("CREATE SCHEMA IF NOT EXISTS zc_private")
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/create_zc_private.sql"
+        ))
         .await?;
     connection
         .batch_execute(include_str!(
             "../../migrations/20261108010000_track_tournament_overall/up.sql"
         ))
         .await?;
-    connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2026-09-27'); INSERT INTO public.level_points VALUES(1,1000); INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false); INSERT INTO public.\"user\" VALUES(1,false); INSERT INTO public.record VALUES(1,1,1,10,true,'2026-09-29T07:00Z')").await?;
+    connection
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/insert_level_3.sql"
+        ))
+        .await?;
     let active =
         rotate_track_tournament_at(&mut connection, 0, Some("2026-09-29T12:00:00Z")).await?;
     assert!(active.created);
-    let before =
-        sql_query("SELECT count(*)::integer AS id FROM public.track_tournament_overall_standing")
-            .get_result::<IdRow>(&mut connection)
-            .await?;
+    let before = sql_query(include_str!(
+        "../../tests/fixtures/track_tournament/count_track_tournament_overall_standing.sql"
+    ))
+    .get_result::<IdRow>(&mut connection)
+    .await?;
     assert_eq!(before.id, 0);
     rotate_track_tournament_at(&mut connection, 0, Some("2026-10-05T06:00:00Z")).await?;
-    let points = sql_query("SELECT total_points AS id FROM public.track_tournament_overall_standing WHERE type=0 AND id_user=1").get_result::<IdRow>(&mut connection).await?;
+    let points = sql_query(SELECT_TOTAL_POINTS_TRACK_TOURNAMENT_OVERALL_STANDING)
+        .get_result::<IdRow>(&mut connection)
+        .await?;
     assert_eq!(points.id, 1000);
-    let count = sql_query("SELECT eligible_event_count AS id FROM public.track_tournament_overall_period WHERE type=0").get_result::<IdRow>(&mut connection).await?;
+    let count = sql_query(include_str!("../../tests/fixtures/track_tournament/select_eligible_event_count_track_tournament_overall_period.sql")).get_result::<IdRow>(&mut connection).await?;
     assert_eq!(count.id, 1);
     rotate_track_tournament_at(&mut connection, 0, Some("2026-10-05T06:00:00Z")).await?;
-    let repeated = sql_query("SELECT total_points AS id FROM public.track_tournament_overall_standing WHERE type=0 AND id_user=1").get_result::<IdRow>(&mut connection).await?;
+    let repeated = sql_query(SELECT_TOTAL_POINTS_TRACK_TOURNAMENT_OVERALL_STANDING)
+        .get_result::<IdRow>(&mut connection)
+        .await?;
     assert_eq!(repeated.id, 1000);
     Ok(())
 }
@@ -581,59 +537,67 @@ async fn daily_selection_filters_before_percentile_and_uses_event_date() -> Resu
         // Missing recent levels falls back to all-time unused levels.
         (
             "2026-11-03T06:00:00Z",
-            "UPDATE public.level SET date_created='2020-01-01'",
+            include_str!("../../tests/fixtures/track_tournament/set_date_created_level.sql"),
             Some(1),
         ),
         // Removing used top score before percentile lets next-best level qualify.
         (
             "2026-11-02T06:00:00Z",
-            "INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at) VALUES(2,'2026-01-01',1,'2026-01-01T06:00Z','2026-01-02T06:00Z')",
+            include_str!("../../tests/fixtures/track_tournament/insert_track_tournament_3.sql"),
             Some(2),
         ),
         // Weekly appearances do not exclude daily candidates.
         (
             "2026-11-02T06:00:00Z",
-            "INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at) VALUES(0,'2026-w01',1,'2026-01-01T06:00Z','2026-01-08T06:00Z')",
+            include_str!("../../tests/fixtures/track_tournament/insert_track_tournament_4.sql"),
             Some(1),
         ),
         (
             "2026-11-02T06:00:00Z",
-            "UPDATE public.level_item SET deleted=true WHERE id_level=1",
+            include_str!("../../tests/fixtures/track_tournament/set_deleted_level_item.sql"),
             Some(2),
         ),
         (
             "2026-11-02T06:00:00Z",
-            "UPDATE public.level_item SET publicly_visible=false WHERE id_level=1",
+            include_str!(
+                "../../tests/fixtures/track_tournament/set_publicly_visible_level_item.sql"
+            ),
             Some(2),
         ),
         (
             "2026-11-02T06:00:00Z",
-            "UPDATE public.level SET publicly_visible=false WHERE id=1",
+            include_str!("../../tests/fixtures/track_tournament/set_publicly_visible_level.sql"),
             Some(2),
         ),
         (
             "2026-11-02T06:00:00Z",
-            "UPDATE public.level_points SET points=0 WHERE id_level=1",
+            include_str!("../../tests/fixtures/track_tournament/set_points_level_points.sql"),
             Some(2),
         ),
         (
             "2026-11-02T06:00:00Z",
-            "UPDATE public.level SET date_created='2026-11-02T06:00Z' WHERE id=1",
+            include_str!(
+                "../../tests/fixtures/track_tournament/set_date_created_level_by_id_1.sql"
+            ),
             Some(2),
         ),
         (
             "2026-11-02T06:00:00Z",
-            "UPDATE public.level_item SET deleted=true",
+            include_str!("../../tests/fixtures/track_tournament/set_deleted_level_item_true.sql"),
             None,
         ),
     ] {
         clear_fixture(&mut connection).await?;
-        connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2020-01-01'),(true,'2026-09-03T06:00Z'),(true,'2026-09-03T05:59:59Z'); INSERT INTO public.level_points VALUES(1,1000000),(2,1000),(3,10); INSERT INTO public.level_item(id_level,publicly_visible,deleted) SELECT id,true,false FROM public.level").await?;
+        connection
+            .batch_execute(include_str!(
+                "../../tests/fixtures/track_tournament/insert_level_4.sql"
+            ))
+            .await?;
         connection.batch_execute(extra).await?;
         let rotation = rotate_track_tournament_at(&mut connection, 2, Some(at)).await?;
         assert_eq!(rotation.created, expected.is_some(), "{at}: {extra}");
         if let Some(expected) = expected {
-            let level = sql_query("SELECT id_level AS id FROM public.track_tournament WHERE id=$1")
+            let level = sql_query(SELECT_ID_LEVEL_TRACK_TOURNAMENT)
                 .bind::<Integer, _>(rotation.id_tournament.unwrap())
                 .get_result::<IdRow>(&mut connection)
                 .await?;
@@ -650,21 +614,29 @@ async fn daily_selection_filters_before_percentile_and_uses_event_date() -> Resu
 #[ignore = "requires dedicated empty local PostgreSQL track_tournament_test"]
 async fn daily_recovery_scores_only_eligible_records_inside_period() -> Result<()> {
     let mut connection = fixture().await?;
-    connection.batch_execute("INSERT INTO public.level(publicly_visible,date_created) VALUES(true,'2026-11-01'); INSERT INTO public.level_points VALUES(1,1000); INSERT INTO public.level_item(id_level,publicly_visible,deleted) VALUES(1,true,false); INSERT INTO public.\"user\" VALUES(1,false),(2,false),(3,true),(4,false); INSERT INTO public.record VALUES(1,1,1,10,true,'2026-11-02T06:00Z'),(2,2,1,10,true,'2026-11-02T07:00Z'),(3,3,1,9,true,'2026-11-02T07:00Z'),(4,4,1,8,false,'2026-11-02T07:00Z'),(5,1,1,7,true,'2026-11-02T05:59:59Z'),(6,1,1,6,true,'2026-11-03T06:00Z')").await?;
+    connection
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/insert_level_5.sql"
+        ))
+        .await?;
     let rotation =
         rotate_track_tournament_at(&mut connection, 2, Some("2026-11-02T12:00Z")).await?;
-    let rows=sql_query("SELECT id_record AS id FROM public.track_tournament_result WHERE id_tournament=$1 ORDER BY id_record")
+    let rows=sql_query(include_str!("../../tests/fixtures/track_tournament/select_id_record_track_tournament_result_by_id_tournament.sql"))
         .bind::<Integer,_>(rotation.id_tournament.unwrap()).load::<IdRow>(&mut connection).await?;
     assert_eq!(rows.iter().map(|r| r.id).collect::<Vec<_>>(), vec![1, 2]);
-    let valid = sql_query(
-        "SELECT bool_and(rank=1 AND points=1000) AS value FROM public.track_tournament_result",
-    )
+    let valid = sql_query(include_str!(
+        "../../tests/fixtures/track_tournament/select_track_tournament_result_2.sql"
+    ))
     .get_result::<BooleanRow>(&mut connection)
     .await?;
     assert!(valid.value);
     rotate_track_tournament_at(&mut connection, 2, Some("2026-11-03T06:00Z")).await?;
-    let valid=sql_query("SELECT finalized_at='2026-11-03T06:00Z'::timestamptz AS value FROM public.track_tournament WHERE id=$1")
-        .bind::<Integer,_>(rotation.id_tournament.unwrap()).get_result::<BooleanRow>(&mut connection).await?;
+    let valid = sql_query(include_str!(
+        "../../tests/fixtures/track_tournament/select_finalized_at_track_tournament_by_id_2.sql"
+    ))
+    .bind::<Integer, _>(rotation.id_tournament.unwrap())
+    .get_result::<BooleanRow>(&mut connection)
+    .await?;
     assert!(valid.value);
     Ok(())
 }
@@ -677,36 +649,30 @@ async fn selection_percentiles_exclude_used_levels_and_include_cutoff_ties() -> 
         .split("INSERT INTO public.track_tournament")
         .next()
         .unwrap();
-    let query = format!(
-        "{prefix} SELECT id_level AS id FROM eligible CROSS JOIN threshold
-         WHERE eligible.points >= threshold.points ORDER BY id_level"
-    );
+    let query = include_str!("../../tests/fixtures/track_tournament/select_eligible_levels.sql")
+        .replace("{{prefix}}", prefix);
     for (kind, cutoff) in [(2, 1901), (0, 1981), (1, 1999)] {
         clear_fixture(&mut connection).await?;
         connection
-            .batch_execute(
-                "INSERT INTO public.level(publicly_visible,date_created)
-                 SELECT true,'2026-10-31' FROM generate_series(1,2002);
-                 INSERT INTO public.level_points
-                 SELECT id,CASE WHEN id=2002 THEN 1000000 ELSE id END FROM public.level;
-                 INSERT INTO public.level_item(id_level,publicly_visible,deleted)
-                 SELECT id,true,false FROM public.level",
-            )
+            .batch_execute(include_str!(
+                "../../tests/fixtures/track_tournament/insert_level_6.sql"
+            ))
             .await?;
-        sql_query(
-            "INSERT INTO public.track_tournament(type,slug,id_level,start_at,end_at)
-             VALUES ($1,'previous',2002,'2026-10-01T06:00Z','2026-10-02T06:00Z')",
-        )
+        sql_query(include_str!(
+            "../../tests/fixtures/track_tournament/insert_track_tournament_5.sql"
+        ))
         .bind::<Integer, _>(kind)
         .execute(&mut connection)
         .await?;
 
         for first in [cutoff, cutoff - 1] {
             if first < cutoff {
-                sql_query("UPDATE public.level_points SET points=$1 WHERE id_level=$1-1")
-                    .bind::<Integer, _>(cutoff)
-                    .execute(&mut connection)
-                    .await?;
+                sql_query(include_str!(
+                    "../../tests/fixtures/track_tournament/set_points_level_points_by_id_level.sql"
+                ))
+                .bind::<Integer, _>(cutoff)
+                .execute(&mut connection)
+                .await?;
             }
             let rows = sql_query(&query)
                 .bind::<Integer, _>(kind)
@@ -728,13 +694,9 @@ async fn selection_percentiles_exclude_used_levels_and_include_cutoff_ties() -> 
 async fn rotation_falls_back_after_using_recent_levels_for_each_format() -> Result<()> {
     let mut connection = fixture().await?;
     connection
-        .batch_execute(
-            "INSERT INTO public.level(publicly_visible,date_created)
-             VALUES (true,'2026-10-31'),(true,'2020-01-01');
-             INSERT INTO public.level_points VALUES (1,10),(2,1000);
-             INSERT INTO public.level_item(id_level,publicly_visible,deleted)
-             SELECT id,true,false FROM public.level",
-        )
+        .batch_execute(include_str!(
+            "../../tests/fixtures/track_tournament/insert_level_7.sql"
+        ))
         .await?;
 
     for (kind, dates) in [
@@ -767,11 +729,10 @@ async fn rotation_falls_back_after_using_recent_levels_for_each_format() -> Resu
             let rotation = rotate_track_tournament_at(&mut connection, kind, Some(at)).await?;
             assert_eq!(rotation.created, expected.is_some(), "type {kind}, {at}");
             let selected = if let Some(id) = rotation.id_tournament {
-                let row =
-                    sql_query("SELECT id_level AS id FROM public.track_tournament WHERE id=$1")
-                        .bind::<Integer, _>(id)
-                        .get_result::<IdRow>(&mut connection)
-                        .await?;
+                let row = sql_query(SELECT_ID_LEVEL_TRACK_TOURNAMENT)
+                    .bind::<Integer, _>(id)
+                    .get_result::<IdRow>(&mut connection)
+                    .await?;
                 Some(row.id)
             } else {
                 None

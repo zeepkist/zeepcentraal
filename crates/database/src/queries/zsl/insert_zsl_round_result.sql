@@ -1,0 +1,1 @@
+INSERT INTO public.zsl_round_result(id_round,id_user,points,position,date_created) SELECT parent,user_id,points,position,clock_timestamp() FROM unnest($1::integer[],$2::integer[],$3::integer[],$4::integer[]) AS input(parent,user_id,points,position) ON CONFLICT(id_round,id_user) DO UPDATE SET points=excluded.points,position=excluded.position,date_updated=clock_timestamp()

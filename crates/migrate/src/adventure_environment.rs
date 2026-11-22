@@ -62,22 +62,23 @@ pub fn generate(root: &Path) -> Result<(String, usize)> {
             "Duplicate adventure hash"
         );
         let environment = serde_json::to_string(&parsed.environment)?;
-        values.push(format!(
-            "\t({}, {}, {}::jsonb)",
-            sql_string(&parsed.hash),
-            sql_string(uid),
-            sql_string(&environment)
-        ));
+        // Replace from right to left so escaped values cannot shadow a marker.
+        values.push(
+            include_str!("queries/adventure_environment/environment_value.sql")
+                .trim_end()
+                .replacen("{{environment}}", &sql_string(&environment), 1)
+                .replacen("{{uid}}", &sql_string(uid), 1)
+                .replacen("{{hash}}", &sql_string(&parsed.hash), 1),
+        );
     }
     ensure!(!values.is_empty(), "No adventure levels found");
     let count = values.len();
-    Ok((format!("WITH adventure_environment(xx_hash, uid, environment) AS (\n\tVALUES\n{}\n)
-UPDATE \"level_metadata\" AS metadata
-SET \"environment\" = source.environment, \"date_updated\" = now()
-FROM \"level\" AS level, adventure_environment AS source
-WHERE metadata.\"id_level\" = level.\"id\" AND level.\"adventure\" = TRUE
-\tAND (level.\"xx_hash\" = source.xx_hash OR (level.\"xx_hash\" IS NULL AND level.\"hash\" = source.uid))
-\tAND metadata.\"environment\" IS DISTINCT FROM source.environment;\n", values.join(",\n")), count))
+    Ok((
+        include_str!("queries/adventure_environment/backfill_environment.sql")
+            .replace("\r\n", "\n")
+            .replace("{{values}}", &values.join(",\n")),
+        count,
+    ))
 }
 
 #[cfg(test)]

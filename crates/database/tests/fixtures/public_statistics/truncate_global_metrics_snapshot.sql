@@ -1,0 +1,1 @@
+TRUNCATE zc_private.global_metrics_snapshot

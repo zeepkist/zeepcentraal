@@ -1,0 +1,1 @@
+SELECT jsonb_build_object('records',(SELECT jsonb_agg(to_jsonb(r) ORDER BY id) FROM public.record r),'personalBests',(SELECT jsonb_agg(to_jsonb(p) ORDER BY id) FROM public.personal_best_global p),'worldRecords',(SELECT jsonb_agg(to_jsonb(w) ORDER BY id) FROM public.world_record_global w))::text

@@ -33,7 +33,7 @@ async fn audit_batches_deduplicate_across_pages_and_preserve_running_work() -> R
     let queue = Queue::connect(partition.clone()).await?;
     let mut connection = partition.connection().await?;
     ensure!(
-        sql_query("SELECT count(*)::bigint AS count FROM zc_jobs.job")
+        sql_query(include_str!("fixtures/workshop_audit_queue/count_job.sql"))
             .get_result::<Count>(&mut connection)
             .await?
             .count
@@ -44,10 +44,11 @@ async fn audit_batches_deduplicate_across_pages_and_preserve_running_work() -> R
     let levels: Vec<_> = (1..=2001).chain(1..=2001).collect();
     queue.enqueue_ghost_audit_levels(&levels).await?;
     let mut connection = partition.connection().await?;
-    let batches =
-        sql_query("SELECT payload FROM zc_jobs.job WHERE task='auditRecordGhosts' ORDER BY id")
-            .load::<Payload>(&mut connection)
-            .await?;
+    let batches = sql_query(include_str!(
+        "fixtures/workshop_audit_queue/select_payload_job.sql"
+    ))
+    .load::<Payload>(&mut connection)
+    .await?;
     assert_eq!(batches.len(), 3);
     assert_eq!(
         batches
@@ -71,14 +72,20 @@ async fn audit_batches_deduplicate_across_pages_and_preserve_running_work() -> R
     let original = running.payload.clone();
     queue.enqueue_ghost_audit_levels(&[1000, 2002]).await?;
     let mut connection = partition.connection().await?;
-    let unchanged = sql_query("SELECT payload FROM zc_jobs.job WHERE lane='bulk' AND id=$1")
-        .bind::<BigInt, _>(running.id.parse::<i64>()?)
-        .get_result::<Payload>(&mut connection)
-        .await?
-        .payload;
+    let unchanged = sql_query(include_str!(
+        "fixtures/workshop_audit_queue/select_payload_job_by_lane_bulk.sql"
+    ))
+    .bind::<BigInt, _>(running.id.parse::<i64>()?)
+    .get_result::<Payload>(&mut connection)
+    .await?
+    .payload;
     assert_eq!(unchanged, original);
-    let pending = sql_query("SELECT payload FROM zc_jobs.job WHERE task='auditRecordGhosts' AND NOT running AND jsonb_array_length(payload->'idLevels')<1000")
-        .get_result::<Payload>(&mut connection).await?.payload;
+    let pending = sql_query(include_str!(
+        "fixtures/workshop_audit_queue/select_payload_job_by_task_audit_record_ghosts.sql"
+    ))
+    .get_result::<Payload>(&mut connection)
+    .await?
+    .payload;
     assert_eq!(pending["idLevels"], serde_json::json!([1000, 2001, 2002]));
     Ok(())
 }

@@ -1,0 +1,1 @@
+SELECT jsonb_build_object('id',account.id,'steamName',account.steam_name, 'discordId',account.discord_id::text,'points',points.points) AS value FROM public."user" account LEFT JOIN public.user_points points ON points.id_user=account.id WHERE account.id=ANY($1) ORDER BY account.id

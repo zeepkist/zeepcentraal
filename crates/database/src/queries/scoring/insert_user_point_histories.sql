@@ -1,0 +1,1 @@
+INSERT INTO public.user_points_history (id_user,points,total_points,rank,world_records,date_created,date_updated) SELECT id_user,points,total_points,rank,world_records,clock_timestamp(),date_updated FROM public.user_points WHERE id_user=ANY($1)

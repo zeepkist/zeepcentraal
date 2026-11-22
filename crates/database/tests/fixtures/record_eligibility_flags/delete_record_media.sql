@@ -1,0 +1,1 @@
+DELETE FROM public.record_media WHERE id_record=1; INSERT INTO public.record_media(id_record,ghost_url,record_eligible) VALUES(1,'fixture-ghost',true); DELETE FROM public.record_media WHERE id_record=4; UPDATE public.record_media SET id_record=4 WHERE id_record=1;

@@ -1,0 +1,1 @@
+ALTER TABLE public.discord_activity_event DROP CONSTRAINT fixture_reject

@@ -6,29 +6,20 @@ use diesel_async::{
 };
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
 
+const ACQUIRE_ADVISORY_LOCK: &str = include_str!("queries/migrations/acquire_advisory_lock.sql");
+const SET_PRIVATE_SEARCH_PATH: &str =
+    include_str!("queries/migrations/set_private_search_path.sql");
+
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
 /// Diesel names its ledger without a schema, so place it in the private schema
 /// before constructing the harness. Moving an existing table preserves applied
 /// versions and their timestamps.
 pub(crate) async fn ensure_private_ledger(connection: &mut AsyncPgConnection) -> Result<()> {
-    sql_query(
-        "DO $$ BEGIN \
-         IF to_regclass('public.__diesel_schema_migrations') IS NOT NULL THEN \
-             IF to_regclass('zc_private.__diesel_schema_migrations') IS NOT NULL THEN \
-                 RAISE EXCEPTION 'Both public and zc_private Diesel ledgers exist'; \
-             END IF; \
-             ALTER TABLE public.__diesel_schema_migrations SET SCHEMA zc_private; \
-         ELSE \
-             CREATE TABLE IF NOT EXISTS zc_private.__diesel_schema_migrations (\
-                 version VARCHAR(50) PRIMARY KEY NOT NULL, \
-                 run_on TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP); \
-         END IF; \
-         END $$",
-    )
-    .execute(connection)
-    .await
-    .context("Failed to place Diesel migration ledger in zc_private")?;
+    sql_query(include_str!("queries/migrations/ensure_private_ledger.sql"))
+        .execute(connection)
+        .await
+        .context("Failed to place Diesel migration ledger in zc_private")?;
     Ok(())
 }
 
@@ -36,15 +27,15 @@ pub async fn run_pending(database_url: &str) -> Result<Vec<String>> {
     let mut connection = AsyncPgConnection::establish(database_url)
         .await
         .context("Failed to connect to PostgreSQL")?;
-    sql_query(format!(
-        "SELECT pg_advisory_lock({})",
-        crate::adoption::MIGRATION_LOCK_ID
+    sql_query(ACQUIRE_ADVISORY_LOCK.replace(
+        "{{migration_lock_id}}",
+        &crate::adoption::MIGRATION_LOCK_ID.to_string(),
     ))
     .execute(&mut connection)
     .await
     .context("Failed to acquire migration advisory lock")?;
     ensure_private_ledger(&mut connection).await?;
-    sql_query("SET search_path TO zc_private, public")
+    sql_query(SET_PRIVATE_SEARCH_PATH)
         .execute(&mut connection)
         .await
         .context("Failed to select private Diesel migration ledger")?;
@@ -80,18 +71,21 @@ pub async fn restore_history_index(database_url: &str) -> Result<()> {
         retired: bool,
     }
     let mut connection = AsyncPgConnection::establish(database_url).await?;
-    sql_query(format!(
-        "SELECT pg_advisory_lock({})",
-        crate::adoption::MIGRATION_LOCK_ID
+    sql_query(ACQUIRE_ADVISORY_LOCK.replace(
+        "{{migration_lock_id}}",
+        &crate::adoption::MIGRATION_LOCK_ID.to_string(),
     ))
     .execute(&mut connection)
     .await?;
-    let retired: Retired = sql_query("SELECT to_regclass('zc_private.history_fact_rollout') IS NULL AND to_regclass('zc_private.record_history_fact') IS NOT NULL AS retired")
-        .get_result(&mut connection).await?;
+    let retired: Retired = sql_query(include_str!(
+        "queries/migrations/check_history_retirement.sql"
+    ))
+    .get_result(&mut connection)
+    .await?;
     if !retired.retired {
         return Ok(());
     }
-    sql_query("SET search_path TO zc_private, public")
+    sql_query(SET_PRIVATE_SEARCH_PATH)
         .execute(&mut connection)
         .await?;
     let mut harness = AsyncMigrationHarness::new(connection);
@@ -133,7 +127,7 @@ async fn prepare_history_retirement(connection: &mut AsyncPgConnection) -> Resul
     for phase in ["backfill", "verify"] {
         history_batches(connection, phase).await?;
     }
-    sql_query("ANALYZE zc_private.record_history_fact")
+    sql_query(include_str!("queries/migrations/analyze_history_fact.sql"))
         .execute(connection)
         .await?;
     Ok(())
@@ -147,15 +141,17 @@ pub(crate) async fn history_batches(connection: &mut AsyncPgConnection, phase: &
         processed: i32,
     }
     let statement = match phase {
-        "backfill" => "SELECT zc_private.backfill_history_fact(1000) AS processed",
-        "verify" => "SELECT zc_private.verify_history_fact(1000) AS processed",
+        "backfill" => include_str!("queries/migrations/backfill_history_fact.sql"),
+        "verify" => include_str!("queries/migrations/verify_history_fact.sql"),
         _ => anyhow::bail!("Unknown history batch operation"),
     };
     loop {
         let batch = connection
             .transaction::<Batch, anyhow::Error, _>(async |connection| {
                 connection
-                    .batch_execute("SET LOCAL statement_timeout='60s'; SET LOCAL lock_timeout='5s'")
+                    .batch_execute(include_str!(
+                        "queries/migrations/configure_history_batch_timeouts.sql"
+                    ))
                     .await?;
                 Ok(sql_query(statement).get_result::<Batch>(connection).await?)
             })

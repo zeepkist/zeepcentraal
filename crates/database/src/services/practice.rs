@@ -27,8 +27,13 @@ pub struct PracticeAssetRow {
 impl Database {
     pub async fn practice_schedule(&self, round_id: i32) -> Result<Option<PracticeScheduleRow>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT name, to_char(event_date AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS event_date, to_char(event2_date AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') AS event2_date FROM public.zsl_round WHERE id=$1")
-            .bind::<Integer,_>(round_id).get_result(&mut connection).await.optional()?)
+        Ok(
+            sql_query(include_str!("../queries/practice/practice_schedule.sql"))
+                .bind::<Integer, _>(round_id)
+                .get_result(&mut connection)
+                .await
+                .optional()?,
+        )
     }
     pub async fn practice_asset(
         &self,
@@ -36,8 +41,14 @@ impl Database {
         playlist: &str,
     ) -> Result<Option<PracticeAssetRow>> {
         let mut connection = self.connection().await?;
-        Ok(sql_query("SELECT object_key,content_sha256,byte_size FROM zc_private.zsl_practice_playlist WHERE id_zsl_round=$1 AND playlist_url=$2")
-            .bind::<Integer,_>(round_id).bind::<Text,_>(playlist).get_result(&mut connection).await.optional()?)
+        Ok(
+            sql_query(include_str!("../queries/practice/practice_asset.sql"))
+                .bind::<Integer, _>(round_id)
+                .bind::<Text, _>(playlist)
+                .get_result(&mut connection)
+                .await
+                .optional()?,
+        )
     }
     pub async fn publish_practice_asset(
         &self,
@@ -52,8 +63,16 @@ impl Database {
             "Invalid practice asset"
         );
         let mut connection = self.connection().await?;
-        sql_query("INSERT INTO zc_private.zsl_practice_playlist (id_zsl_round,playlist_url,object_key,content_sha256,byte_size) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (id_zsl_round,playlist_url) DO UPDATE SET object_key=EXCLUDED.object_key,content_sha256=EXCLUDED.content_sha256,byte_size=EXCLUDED.byte_size,date_updated=clock_timestamp()")
-            .bind::<Integer,_>(round_id).bind::<Text,_>(playlist).bind::<Text,_>(key).bind::<Text,_>(digest).bind::<Integer,_>(size).execute(&mut connection).await?;
+        sql_query(include_str!(
+            "../queries/practice/publish_practice_asset.sql"
+        ))
+        .bind::<Integer, _>(round_id)
+        .bind::<Text, _>(playlist)
+        .bind::<Text, _>(key)
+        .bind::<Text, _>(digest)
+        .bind::<Integer, _>(size)
+        .execute(&mut connection)
+        .await?;
         Ok(())
     }
 }

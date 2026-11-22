@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submissions SET workshop_id=$2,authors=$3,state='selected',revision=revision+1,latest_validation_id=NULL,level_hash=NULL,retry_category=NULL,next_inspection_at=now(),inspection_started_at=NULL,date_updated=now() WHERE id=$1 RETURNING id

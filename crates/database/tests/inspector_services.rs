@@ -20,16 +20,39 @@ async fn first_party_submissions_ownership_revisions_and_freeze() -> Result<()> 
         let _ = connection.await;
     });
     // Fixture owns only its newly inserted rows. Existing frozen fixture tests remain intact.
-    let points:i32=client.query_one("INSERT INTO public.zsl_points_structure(name,points,minimum_points,best_of) VALUES('fixture',ARRAY[10],1,1) RETURNING id",&[]).await?.get(0);
-    let season:i32=client.query_one("INSERT INTO public.zsl_season(id_points_structure,name,start_date,end_date) VALUES($1,'Fixture',now(),now()+interval '1 year') RETURNING id",&[&points]).await?.get(0);
-    let round:i32=client.query_one("INSERT INTO public.zsl_round(id_season,name,round,workshop_id,event_date,submission_start,submission_end,zsl_vote_end,cosmetic_vote_end) VALUES($1,'Fixture round',1,0,now()+interval '1 month',now()-interval '1 day',now()+interval '1 day',now()+interval '8 days',now()+interval '45 days') RETURNING id",&[&season]).await?.get(0);
+    let points: i32 = client
+        .query_one(
+            include_str!("fixtures/inspector_services/insert_zsl_points_structure.sql"),
+            &[],
+        )
+        .await?
+        .get(0);
+    let season: i32 = client
+        .query_one(
+            include_str!("fixtures/inspector_services/insert_zsl_season.sql"),
+            &[&points],
+        )
+        .await?
+        .get(0);
+    let round: i32 = client
+        .query_one(
+            include_str!("fixtures/inspector_services/insert_zsl_round.sql"),
+            &[&season],
+        )
+        .await?
+        .get(0);
     let authors = [
         "76561198000000001".to_owned(),
         "76561198000000002".to_owned(),
         "76561198000000003".to_owned(),
     ];
     for (i, author) in authors.iter().enumerate() {
-        client.execute("INSERT INTO public.\"user\"(steam_id,steam_name) VALUES($1,$2) ON CONFLICT(steam_id) DO NOTHING",&[&author.parse::<i64>()?,&format!("Author {i}")]).await?;
+        client
+            .execute(
+                include_str!("fixtures/inspector_services/insert_user.sql"),
+                &[&author.parse::<i64>()?, &format!("Author {i}")],
+            )
+            .await?;
     }
     let db = Database::connect(&url, 6).await?;
     let cancelled = tokio::time::timeout(
@@ -92,7 +115,7 @@ async fn first_party_submissions_ownership_revisions_and_freeze() -> Result<()> 
     assert_eq!(preserved.discord_id, existing.discord_id);
     let count = client
         .query_one(
-            "SELECT count(*) FROM public.\"user\" WHERE steam_id=$1",
+            include_str!("fixtures/inspector_services/count_user.sql"),
             &[&missing.parse::<i64>()?],
         )
         .await?;
@@ -100,7 +123,7 @@ async fn first_party_submissions_ownership_revisions_and_freeze() -> Result<()> 
     // Banned profiles remain banned. Earlier placeholder inserts roll back on rejection.
     client
         .execute(
-            "UPDATE public.\"user\" SET banned=true WHERE steam_id=$1",
+            include_str!("fixtures/inspector_services/set_banned_user.sql"),
             &[&authors[2].parse::<i64>()?],
         )
         .await?;
@@ -126,7 +149,7 @@ async fn first_party_submissions_ownership_revisions_and_freeze() -> Result<()> 
     assert!(db.get_user(authors[2].parse()?).await?.unwrap().banned);
     client
         .execute(
-            "UPDATE public.\"user\" SET banned=false WHERE steam_id=$1",
+            include_str!("fixtures/inspector_services/set_banned_user_by_steam_id.sql"),
             &[&authors[2].parse::<i64>()?],
         )
         .await?;
@@ -147,7 +170,12 @@ async fn first_party_submissions_ownership_revisions_and_freeze() -> Result<()> 
         "validating"
     );
     let hash = "0123456789ABCDEF0123456789ABCDEF";
-    client.execute("INSERT INTO public.level(hash,xx_hash,adventure) VALUES('fixture-hash',$1,false) ON CONFLICT(xx_hash) DO NOTHING",&[&hash]).await?;
+    client
+        .execute(
+            include_str!("fixtures/inspector_services/insert_level.sql"),
+            &[&hash],
+        )
+        .await?;
     let input = InspectorValidationInput {
         id_submission: id,
         submission_revision: revision,
@@ -224,7 +252,14 @@ async fn first_party_submissions_ownership_revisions_and_freeze() -> Result<()> 
         db.submission_status(id, &authors[1]).await?.unwrap()["status"],
         "retrying"
     );
-    let due=client.query_one("SELECT next_inspection_at>now()+interval '50 seconds' AND next_inspection_at<=now()+interval '60 seconds' FROM zc_private.level_submissions WHERE id=$1",&[&id]).await?;
+    let due = client
+        .query_one(
+            include_str!(
+                "fixtures/inspector_services/select_next_inspection_at_level_submissions.sql"
+            ),
+            &[&id],
+        )
+        .await?;
     assert!(due.get::<_, bool>(0));
     db.withdraw_submission(round, &authors[1]).await?;
     assert_eq!(
@@ -247,7 +282,7 @@ async fn first_party_submissions_ownership_revisions_and_freeze() -> Result<()> 
     assert!(a.is_ok() ^ b.is_ok());
     client
         .execute(
-            "UPDATE public.zsl_round SET submission_end=now()-interval '1 second' WHERE id=$1",
+            include_str!("fixtures/inspector_services/set_submission_end_zsl_round.sql"),
             &[&round],
         )
         .await?;

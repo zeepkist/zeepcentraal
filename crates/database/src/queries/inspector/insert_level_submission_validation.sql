@@ -1,0 +1,1 @@
+INSERT INTO zc_private.level_submission_validation(id_submission,submission_revision,workshop_updated_at,workshop_file_size,content_sha256,validator_version,rules_hash,id_level_item,file_uid,measurements,failures,valid,payload) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id

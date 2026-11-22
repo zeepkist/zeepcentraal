@@ -1,0 +1,1 @@
+SELECT zc_jobs.enqueue('fast','refreshMedals','{"idLevel":101}','legacy-fixture',NULL,3); SELECT zc_jobs.enqueue('fast','refreshMedals','{"idLevel":102}','invalid-fixture',NULL,3); UPDATE zc_jobs.job SET traceparent='invalid' WHERE job_key='invalid-fixture'

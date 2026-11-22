@@ -1,0 +1,1 @@
+INSERT INTO zc_private.zsl_tournament_state(id_round,owner,lease_until) VALUES($1,$2,clock_timestamp()+interval '90 seconds') ON CONFLICT(id_round) DO UPDATE SET owner=excluded.owner,lease_until=excluded.lease_until WHERE zsl_tournament_state.owner=excluded.owner OR zsl_tournament_state.lease_until<clock_timestamp() RETURNING state AS value

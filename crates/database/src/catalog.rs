@@ -59,17 +59,18 @@ pub async fn verify(connection: &mut AsyncPgConnection) -> Result<()> {
     }
     let mut versions = Vec::new();
     for schema in ["zc_private", "public"] {
-        let present = sql_query(format!(
-            "SELECT to_regclass('{schema}.__diesel_schema_migrations') IS NOT NULL AS present"
-        ))
+        let present = sql_query(
+            include_str!("queries/migrations/ledger_exists.sql").replace("{{schema}}", schema),
+        )
         .get_result::<LedgerExists>(connection)
         .await?
         .present;
         if present {
             versions.extend(
-                sql_query(format!(
-                    "SELECT version::text FROM {schema}.__diesel_schema_migrations"
-                ))
+                sql_query(
+                    include_str!("queries/migrations/read_ledger_versions.sql")
+                        .replace("{{schema}}", schema),
+                )
                 .load::<Version>(connection)
                 .await?
                 .into_iter()
@@ -78,19 +79,11 @@ pub async fn verify(connection: &mut AsyncPgConnection) -> Result<()> {
         }
     }
     apply_migration_overlay(&mut snapshot, &versions);
-    let rows: Vec<CatalogColumn> = sql_query(
-        "SELECT n.nspname::text AS table_schema, c.relname::text AS table_name, \
-         a.attname::text AS column_name, format_type(a.atttypid,a.atttypmod)::text AS data_type, \
-         a.attnotnull AS not_null, c.relkind::text AS relation_kind \
-         FROM pg_catalog.pg_attribute a \
-         JOIN pg_catalog.pg_class c ON c.oid=a.attrelid \
-         JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace \
-         WHERE n.nspname IN ('public','zc_private') AND c.relkind IN ('r','p','v','m') \
-         AND a.attnum > 0 AND NOT a.attisdropped",
-    )
-    .load(connection)
-    .await
-    .context("Failed to inspect PostgreSQL catalog")?;
+    let rows: Vec<CatalogColumn> =
+        sql_query(include_str!("queries/migrations/read_catalog_columns.sql"))
+            .load(connection)
+            .await
+            .context("Failed to inspect PostgreSQL catalog")?;
     let actual: BTreeMap<_, _> = rows
         .into_iter()
         .map(|column| {

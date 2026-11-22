@@ -1,0 +1,1 @@
+INSERT INTO zc_private.level_submission_notification(id_submission,desired_revision,desired_validation_id) VALUES($1,$2,$3) ON CONFLICT(id_submission) DO UPDATE SET desired_revision=$2,desired_validation_id=$3,next_attempt_at=now(),date_updated=now()

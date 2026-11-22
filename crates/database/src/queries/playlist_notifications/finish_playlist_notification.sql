@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submission_playlist_notification SET delivered_playlist_id=$2,channel_id=$3,message_id=$4,attempt_playlist_id=NULL,attempt_channel_id=NULL,attempt_started_at=NULL WHERE id_contest=$1

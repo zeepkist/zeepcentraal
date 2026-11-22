@@ -19,7 +19,7 @@ pub async fn enqueue_ghost_audit_levels(
     ensure!(levels.iter().all(|id| *id > 0), "Invalid audit level");
     let mut remaining: BTreeSet<i32> = levels.iter().copied().collect();
     while !remaining.is_empty() {
-        sql_query("SELECT zc_jobs.lock_lane('bulk')")
+        sql_query(include_str!("../queries/workshop_queue/lock_bulk_lane.sql"))
             .execute(connection)
             .await?;
         #[derive(QueryableByName)]
@@ -29,8 +29,12 @@ pub async fn enqueue_ghost_audit_levels(
             #[diesel(sql_type=Jsonb)]
             payload: serde_json::Value,
         }
-        let pending = sql_query("SELECT id,payload FROM zc_jobs.job WHERE task='auditRecordGhosts' AND NOT running AND NOT(payload ? 'work') AND job_key LIKE 'audit-changed-levels:%' AND jsonb_array_length(payload->'idLevels')<1000 ORDER BY id LIMIT 1 FOR UPDATE")
-                    .get_result::<Pending>(connection).await.optional()?;
+        let pending = sql_query(include_str!(
+            "../queries/workshop_queue/read_pending_ghost_audit.sql"
+        ))
+        .get_result::<Pending>(connection)
+        .await
+        .optional()?;
         let mut ids: std::collections::BTreeSet<i32> = pending
             .as_ref()
             .into_iter()
@@ -47,14 +51,21 @@ pub async fn enqueue_ghost_audit_levels(
         ids.extend(taken.iter().copied());
         let payload = serde_json::json!({"idLevels":ids});
         if let Some(pending) = pending {
-            sql_query("UPDATE zc_jobs.job SET payload=$2 WHERE id=$1")
-                .bind::<BigInt, _>(pending.id)
-                .bind::<Jsonb, _>(payload)
-                .execute(connection)
-                .await?;
+            sql_query(include_str!(
+                "../queries/workshop_queue/update_ghost_audit_payload.sql"
+            ))
+            .bind::<BigInt, _>(pending.id)
+            .bind::<Jsonb, _>(payload)
+            .execute(connection)
+            .await?;
         } else {
-            sql_query("SELECT zc_jobs.enqueue('bulk','auditRecordGhosts',$1,$2,'ghost-audit',3,clock_timestamp())")
-                        .bind::<Jsonb,_>(payload).bind::<Text,_>(format!("audit-changed-levels:{}",zc_core::generate_uid())).execute(connection).await?;
+            sql_query(include_str!(
+                "../queries/workshop_queue/enqueue_ghost_audit.sql"
+            ))
+            .bind::<Jsonb, _>(payload)
+            .bind::<Text, _>(format!("audit-changed-levels:{}", zc_core::generate_uid()))
+            .execute(connection)
+            .await?;
         }
 
         for id in taken.into_iter().chain(already) {
@@ -69,8 +80,12 @@ pub(crate) async fn enqueue_level_scores(
     levels: &[i32],
 ) -> Result<()> {
     for id in levels.iter().copied().collect::<BTreeSet<_>>() {
-        sql_query("SELECT zc_jobs.enqueue('bulk','updateLevelScore',jsonb_build_object('idLevel',$1::integer),'update-level-score:'||$1,'level-maintenance-shard:'||($1%4),3,clock_timestamp())")
-            .bind::<Integer,_>(id).execute(connection).await?;
+        sql_query(include_str!(
+            "../queries/workshop_queue/enqueue_level_scores.sql"
+        ))
+        .bind::<Integer, _>(id)
+        .execute(connection)
+        .await?;
     }
     Ok(())
 }

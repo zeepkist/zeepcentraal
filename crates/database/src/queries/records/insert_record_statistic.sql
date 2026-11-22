@@ -1,0 +1,1 @@
+INSERT INTO public.record_statistic SELECT populated.* FROM jsonb_populate_record( NULL::public.record_statistic, $1 || jsonb_build_object('id_record',$2,'date_created',clock_timestamp(),'date_updated',clock_timestamp()) ) AS populated

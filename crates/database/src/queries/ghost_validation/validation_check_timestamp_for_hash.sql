@@ -1,0 +1,1 @@
+SELECT l.id AS id_level,coalesce(l.validation_inputs_updated_at,'epoch'::timestamptz)::text AS checked_at,coalesce(l.validation_metadata_updated_at,'epoch'::timestamptz)::text AS checked_metadata_at FROM (SELECT 1) seed LEFT JOIN public.level l ON l.xx_hash=$1

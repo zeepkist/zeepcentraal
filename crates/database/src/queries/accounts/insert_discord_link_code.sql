@@ -1,0 +1,1 @@
+INSERT INTO zc_private.discord_link_code(code_hash,id_user,expires_at) VALUES($1,$2,clock_timestamp()+interval '10 minutes') RETURNING to_char(expires_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS expires_at

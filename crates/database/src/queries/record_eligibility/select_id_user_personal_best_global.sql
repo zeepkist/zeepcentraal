@@ -1,0 +1,1 @@
+SELECT id_user AS id FROM public.personal_best_global WHERE id_level=$1 UNION SELECT id_user FROM public.world_record_global WHERE id_level=$1 UNION SELECT id_user FROM public.user_point_contribution WHERE id_level=$1 UNION SELECT id_user FROM public.record WHERE id_level=$1 ORDER BY id

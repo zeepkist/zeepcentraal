@@ -1,0 +1,1 @@
+UPDATE zc_private.level_submissions SET latest_validation_id=$2,level_hash=(SELECT xx_hash FROM public.level WHERE xx_hash=$3),retry_category=NULL,inspection_started_at=NULL,next_inspection_at=now()+interval '30 minutes',date_updated=now() WHERE id=$1

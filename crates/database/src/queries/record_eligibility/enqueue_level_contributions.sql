@@ -1,0 +1,1 @@
+SELECT zc_jobs.enqueue('bulk','updateLevelContributions',jsonb_build_object('idLevel',$1::integer,'afterUserId',0),'update-level-contributions:'||$1,'level-maintenance-shard:'||($1%4),3,clock_timestamp())

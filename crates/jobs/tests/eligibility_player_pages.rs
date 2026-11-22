@@ -13,6 +13,11 @@ use zc_jobs::{
     runtime::{JobHandler, JobOutcome},
 };
 
+const COUNT_JOB: &str = include_str!("fixtures/eligibility_player_pages/count_job.sql");
+const COUNT_JOB_BY_TASK_FAN_OUT_RECORD_ELIGIBILITY: &str = include_str!(
+    "fixtures/eligibility_player_pages/count_job_by_task_fan_out_record_eligibility.sql"
+);
+
 struct NoStorage;
 #[async_trait]
 impl ObjectStorage for NoStorage {
@@ -70,7 +75,9 @@ async fn player_pages_are_atomic_fenced_and_resumable() -> Result<()> {
         .pool_partition()
         .connection()
         .await?
-        .batch_execute("TRUNCATE zc_jobs.job,pgmq.q_zeepcentraal_bulk,pgmq.q_zeepcentraal_fast")
+        .batch_execute(include_str!(
+            "fixtures/eligibility_player_pages/truncate_job.sql"
+        ))
         .await?;
     let queue = Queue::connect(database.pool_partition()).await?;
     let storage: Arc<dyn ObjectStorage> = Arc::new(NoStorage);
@@ -108,67 +115,94 @@ async fn player_pages_are_atomic_fenced_and_resumable() -> Result<()> {
         handler.handle_claimed(&stale, JobLane::Bulk).await?,
         JobOutcome::Completed
     ));
-    assert_eq!(
-        count(&database, "SELECT count(*) AS count FROM zc_jobs.job").await?,
-        1
-    );
-    database.pool_partition().connection().await?.batch_execute(&format!("UPDATE zc_jobs.job SET lease_until=clock_timestamp()-interval '1 second' WHERE lane='bulk' AND id={}",first.id.parse::<i64>()?)).await?;
+    assert_eq!(count(&database, COUNT_JOB).await?, 1);
+    database
+        .pool_partition()
+        .connection()
+        .await?
+        .batch_execute(
+            &include_str!("fixtures/eligibility_player_pages/expire_job_lease.sql")
+                .replace("{{job_id}}", &first.id.parse::<i64>()?.to_string()),
+        )
+        .await?;
     handler.handle_claimed(&first, JobLane::Bulk).await?;
-    assert_eq!(
-        count(&database, "SELECT count(*) AS count FROM zc_jobs.job").await?,
-        1
-    );
-    database.pool_partition().connection().await?.batch_execute(&format!("UPDATE zc_jobs.job SET lease_until=clock_timestamp()+interval '120 seconds' WHERE lane='bulk' AND id={}",first.id.parse::<i64>()?)).await?;
+    assert_eq!(count(&database, COUNT_JOB).await?, 1);
+    database
+        .pool_partition()
+        .connection()
+        .await?
+        .batch_execute(
+            &include_str!("fixtures/eligibility_player_pages/extend_job_lease.sql")
+                .replace("{{job_id}}", &first.id.parse::<i64>()?.to_string()),
+        )
+        .await?;
     handler.handle_claimed(&first, JobLane::Bulk).await?;
     assert_eq!(
         count(
             &database,
-            "SELECT count(*) AS count FROM zc_jobs.job WHERE task='updatePlayerScore'"
+            include_str!(
+                "fixtures/eligibility_player_pages/count_job_by_task_update_player_score.sql"
+            )
         )
         .await?,
         100
     );
     assert_eq!(
-        count(
-            &database,
-            "SELECT count(*) AS count FROM zc_jobs.job WHERE task='fanOutRecordEligibility'"
-        )
-        .await?,
+        count(&database, COUNT_JOB_BY_TASK_FAN_OUT_RECORD_ELIGIBILITY).await?,
         2
     );
     // Commit-before-ack replay must coalesce both children and continuation.
     handler.handle_claimed(&first, JobLane::Bulk).await?;
-    assert_eq!(
-        count(&database, "SELECT count(*) AS count FROM zc_jobs.job").await?,
-        102
-    );
+    assert_eq!(count(&database, COUNT_JOB).await?, 102);
     ensure!(queue.heartbeat(&first).await?);
     ensure!(queue.finish(&first, None).await?);
     let second = parent(&queue).await?;
     assert_eq!(second.payload["afterUserId"], 100);
-    let before = count(&database, "SELECT count(*) AS count FROM zc_jobs.job").await?;
-    database.pool_partition().connection().await?.batch_execute("CREATE FUNCTION public.reject_fanout_fixture() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.task='updatePlayerScore' AND NEW.payload->>'idUser'='102' THEN RAISE EXCEPTION 'fixture rollback'; END IF; RETURN NEW; END $$; CREATE TRIGGER reject_fanout_fixture BEFORE INSERT ON zc_jobs.job FOR EACH ROW EXECUTE FUNCTION public.reject_fanout_fixture()").await?;
+    let before = count(&database, COUNT_JOB).await?;
+    database
+        .pool_partition()
+        .connection()
+        .await?
+        .batch_execute(include_str!(
+            "fixtures/eligibility_player_pages/create_reject_fanout_fixture.sql"
+        ))
+        .await?;
     assert!(
         handler
             .handle_claimed(&second, JobLane::Bulk)
             .await
             .is_err()
     );
-    assert_eq!(
-        count(&database, "SELECT count(*) AS count FROM zc_jobs.job").await?,
-        before
-    );
-    database.pool_partition().connection().await?.batch_execute("DROP TRIGGER reject_fanout_fixture ON zc_jobs.job; DROP FUNCTION public.reject_fanout_fixture()").await?;
+    assert_eq!(count(&database, COUNT_JOB).await?, before);
+    database
+        .pool_partition()
+        .connection()
+        .await?
+        .batch_execute(include_str!(
+            "fixtures/eligibility_player_pages/drop_reject_fanout_fixture.sql"
+        ))
+        .await?;
     handler.handle_claimed(&second, JobLane::Bulk).await?;
     ensure!(queue.finish(&second, None).await?);
     let third = parent(&queue).await?;
     assert_eq!(third.payload["afterUserId"], 200);
     handler.handle_claimed(&third, JobLane::Bulk).await?;
-    assert_eq!(count(&database,r#"SELECT count(*) AS count FROM zc_jobs.job WHERE task='updatePlayerScores' AND payload='{"silent":true}'::jsonb"#).await?,1);
     assert_eq!(
         count(
             &database,
-            "SELECT count(*) AS count FROM zc_jobs.job WHERE task='updateLevelScore'"
+            include_str!(
+                "fixtures/eligibility_player_pages/count_job_by_task_update_player_scores.sql"
+            )
+        )
+        .await?,
+        1
+    );
+    assert_eq!(
+        count(
+            &database,
+            include_str!(
+                "fixtures/eligibility_player_pages/count_job_by_task_update_level_score.sql"
+            )
         )
         .await?,
         0
@@ -187,11 +221,7 @@ async fn player_pages_are_atomic_fenced_and_resumable() -> Result<()> {
         let job = parent(&queue).await?;
         handler.handle_claimed(&job, JobLane::Bulk).await?;
         assert_eq!(
-            count(
-                &database,
-                "SELECT count(*) AS count FROM zc_jobs.job WHERE task='fanOutRecordEligibility'"
-            )
-            .await?,
+            count(&database, COUNT_JOB_BY_TASK_FAN_OUT_RECORD_ELIGIBILITY).await?,
             1
         );
         ensure!(queue.finish(&job, None).await?);

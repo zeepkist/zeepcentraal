@@ -1,0 +1,1 @@
+SELECT records_yesterday,active_players_last_month FROM public.global_metrics()
