@@ -35,7 +35,7 @@ diesel-async = { version = "0.10.0", features = ["postgres", "pool", "bb8", "mig
 diesel_migrations = "2.4"
 hex = "0.4"
 hmac = "0.13"
-jiff = { version = "0.2", features = ["serde"] }
+jiff = { version = "1.0.1", features = ["serde"] }
 jwt = "0.16"
 lzma-rs = "0.3"
 opentelemetry = { version = "0.33", features = ["internal-logs"] }
