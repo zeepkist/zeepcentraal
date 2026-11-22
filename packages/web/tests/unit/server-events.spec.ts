@@ -19,12 +19,26 @@ describe('portable server events', () => {
 			'Path=/auth/',
 		)
 	})
-	it('rejects mismatched origins and cross-site requests with HTTP 403', () => {
+	it.each([
+		['http://zeepki.st', 'https://zeepki.st', { 'x-forwarded-proto': 'https' }],
+		['http://localhost:4000', 'http://localhost:4000', {}],
+	] as const)('accepts same-origin POST to %s from %s', (upstream, origin, headers) => {
+		const event = createRequestEvent(`${upstream}/api/admin/zsl`, {
+			method: 'POST',
+			headers: { ...headers, origin, 'sec-fetch-site': 'same-origin' },
+		})
+		expect(() => assertSameOrigin(event)).not.toThrow()
+	})
+	it('rejects mismatched origins and cross-site requests behind the proxy with HTTP 403', () => {
 		for (const headers of [
-			{ origin: 'https://other.example.test' },
-			{ 'sec-fetch-site': 'cross-site' },
+			{ origin: 'https://other.example.test', 'sec-fetch-site': 'same-origin' },
+			{ origin: 'http://zeepki.st', 'sec-fetch-site': 'same-site' },
+			{ origin: 'https://zeepki.st', 'sec-fetch-site': 'cross-site' },
 		]) {
-			const event = createRequestEvent('/api/auth/logout', { headers })
+			const event = createRequestEvent('http://zeepki.st/api/admin/zsl', {
+				method: 'POST',
+				headers: { ...headers, 'x-forwarded-proto': 'https' },
+			})
 			expect(() => assertSameOrigin(event)).toThrowError(
 				expect.objectContaining({ statusCode: 403 }),
 			)

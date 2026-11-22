@@ -12,7 +12,7 @@ export function assertSameOrigin(event: RequestEvent) {
 		isCrossOriginRequest(
 			getRequestHeader(event, 'origin'),
 			getRequestHeader(event, 'sec-fetch-site'),
-			getRequestURL(event).origin,
+			getRequestURL(event, { xForwardedProto: true }).origin,
 		)
 	) {
 		throw createError({
