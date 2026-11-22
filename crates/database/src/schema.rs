@@ -628,6 +628,11 @@ diesel::table! {
         workshop_id -> BigInt,
         event_date -> Timestamptz,
         event2_date -> Nullable<Timestamptz>,
+        submission_start -> Nullable<Timestamptz>,
+        submission_end -> Nullable<Timestamptz>,
+        zsl_vote_end -> Nullable<Timestamptz>,
+        cosmetic_vote_end -> Nullable<Timestamptz>,
+        steam_announcement_id -> Nullable<BigInt>,
         date_created -> Timestamptz,
         date_updated -> Nullable<Timestamptz>,
     }
@@ -926,6 +931,40 @@ diesel::table! {
         content_sha256 -> Text,
         byte_size -> Integer,
         date_updated -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    zc_private.zsl_admin_change (id) {
+        id -> BigInt,
+        entity -> Text,
+        entity_id -> Integer,
+        actor_steam_id -> BigInt,
+        previous -> Nullable<Jsonb>,
+        current -> Jsonb,
+        changed_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    zc_private.zsl_playlist_revision (id) {
+        id -> Integer,
+        round_id -> Integer,
+        kind -> Text,
+        source -> Nullable<Text>,
+        state -> Text,
+        diagnostics -> Jsonb,
+        bundle -> Nullable<Jsonb>,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    zc_private.zsl_readiness_alert (round_id, timeslot, starts_at, hours) {
+        round_id -> Integer,
+        timeslot -> Integer,
+        starts_at -> Timestamptz,
+        hours -> Integer,
     }
 }
 

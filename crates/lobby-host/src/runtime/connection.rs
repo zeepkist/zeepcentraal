@@ -358,7 +358,9 @@ impl ConnectedRoom<'_> {
             // Covers disable during assignment/connection and host recovery.
             state.host = self.recover_shutdown_authority(&state.roster).await;
         }
-        if state.host
+        // Profiles that publish only after activation keep an open room visible during recovery.
+        if (scheduled || self.stopped.load(Ordering::Acquire) || self.profile.publish_on_connect())
+            && state.host
             && let Err(error) = self
                 .connection
                 .send(change_lobby_visibility_packet(false)?)
@@ -562,7 +564,7 @@ impl ConnectedRoom<'_> {
         seed.capture(profile.as_ref(), &context).await?;
         state.active.as_ref().unwrap().callbacks.send(seed)?;
         *state.ingress.write().unwrap() = Some((context.clone(), profile.clone(), transfers));
-        let is_public = self.config.room.is_public;
+        let is_public = self.config.room.is_public && self.profile.publish_on_connect();
         let room_name = self.profile.room_name();
         let task = tokio::spawn(async move {
             seeded

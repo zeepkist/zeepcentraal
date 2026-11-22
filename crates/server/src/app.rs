@@ -61,6 +61,16 @@ pub fn router(state: Arc<AppState>) -> Result<Router> {
             get(crate::ghost_validation_routes::list),
         )
         .route(
+            "/admin/zsl",
+            get(crate::zsl_admin_routes::dashboard).post(crate::zsl_admin_routes::save),
+        )
+        .route(
+            "/admin/zsl/rounds/{id}/playlists",
+            get(crate::zsl_admin_routes::status)
+                .post(crate::zsl_admin_routes::playlist)
+                .layer(DefaultBodyLimit::max(7 * 1024 * 1024)),
+        )
+        .route(
             "/admin/ghost-validation/audit",
             post(crate::ghost_validation_routes::audit),
         )

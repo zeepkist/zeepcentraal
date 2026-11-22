@@ -1,5 +1,6 @@
 use super::*;
 use crate::chat::FnPacketSender;
+use crate::transfer::ActivationTimeout;
 use zc_core::{
     object_storage::DownloadConstraints,
     practice::{PracticeLevel, PracticePayload},
@@ -7,13 +8,20 @@ use zc_core::{
 };
 
 struct TestStorage;
+const VERIFIED_PRACTICE_DIGEST: &str =
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
 #[async_trait::async_trait]
 impl ObjectStorage for TestStorage {
     async fn upload(&self, _: &str, _: Vec<u8>, _: &str) -> Result<()> {
         Ok(())
     }
-    async fn download(&self, _: &str, _: DownloadConstraints<'_>) -> Result<Vec<u8>> {
-        Ok(vec![1, 2, 3])
+    async fn download(&self, _: &str, constraints: DownloadConstraints<'_>) -> Result<Vec<u8>> {
+        if constraints.expected_sha256 == Some(VERIFIED_PRACTICE_DIGEST) {
+            zc_core::zeepnet::encode_zeepkist_level_payload("Practice fixture", true)
+        } else {
+            Ok(vec![1, 2, 3])
+        }
     }
     async fn delete(&self, _: &str) -> Result<()> {
         Ok(())
@@ -57,8 +65,26 @@ fn bundle(round_id: i32, warmup: bool) -> PracticeBundle {
             .collect(),
     }
 }
+
+#[tokio::test]
+async fn host_reports_each_undecodable_warmup_payload() -> Result<()> {
+    let asset = pinned_asset(bundle(7, true), Arc::new(TestStorage))?;
+    let failures = verify_payloads(&asset).await;
+    assert_eq!(failures.len(), 4);
+    assert_eq!(failures[0]["uid"], "warmup-0");
+    assert_eq!(failures[3]["position"], 4);
+    assert_eq!(failures[3]["workshopId"], "1");
+    Ok(())
+}
 fn config(tournament: bool) -> Result<ManagedRoomConfig> {
-    Ok(crate::config::LobbyHostFileConfig::parse(&format!(r#"{{"version":1,"rooms":[{{"key":"{}","profile":{{"type":"{}","roundId":7,"playlist":"https://example.com/final.zeeplist"}},"room":{{"name":"ZSL","isPublic":true,"maxPlayers":64}},"roundTimeSeconds":{},"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}}]}}"#,if tournament {"zsl"} else {"practice"},if tournament {"zsl"} else {"zsl-practice"},if tournament {420} else {900}))?.rooms.remove(0))
+    let (key, profile, playlist, seconds) = if tournament {
+        ("zsl", "zsl", "final", 420)
+    } else {
+        ("practice", "zsl-practice", "practice", 900)
+    };
+    Ok(crate::config::LobbyHostFileConfig::parse(&format!(
+        r#"{{"version":1,"rooms":[{{"key":"{key}","profile":{{"type":"{profile}","roundId":7,"playlist":"https://example.com/{playlist}.zeeplist"}},"room":{{"name":"ZSL","isPublic":true,"maxPlayers":64}},"roundTimeSeconds":{seconds},"assetPollMs":30000,"reconnectMaxMs":60000,"messageRefreshMs":60000}}]}}"#
+    ))?.rooms.remove(0))
 }
 fn player() -> GameHostPlayer {
     GameHostPlayer {
@@ -700,7 +726,7 @@ async fn transition_retries_once_then_propagates_terminal_failure() -> Result<()
             Ok(())
         }
     })))?;
-    for attempt in 1..=2 {
+    for attempt in 1..=3 {
         let transition = prepared_transition(&session, Phase::Tournament).await?;
         let task = tokio::spawn({
             let session = session.clone();
@@ -711,8 +737,10 @@ async fn transition_retries_once_then_propagates_terminal_failure() -> Result<()
         let error = task.await?.unwrap_err();
         if attempt == 1 {
             assert!(error.is::<ActivationTimeout>());
-        } else {
+        } else if attempt == 2 {
             assert!(error.is::<TransitionFailed>());
+        } else {
+            assert!(error.is::<TransitionUnavailable>());
         }
         assert!(session.live.lock().await.ready.is_none());
     }
@@ -753,7 +781,7 @@ async fn timeout_retry_can_succeed_and_resets_failure_count() -> Result<()> {
         .dispatch(session.as_ref(), &GameHostPacket::GameState(0))
         .await?;
     task.await??;
-    assert!(session.live.lock().await.failed_activation.is_none());
+    assert!(session.shared.recovery.lock().await.is_none());
     Ok(())
 }
 
@@ -767,7 +795,8 @@ async fn transition_send_failure_propagates_and_does_not_commit() -> Result<()> 
         run_transition(&session, transition)
             .await
             .unwrap_err()
-            .is::<TransitionFailed>()
+            .to_string()
+            .contains("fake send failure")
     );
     assert!(session.live.lock().await.ready.is_none());
     assert!(session.live.lock().await.active.is_none());
@@ -932,10 +961,7 @@ async fn recover_phase(
         context: context.clone(),
         board: Mutex::new(context.leaderboard()),
         scoring: RwLock::new(None),
-        live: Mutex::new(LiveState {
-            last_assets: Some(Instant::now()),
-            ..Default::default()
-        }),
+        live: Mutex::new(LiveState::default()),
         stopped: AtomicBool::new(false),
         wake: Notify::new(),
     });
@@ -972,6 +998,10 @@ async fn recover_phase(
         .await?
         .context("recovery lease unavailable")?;
     *shared.saved.lock().await = serde_json::from_value(stored)?;
+    let mut selections = shared.selections.lock().await;
+    if selections.tournament.is_none() {
+        selections.tournament = restarted.shared.selections.lock().await.tournament.clone();
+    }
     Ok(())
 }
 
@@ -1010,6 +1040,16 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         .await?;
     client
         .batch_execute(include_str!(
+            "../../../../database/migrations/20261122001000_zsl_admin/up.sql"
+        ))
+        .await?;
+    client
+        .batch_execute(include_str!(
+            "../../../../database/migrations/20261122002000_zsl_practice_upload/up.sql"
+        ))
+        .await?;
+    client
+        .batch_execute(include_str!(
             "../../../tests/fixtures/zsl_profile/insert_zsl_points_structure.sql"
         ))
         .await?;
@@ -1031,6 +1071,18 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         .await?;
     let tournament = bundle(7, false);
     let warmup = bundle(7, true);
+    let mut practice = tournament.clone();
+    practice.playlist = zc_core::practice::practice_playlist_key(7);
+    practice.round_length = Some(900);
+    practice.levels.remove(7);
+    let payload = zc_core::zeepnet::encode_zeepkist_level_payload("Practice fixture", true)?;
+    for entry in &mut practice.levels {
+        entry.sha256 = VERIFIED_PRACTICE_DIGEST.into();
+        entry.object_key = format!("zsl-practice/payloads/{VERIFIED_PRACTICE_DIGEST}.gz");
+        entry.byte_size = payload.len();
+    }
+    practice.validate()?;
+    assert!(practice.validate_tournament().is_err());
     {
         let mut saved = shared.saved.lock().await;
         saved.pinned = Some(tournament.clone());
@@ -1039,7 +1091,51 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         drop(saved);
         shared.save(&snapshot).await?;
     }
-    *shared.practice_asset.lock().await = Some(pinned_asset(tournament.clone(), storage.clone())?);
+    let revision = database
+        .request_zsl_playlist(42, 7, "practice", Some("{}".into()), None)
+        .await?;
+    let job = database
+        .claim_zsl_playlist(revision)
+        .await?
+        .context("Missing practice preparation")?;
+    database
+        .finish_zsl_playlist(&job, Some(&practice), serde_json::json!([]))
+        .await?;
+    let assets = shared
+        .practice_assets
+        .as_ref()
+        .context("Missing practice source")?;
+    let SubmissionPlaylist::Ready(asset) = assets.refresh().await? else {
+        anyhow::bail!("Practice playlist failed host verification");
+    };
+    assert_eq!(
+        database.zsl_playlist_status(7).await?["playlists"][0]["verifiedRevision"],
+        revision
+    );
+    *shared.practice_asset.lock().await = Some(asset);
+    let replacement = database
+        .request_zsl_playlist(42, 7, "practice", Some("{}".into()), None)
+        .await?;
+    let job = database
+        .claim_zsl_playlist(replacement)
+        .await?
+        .context("Missing practice replacement")?;
+    let mut broken = practice;
+    broken.levels[0].sha256 = "b".repeat(64);
+    broken.levels[0].object_key = format!("zsl-practice/payloads/{}.gz", broken.levels[0].sha256);
+    database
+        .finish_zsl_playlist(&job, Some(&broken), serde_json::json!([]))
+        .await?;
+    let SubmissionPlaylist::Ready(asset) = assets.refresh().await? else {
+        anyhow::bail!("Failed replacement removed verified practice playlist");
+    };
+    assert_eq!(
+        asset.digest,
+        shared.practice_asset.lock().await.as_ref().unwrap().digest
+    );
+    let status = database.zsl_playlist_status(7).await?;
+    assert_eq!(status["playlists"][0]["state"], "failed");
+    assert_eq!(status["playlists"][0]["diagnostics"][0]["uid"], "zsl-0");
     let now = jiff::Timestamp::now().as_second();
     *shared.event.write().unwrap() = Some(ZslEvent {
         name: "Test Round".into(),
@@ -1145,10 +1241,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         board: Mutex::new(context.leaderboard()),
         scoring: RwLock::new(None),
         context: context.clone(),
-        live: Mutex::new(LiveState {
-            last_assets: Some(Instant::now()),
-            ..Default::default()
-        }),
+        live: Mutex::new(LiveState::default()),
         stopped: AtomicBool::new(false),
         wake: Notify::new(),
     });
@@ -1164,6 +1257,21 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         });
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
     assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
+    {
+        let live = session.live.lock().await;
+        let asset = live
+            .asset
+            .as_ref()
+            .context("Practice playlist unavailable")?;
+        assert_eq!(asset.playlist.levels.len(), 14);
+        assert!(
+            asset
+                .playlist
+                .levels
+                .iter()
+                .all(|level| level.uid != "zsl-7")
+        );
+    }
     recover_phase(&profile, &context, &target).await?;
     shared.event.write().unwrap().as_mut().unwrap().first = now + 1200;
     let missing = {
@@ -1193,7 +1301,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     );
     shared.event.write().unwrap().as_mut().unwrap().first = now + 300;
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    assert!(shared.saved.lock().await.announcements.contains("staged:0"));
+    assert!(!shared.saved.lock().await.announcements.contains("staged:0"));
     shared.event.write().unwrap().as_mut().unwrap().first = now;
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
     let finish = GameHostPacket::PlayerResult {
@@ -1280,6 +1388,17 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     shared.event.write().unwrap().as_mut().unwrap().first = now - 7 * 420;
     tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
     assert!(session.live.lock().await.current_level_id.is_none());
+    assert_ne!(
+        shared
+            .last_playable
+            .lock()
+            .await
+            .as_ref()
+            .unwrap()
+            .level
+            .uid,
+        "zsl-7"
+    );
     recover_phase(&profile, &context, &target).await?;
     assert!(
         shared
@@ -1379,26 +1498,59 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         .await?
         .context("claim failed")?;
     *failed_profile.shared.event.write().unwrap() = Some(database.zsl_event(8).await?);
-    let failed_session = ZslSession {
+    database
+        .set_managed_lobby_join_id("zsl", "fallback-join-id")
+        .await?;
+    failed_profile.shared.selections.lock().await.warmup =
+        Some(pinned_asset(bundle(8, true), storage.clone())?);
+    let failed_session = Arc::new(ZslSession {
         shared: failed_profile.shared.clone(),
         context: context.clone(),
         board: Mutex::new(context.leaderboard()),
         scoring: RwLock::new(None),
-        live: Mutex::new(LiveState {
-            last_assets: Some(Instant::now()),
-            ..Default::default()
-        }),
+        live: Mutex::new(LiveState::default()),
         stopped: AtomicBool::new(false),
         wake: Notify::new(),
-    };
+    });
+    *target.lock().await = Some(failed_session.clone());
     failed_session.tick().await?;
     assert!(failed_profile.shared.saved.lock().await.failed[0]);
-    assert!(failed_profile.close_at().is_some());
+    assert!(failed_profile.close_at().is_none());
     assert_eq!(context.players().await.len(), 1);
-    failed_profile.scheduled_closed().await?;
+    assert!(
+        failed_profile
+            .shared
+            .saved
+            .lock()
+            .await
+            .announcements
+            .contains("unscored:0")
+    );
+    assert_eq!(
+        failed_profile.shared.saved.lock().await.phase,
+        Phase::Waiting
+    );
+    failed_profile.shared.selections.lock().await.tournament =
+        Some(pinned_asset(bundle(8, false), storage.clone())?);
+    failed_profile
+        .shared
+        .event
+        .write()
+        .unwrap()
+        .as_mut()
+        .unwrap()
+        .second = jiff::Timestamp::now().as_second();
+    failed_session.tick().await?;
+    let recovered = failed_profile.shared.saved.lock().await;
+    assert!(recovered.failed[0]);
+    assert!(recovered.started[1]);
+    assert_eq!(recovered.phase, Phase::Tournament);
+    assert_eq!(
+        database.managed_lobby_join_id("zsl").await?.as_deref(),
+        Some("fallback-join-id")
+    );
+    drop(recovered);
     failed_profile.stop().await?;
-    let failed_restart = ZslProfile::new(tournament_config, None, database, storage)?;
-    assert!(failed_restart.prepare().await?.is_none());
     driver.abort();
     Ok(())
 }

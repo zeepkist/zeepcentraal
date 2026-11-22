@@ -44,6 +44,12 @@ pub struct DownloadedWorkshopItem {
 
 #[async_trait]
 pub trait WorkshopDownloader: Send + Sync {
+    async fn download_available(
+        &self,
+        workshop_ids: &[u64],
+    ) -> anyhow::Result<steamcmd::WorkshopDownload> {
+        self.download(workshop_ids).await
+    }
     async fn download(&self, workshop_ids: &[u64]) -> anyhow::Result<steamcmd::WorkshopDownload>;
 }
 

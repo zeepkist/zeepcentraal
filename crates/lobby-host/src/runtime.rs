@@ -33,6 +33,9 @@ pub trait LobbyProfile: Send + Sync + 'static {
     fn kick_on_close(&self) -> bool {
         true
     }
+    fn publish_on_connect(&self) -> bool {
+        true
+    }
     fn name(&self) -> &str;
     fn room_name(&self) -> Option<String> {
         None
@@ -308,11 +311,30 @@ impl RoomContext {
         if !self.transfer.lock().await.work_current(work) {
             return Ok(Vec::new());
         }
-        let level = work.load().await?;
+        let level = match work.load().await {
+            Ok(level) => level,
+            Err(error) => {
+                self.transfer
+                    .lock()
+                    .await
+                    .fail_activation_work(work, error)?;
+                return Ok(Vec::new());
+            }
+        };
         if !self.transfer.lock().await.work_current(work) {
             return Ok(Vec::new());
         }
-        if let Some(packet) = work.packet(&level)? {
+        let packet = match work.packet(&level) {
+            Ok(packet) => packet,
+            Err(error) => {
+                self.transfer
+                    .lock()
+                    .await
+                    .fail_activation_work(work, error)?;
+                return Ok(Vec::new());
+            }
+        };
+        if let Some(packet) = packet {
             let started = tokio::time::Instant::now();
             tracing::info!(generation=self.generation(),uid=%level.level.uid,workshop_id=level.level.workshop_id,"Lobby level upload started");
             self.send(packet).await?;
@@ -370,6 +392,11 @@ impl RoomContext {
     pub async fn set_round_time(&self, seconds: f64) -> Result<()> {
         anyhow::ensure!(self.is_host(), "Room host authority unavailable");
         self.transfer.lock().await.set_round_time(seconds)
+    }
+
+    pub(crate) async fn set_visibility(&self, public: bool) -> Result<()> {
+        self.send(zc_core::zeepnet::change_lobby_visibility_packet(public)?)
+            .await
     }
 
     pub(crate) async fn set_level_deadline(
@@ -573,17 +600,21 @@ mod tests {
         }
         #[async_trait::async_trait]
         impl crate::assets::LevelLoader for SlowLoader {
-            async fn load(&self, _: &str, _: u64) -> Result<Option<PreparedLevel>> {
+            async fn load(&self, uid: &str, _: u64) -> Result<Option<PreparedLevel>> {
                 self.started.add_permits(1);
                 self.release.acquire().await?.forget();
-                Ok(Some(level()))
+                let mut prepared = level();
+                prepared.level.uid = uid.into();
+                Ok(Some(prepared))
             }
         }
         let (context, mut packets) = activation_context()?;
         let started = Arc::new(tokio::sync::Semaphore::new(0));
         let release = Arc::new(tokio::sync::Semaphore::new(0));
+        let mut rotation = level().level;
+        rotation.uid = "rotation".into();
         let playlist = PreparedPlaylist::new(
-            vec![level().level],
+            vec![level().level, rotation],
             Arc::new(SlowLoader {
                 started: started.clone(),
                 release: release.clone(),
@@ -599,7 +630,7 @@ mod tests {
             .lock()
             .await
             .prepare_work(&GameHostPacket::LevelRequest {
-                uid: "test".into(),
+                uid: "rotation".into(),
                 workshop_id: 1,
                 name: "Test".into(),
             })?
@@ -608,7 +639,9 @@ mod tests {
             let context = context.clone();
             async move { context.execute_transfer(&work).await }
         });
-        started.acquire().await?.forget();
+        tokio::time::timeout(std::time::Duration::from_secs(1), started.acquire())
+            .await??
+            .forget();
         assert!(context.transfer.try_lock().is_ok());
         context
             .observe_received(&GameHostPacket::GameProperties {

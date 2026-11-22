@@ -12,7 +12,7 @@ use zc_core::object_storage::DownloadConstraints;
 
 static COMPARISON_SLOTS: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(2);
 
-async fn administrator(state: &AppState, headers: &HeaderMap) -> Result<(), Problem> {
+pub(crate) async fn administrator(state: &AppState, headers: &HeaderMap) -> Result<i64, Problem> {
     let claims = auth::user(headers, state, false)?;
     if claims.provider == zc_core::jwt::Provider::Gtr {
         return Err(denied());
@@ -26,7 +26,7 @@ async fn administrator(state: &AppState, headers: &HeaderMap) -> Result<(), Prob
     if !allowed {
         return Err(denied());
     }
-    Ok(())
+    Ok(steam)
 }
 fn denied() -> Problem {
     Problem {

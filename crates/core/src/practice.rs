@@ -78,6 +78,15 @@ pub fn warmup_playlist_key(round_id: i32) -> String {
     format!("zsl-warmup:{round_id}")
 }
 
+/// Internal identity for an uploaded tournament playlist.
+pub fn tournament_playlist_key(round_id: i32) -> String {
+    format!("zsl-tournament:{round_id}")
+}
+
+pub fn practice_playlist_key(round_id: i32) -> String {
+    format!("zsl-practice:{round_id}")
+}
+
 pub fn validate_playlist_url(value: &str) -> Result<reqwest::Url> {
     let url = reqwest::Url::parse(value).context("Invalid practice playlist URL")?;
     ensure!(
@@ -132,12 +141,56 @@ impl PracticePlaylist {
         validate_levels(playlist.levels.iter())?;
         Ok(playlist)
     }
+
+    pub fn validate_tournament(&self) -> Result<()> {
+        validate_tournament_shape(self.round_length, &self.levels.iter().collect::<Vec<_>>())
+    }
+
+    pub fn validate_practice(&self, tournament: Option<&Self>) -> Result<()> {
+        let tournament_break = tournament.and_then(|playlist| {
+            playlist.validate_tournament().ok()?;
+            playlist.levels.get(7)
+        });
+        ensure!(
+            !self
+                .levels
+                .iter()
+                .any(|level| tournament_break.is_some_and(|entry| {
+                    level.uid == entry.uid && level.workshop_id == entry.workshop_id
+                })),
+            "Practice playlist contains the tournament break"
+        );
+        ensure!(
+            self.validate_tournament().is_err(),
+            "Upload a practice playlist without the tournament break"
+        );
+        Ok(())
+    }
+}
+
+fn validate_tournament_shape(round_length: Option<u64>, levels: &[&PracticeLevel]) -> Result<()> {
+    ensure!(
+        round_length == Some(420),
+        "ZSL playlist roundLength must be 420"
+    );
+    ensure!(
+        levels.len() == 15
+            && levels
+                .iter()
+                .enumerate()
+                .all(|(index, level)| { level.name.starts_with("ZSL") == (index != 7) }),
+        "ZSL playlist needs 14 scored tracks and a break after Track 7"
+    );
+    Ok(())
 }
 
 impl PracticeBundle {
     pub fn validate(&self) -> Result<()> {
         ensure!(self.round_id > 0, "Invalid practice round ID");
-        if self.playlist != warmup_playlist_key(self.round_id) {
+        if self.playlist != warmup_playlist_key(self.round_id)
+            && self.playlist != tournament_playlist_key(self.round_id)
+            && self.playlist != practice_playlist_key(self.round_id)
+        {
             validate_playlist_url(&self.playlist)?;
         }
         validate_levels(self.levels.iter().map(|entry| &entry.level))?;
@@ -148,6 +201,47 @@ impl PracticeBundle {
                     && entry.sha256.bytes().all(|b| b.is_ascii_hexdigit())
                     && entry.object_key == format!("zsl-practice/payloads/{}.gz", entry.sha256),
                 "Invalid practice payload metadata"
+            );
+        }
+        Ok(())
+    }
+
+    pub fn validate_tournament(&self) -> Result<()> {
+        validate_tournament_shape(
+            self.round_length,
+            &self
+                .levels
+                .iter()
+                .map(|entry| &entry.level)
+                .collect::<Vec<_>>(),
+        )?;
+        let mut hashes = HashSet::new();
+        for (index, entry) in self
+            .levels
+            .iter()
+            .enumerate()
+            .filter(|(index, _)| *index != 7)
+        {
+            ensure!(
+                entry
+                    .xx_hash
+                    .as_ref()
+                    .is_some_and(|hash| hash.len() == 32
+                        && hash.bytes().all(|byte| byte.is_ascii_hexdigit()))
+                    && entry
+                        .legacy_hash
+                        .as_ref()
+                        .is_some_and(|hash| !hash.is_empty())
+                    && entry
+                        .author_time
+                        .is_some_and(|time| time.is_finite() && time > 0.0),
+                "ZSL entry {} has incomplete scoring metadata",
+                index + 1
+            );
+            ensure!(
+                hashes.insert(entry.xx_hash.as_ref().unwrap()),
+                "ZSL entry {} duplicates a scored track",
+                index + 1
             );
         }
         Ok(())

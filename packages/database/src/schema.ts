@@ -2607,6 +2607,11 @@ export const zslRound = pgTable(
 		workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
 		eventDate: timestamp('event_date', { withTimezone: true, mode: 'string' }).notNull(),
 		event2Date: timestamp('event2_date', { withTimezone: true, mode: 'string' }),
+		submissionStart: timestamp('submission_start', { withTimezone: true, mode: 'string' }),
+		submissionEnd: timestamp('submission_end', { withTimezone: true, mode: 'string' }),
+		zslVoteEnd: timestamp('zsl_vote_end', { withTimezone: true, mode: 'string' }),
+		cosmeticVoteEnd: timestamp('cosmetic_vote_end', { withTimezone: true, mode: 'string' }),
+		steamAnnouncementId: bigint('steam_announcement_id', { mode: 'bigint' }),
 		dateCreated: timestamp('date_created', { withTimezone: true, mode: 'string' })
 			.notNull()
 			.defaultNow(),
@@ -2837,6 +2842,72 @@ export const zslPracticePlaylist = zcPrivate.table(
 			'zsl_practice_playlist_byte_size_check',
 			sql`${table.byteSize} > 0 AND ${table.byteSize} <= 1048576`,
 		),
+	],
+)
+
+export const zslAdminChange = zcPrivate.table(
+	'zsl_admin_change',
+	{
+		id: bigint({ mode: 'bigint' }).primaryKey().generatedAlwaysAsIdentity(),
+		entity: text().notNull(),
+		entityId: integer('entity_id').notNull(),
+		actorSteamId: bigint('actor_steam_id', { mode: 'bigint' }).notNull(),
+		previous: jsonb(),
+		current: jsonb().notNull(),
+		changedAt: timestamp('changed_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.default(sql`clock_timestamp()`),
+	},
+	(table) => [
+		index('zsl_admin_change_entity').on(table.entity, table.entityId),
+		check(
+			'zsl_admin_change_entity_check',
+			sql`${table.entity} IN ('round', 'season', 'points', 'tournament', 'warmup', 'practice')`,
+		),
+	],
+)
+
+export const zslPlaylistRevision = zcPrivate.table(
+	'zsl_playlist_revision',
+	{
+		id: integer().primaryKey().generatedAlwaysAsIdentity(),
+		roundId: integer('round_id')
+			.notNull()
+			.references(() => zslRound.id),
+		kind: text().notNull(),
+		source: text(),
+		state: text().notNull().default('queued'),
+		diagnostics: jsonb().notNull().default(sql`'[]'::jsonb`),
+		bundle: jsonb(),
+		updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+			.notNull()
+			.default(sql`clock_timestamp()`),
+	},
+	(table) => [
+		index('zsl_playlist_revision_round_kind').on(table.roundId, table.kind, table.id.desc()),
+		check(
+			'zsl_playlist_revision_kind_check',
+			sql`${table.kind} IN ('tournament', 'warmup', 'practice')`,
+		),
+		check(
+			'zsl_playlist_revision_check',
+			sql`(${table.kind} <> 'warmup') = (${table.source} IS NOT NULL)`,
+		),
+	],
+)
+
+export const zslReadinessAlert = zcPrivate.table(
+	'zsl_readiness_alert',
+	{
+		roundId: integer('round_id')
+			.notNull()
+			.references(() => zslRound.id),
+		timeslot: integer().notNull(),
+		startsAt: timestamp('starts_at', { withTimezone: true, mode: 'string' }).notNull(),
+		hours: integer().notNull(),
+	},
+	(table) => [
+		primaryKey({ columns: [table.roundId, table.timeslot, table.startsAt, table.hours] }),
 	],
 )
 

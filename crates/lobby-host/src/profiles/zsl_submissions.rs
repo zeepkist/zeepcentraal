@@ -42,9 +42,9 @@ impl SubmissionSource for SubmissionAssets {
 }
 
 #[async_trait::async_trait]
-impl SubmissionSource for super::assets::PracticeAssets {
+impl SubmissionSource for super::assets::ManagedPracticeAssets {
     async fn refresh(&self) -> Result<SubmissionPlaylist> {
-        super::assets::PracticeAssets::refresh(self).await
+        super::assets::ManagedPracticeAssets::refresh(self).await
     }
 }
 
@@ -60,7 +60,7 @@ impl ZslSubmissionsProfile {
         database: Database,
         storage: Arc<dyn ObjectStorage>,
         round_id: i32,
-        playlist: String,
+        playlist: Option<String>,
     ) -> Self {
         Self {
             config,
@@ -69,7 +69,7 @@ impl ZslSubmissionsProfile {
                 database.clone(),
                 round_id,
             ))),
-            assets: Arc::new(super::assets::PracticeAssets::new(
+            assets: Arc::new(super::assets::ManagedPracticeAssets::new(
                 database, storage, round_id, playlist,
             )),
             current: Arc::new(RwLock::new(None)),

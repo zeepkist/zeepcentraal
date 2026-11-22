@@ -16,6 +16,12 @@ const QUERY: &str = r#"query ZslWarmup($since: Datetime!) {
 }"#;
 
 pub async fn fetch() -> Result<PracticePlaylist> {
+    let mut playlist = fetch_candidates().await?;
+    playlist.levels.truncate(4);
+    Ok(playlist)
+}
+
+pub async fn fetch_candidates() -> Result<PracticePlaylist> {
     let since = jiff::Timestamp::from_second(jiff::Timestamp::now().as_second() - 30 * 86400)?;
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
@@ -45,11 +51,7 @@ pub async fn fetch() -> Result<PracticePlaylist> {
     candidates.shuffle(&mut rand::rng());
     Ok(PracticePlaylist {
         round_length: Some(300),
-        levels: candidates
-            .into_iter()
-            .take(4)
-            .map(|(_, level)| level)
-            .collect(),
+        levels: candidates.into_iter().map(|(_, level)| level).collect(),
     })
 }
 

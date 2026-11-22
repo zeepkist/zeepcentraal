@@ -155,6 +155,20 @@ async fn run_leader(
             last_metrics_slot = schedule.metrics_slot.clone();
         }
         if schedule.minute_key != last_minute {
+            for revision in zc_database::Database::pending_zsl_playlists(connection).await? {
+                enqueue(
+                    queue,
+                    TaskIdentifier::PrepareZslPlaylistRevision,
+                    serde_json::json!({"revision":revision}),
+                    JobLane::Bulk,
+                    &format!("zsl-playlist-revision:{revision}"),
+                )
+                .await?;
+            }
+            for alert in zc_database::Database::zsl_readiness_alerts(connection).await? {
+                tracing::warn!(round_id = alert.round_id, timeslot = alert.timeslot,
+                    starts_at = %alert.starts_at, hours = alert.hours, "ZSL playlists need attention before start");
+            }
             enqueue_due(queue, &schedule).await?;
             last_minute = schedule.minute_key;
         }

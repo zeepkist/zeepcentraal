@@ -405,6 +405,125 @@ impl PracticeAssets {
     }
 }
 
+pub(super) struct ManagedPracticeAssets {
+    database: Database,
+    storage: Arc<dyn ObjectStorage>,
+    round_id: i32,
+    legacy: Option<PracticeAssets>,
+    verified: Mutex<Option<(i32, SubmissionAsset)>>,
+}
+
+impl ManagedPracticeAssets {
+    pub(super) fn new(
+        database: Database,
+        storage: Arc<dyn ObjectStorage>,
+        round_id: i32,
+        legacy_url: Option<String>,
+    ) -> Self {
+        Self {
+            legacy: legacy_url
+                .map(|url| PracticeAssets::new(database.clone(), storage.clone(), round_id, url)),
+            database,
+            storage,
+            round_id,
+            verified: Mutex::new(None),
+        }
+    }
+
+    pub(super) async fn refresh(&self) -> Result<SubmissionPlaylist> {
+        let mut verified = self.verified.lock().await;
+        for row in self
+            .database
+            .host_zsl_practice_playlists(self.round_id)
+            .await?
+        {
+            if !matches!(row.state.as_str(), "prepared" | "verified") {
+                continue;
+            }
+            if let Some((_, asset)) = verified.as_ref().filter(|(id, _)| *id == row.id) {
+                return Ok(SubmissionPlaylist::Ready(asset.clone()));
+            }
+            let asset = match self.read_revision(row.value, row.state == "prepared").await {
+                Ok(asset) => asset,
+                Err(diagnostics) => {
+                    self.database
+                        .verify_zsl_playlist(row.id, Some(serde_json::json!(diagnostics)))
+                        .await?;
+                    continue;
+                }
+            };
+            if row.state == "prepared" && !self.database.verify_zsl_playlist(row.id, None).await? {
+                continue;
+            }
+            *verified = Some((row.id, asset.clone()));
+            return Ok(SubmissionPlaylist::Ready(asset));
+        }
+        if let Some(legacy) = &self.legacy {
+            legacy.refresh().await
+        } else {
+            Ok(SubmissionPlaylist::Missing)
+        }
+    }
+
+    async fn read_revision(
+        &self,
+        value: Option<serde_json::Value>,
+        verify_all: bool,
+    ) -> std::result::Result<SubmissionAsset, Vec<serde_json::Value>> {
+        use zc_core::practice::{PracticeBundle, practice_playlist_key};
+
+        let manifest_failure = || {
+            vec![serde_json::json!({
+                "state":"failed", "stage":"Host rejected practice playlist manifest"
+            })]
+        };
+        let bundle: PracticeBundle = serde_json::from_value(value.ok_or_else(manifest_failure)?)
+            .map_err(|_| manifest_failure())?;
+        if bundle.round_id != self.round_id
+            || bundle.playlist != practice_playlist_key(self.round_id)
+        {
+            return Err(manifest_failure());
+        }
+        bundle.validate().map_err(|_| manifest_failure())?;
+        let mut failures = Vec::new();
+        // Practice rotations may be large. Verify payloads individually without caching every level.
+        let count = if verify_all { bundle.levels.len() } else { 1 };
+        for (index, entry) in bundle.levels.iter().take(count).enumerate() {
+            let result = async {
+                let bytes = self
+                    .storage
+                    .download(
+                        &entry.object_key,
+                        DownloadConstraints {
+                            max_bytes: MAX_LEVEL_BYTES,
+                            expected_bytes: Some(entry.byte_size),
+                            expected_sha256: Some(&entry.sha256),
+                        },
+                    )
+                    .await?;
+                ensure!(
+                    !zc_core::zeepnet::decode_zeepkist_level_payload(&bytes)?.is_empty(),
+                    "Level payload is empty"
+                );
+                Ok::<_, anyhow::Error>(())
+            }
+            .await;
+            if let Err(error) = result {
+                tracing::warn!(uid = %entry.level.uid, workshop_id = entry.level.workshop_id, %error, "Practice payload verification failed");
+                failures.push(serde_json::json!({
+                    "position": index + 1, "name": entry.level.name, "uid": entry.level.uid,
+                    "workshopId": entry.level.workshop_id.to_string(), "state":"failed",
+                    "stage":"Host could not read or decode payload"
+                }));
+            }
+        }
+        if !failures.is_empty() {
+            return Err(failures);
+        }
+        pinned_asset(bundle, self.storage.clone()).map_err(|_| manifest_failure())
+    }
+}
+
 pub(super) fn pinned_asset(
     bundle: zc_core::practice::PracticeBundle,
     storage: Arc<dyn ObjectStorage>,

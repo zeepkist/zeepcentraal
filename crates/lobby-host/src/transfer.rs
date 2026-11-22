@@ -56,13 +56,14 @@ pub(crate) struct TransferWork {
 
 impl TransferWork {
     pub(crate) async fn load(&self) -> Result<PreparedLevel> {
+        if let Some(level) = &self.fallback {
+            return Ok(level.clone());
+        }
         let level = match &self.playlist {
             Some(playlist) => playlist.load(&self.uid, self.workshop_id).await?,
             None => None,
         };
-        level
-            .or_else(|| self.fallback.clone())
-            .context("GameServer requested unknown level")
+        level.context("GameServer requested level payload is unavailable")
     }
     pub(crate) fn packet(&self, level: &PreparedLevel) -> Result<Option<Vec<u8>>> {
         self.name
@@ -337,6 +338,17 @@ impl LevelTransfer {
             .flatten()
             .find(|level| level.level.uid == *uid && level.level.workshop_id == workshop_id)
             .cloned();
+        if fallback.is_none()
+            && self.playlist.as_ref().is_none_or(|playlist| {
+                !playlist
+                    .levels
+                    .iter()
+                    .any(|level| level.uid == *uid && level.workshop_id == workshop_id)
+            })
+        {
+            tracing::debug!(%uid, workshop_id, "Ignoring obsolete level request");
+            return Ok(None);
+        }
         Ok(Some(TransferWork {
             generation: self.next_activation_id,
             playlist: self.playlist.clone(),
@@ -384,6 +396,26 @@ impl LevelTransfer {
             }
         }
         events
+    }
+
+    pub(crate) fn fail_activation_work(
+        &mut self,
+        work: &TransferWork,
+        error: anyhow::Error,
+    ) -> Result<()> {
+        if !self.work_current(work) {
+            return Ok(());
+        }
+        if self.activation.as_ref().is_some_and(|activation| {
+            activation.level.level.uid == work.uid
+                && activation.level.level.workshop_id == work.workshop_id
+        }) {
+            let activation = self.activation.take().expect("matched activation");
+            self.pending = None;
+            let _ = activation.ready.send(Err(error));
+            return Ok(());
+        }
+        Err(error)
     }
 
     pub(crate) fn prepare_playlist(

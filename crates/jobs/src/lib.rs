@@ -8,6 +8,7 @@ mod practice;
 pub mod queue;
 pub mod retry;
 pub mod runtime;
+mod zsl_playlist;
 mod zsl_warmup;
 
 pub const FAST_CONCURRENCY: usize = 15;
@@ -35,6 +36,7 @@ pub enum TaskIdentifier {
     PrepareTrackTournamentLobbyAsset,
     PrepareZslPracticePlaylist,
     PrepareZslWarmupPlaylist,
+    PrepareZslPlaylistRevision,
     ScanWorkshopBatch,
     ScanWorkshopItem,
     RotateTrackTournament,
@@ -53,7 +55,7 @@ pub enum TaskIdentifier {
 }
 
 impl TaskIdentifier {
-    pub const ALL: [Self; 30] = [
+    pub const ALL: [Self; 31] = [
         Self::RefreshMedals,
         Self::ReconcileRecordEligibility,
         Self::FanOutRecordEligibility,
@@ -69,6 +71,7 @@ impl TaskIdentifier {
         Self::PrepareTrackTournamentLobbyAsset,
         Self::PrepareZslPracticePlaylist,
         Self::PrepareZslWarmupPlaylist,
+        Self::PrepareZslPlaylistRevision,
         Self::ScanWorkshopBatch,
         Self::ScanWorkshopItem,
         Self::RotateTrackTournament,
@@ -103,6 +106,7 @@ impl TaskIdentifier {
             Self::PrepareTrackTournamentLobbyAsset => "prepareTrackTournamentLobbyAsset",
             Self::PrepareZslPracticePlaylist => "prepareZslPracticePlaylist",
             Self::PrepareZslWarmupPlaylist => "prepareZslWarmupPlaylist",
+            Self::PrepareZslPlaylistRevision => "prepareZslPlaylistRevision",
             Self::ScanWorkshopBatch => "scanWorkshopBatch",
             Self::ScanWorkshopItem => "scanWorkshopItem",
             Self::RotateTrackTournament => "rotateTrackTournament",
@@ -131,6 +135,7 @@ impl TaskIdentifier {
             Self::FanOutRecordEligibility
                 | Self::RefreshMedals
                 | Self::RefreshGlobalMetrics
+                | Self::PrepareZslPlaylistRevision
                 | Self::RecoverLevelRequests
                 | Self::RotateTrackTournament
                 | Self::UpdateLevelContributions
@@ -144,6 +149,7 @@ impl TaskIdentifier {
             Self::PrepareTrackTournamentLobbyAsset
             | Self::PrepareZslPracticePlaylist
             | Self::PrepareZslWarmupPlaylist
+            | Self::PrepareZslPlaylistRevision
             | Self::ScanWorkshopBatch
             | Self::ScanWorkshopItem => 5,
             _ => 3,
@@ -157,6 +163,7 @@ impl TaskIdentifier {
                 | Self::RefreshMedals
                 | Self::FanOutRecordEligibility
                 | Self::RefreshGlobalMetrics
+                | Self::PrepareZslPlaylistRevision
         ) {
             return false;
         }
@@ -418,6 +425,13 @@ impl TaskIdentifier {
                         .as_i64()
                         .is_some_and(|id| id <= i32::MAX as i64)
             }
+            Self::PrepareZslPlaylistRevision => {
+                object.len() == 1
+                    && object
+                        .get("revision")
+                        .and_then(serde_json::Value::as_i64)
+                        .is_some_and(|id| id > 0 && id <= i64::from(i32::MAX))
+            }
             Self::UpdateLevelScore => {
                 positive_i64("idLevel")
                     && object.get("idUser").is_none_or(|_| positive_i64("idUser"))
@@ -661,10 +675,20 @@ mod tests {
 
     #[test]
     fn task_registry_round_trips_all_identifiers() {
-        assert_eq!(super::TaskIdentifier::ALL.len(), 30);
+        assert_eq!(super::TaskIdentifier::ALL.len(), 31);
         for task in super::TaskIdentifier::ALL {
             assert_eq!(super::TaskIdentifier::parse(task.as_str()), Some(task));
         }
+    }
+
+    #[test]
+    fn zsl_revision_jobs_accept_only_internal_revision_ids() {
+        let task = TaskIdentifier::PrepareZslPlaylistRevision;
+        let payload = serde_json::json!({"revision": 1});
+        assert!(task.validate_payload(&payload));
+        assert!(!task.validate_external_payload(&payload));
+        assert!(!task.validate_payload(&serde_json::json!({"revision": 0})));
+        assert!(!task.validate_payload(&serde_json::json!({"revision": 1, "source": "raw"})));
     }
     #[test]
     fn medal_refresh_payloads_are_bounded_and_internal() {

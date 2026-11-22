@@ -3,9 +3,9 @@ use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 use zc_core::{
     object_storage::ObjectStorage,
-    practice::{MAX_LEVEL_BYTES, PracticeBundle, PracticePayload, PracticePlaylist},
+    practice::{MAX_LEVEL_BYTES, PracticeBundle, PracticeLevel, PracticePayload, PracticePlaylist},
 };
-use zc_workshop::WorkshopDownloader;
+use zc_workshop::{DownloadedWorkshopItem, WorkshopDownloader};
 
 pub(crate) async fn prepare_bundle(
     round_id: i32,
@@ -26,44 +26,7 @@ pub(crate) async fn prepare_bundle(
         let round_length = playlist.round_length;
         let mut levels = Vec::with_capacity(playlist.levels.len());
         for level in playlist.levels {
-            let item = download
-                .items
-                .iter()
-                .find(|item| item.workshop_id == level.workshop_id)
-                .context("SteamCMD omitted practice Workshop item")?;
-            let selected =
-                zc_workshop::files::find_workshop_level_file(&item.directory, &level.uid)
-                    .await?
-                    .context("Workshop item omitted practice level UID")?;
-            let source = selected.content.trim_start_matches('\u{feff}');
-            let parsed = zc_core::levels::parse_level(source, false, 0).ok();
-            let bytes = zc_core::zeepnet::encode_zeepkist_level_payload(
-                source,
-                source.trim_start().starts_with('{'),
-            )?;
-            ensure!(
-                !bytes.is_empty() && bytes.len() <= MAX_LEVEL_BYTES,
-                "Practice payload size is invalid"
-            );
-            ensure!(
-                !zc_core::zeepnet::decode_zeepkist_level_payload(&bytes)?.is_empty(),
-                "Practice payload is empty"
-            );
-            let sha256 = hex::encode(Sha256::digest(&bytes));
-            let object_key = format!("zsl-practice/payloads/{sha256}.gz");
-            let byte_size = bytes.len();
-            storage
-                .upload(&object_key, bytes, "application/gzip")
-                .await?;
-            levels.push(PracticePayload {
-                xx_hash: parsed.as_ref().map(|level| level.hash.clone()),
-                legacy_hash: parsed.as_ref().map(|level| level.zeep_hash.clone()),
-                author_time: parsed.as_ref().map(|level| level.validation_time_author),
-                level,
-                object_key,
-                sha256,
-                byte_size,
-            });
+            levels.push(prepare_level(level, &download.items, storage).await?);
         }
         let bundle = PracticeBundle {
             round_length,
@@ -79,6 +42,54 @@ pub(crate) async fn prepare_bundle(
     let bundle = result?;
     cleanup?;
     Ok(bundle)
+}
+
+pub(crate) async fn prepare_level(
+    level: PracticeLevel,
+    items: &[DownloadedWorkshopItem],
+    storage: &dyn ObjectStorage,
+) -> Result<PracticePayload> {
+    let item = items
+        .iter()
+        .find(|item| item.workshop_id == level.workshop_id)
+        .context("Workshop item download missing")?;
+    let selected = zc_workshop::files::find_workshop_level_file(&item.directory, &level.uid)
+        .await
+        .context("Workshop level lookup failed")?
+        .context("Workshop level UID missing or its file is invalid")?;
+    let source = selected.content.trim_start_matches('\u{feff}');
+    let parsed = zc_core::levels::parse_level(source, false, 0).context("Level parse failed")?;
+    let bytes = zc_core::zeepnet::encode_zeepkist_level_payload(
+        source,
+        source.trim_start().starts_with('{'),
+    )
+    .context("Level encoding failed")?;
+    ensure!(
+        !bytes.is_empty() && bytes.len() <= MAX_LEVEL_BYTES,
+        "Level payload size is invalid"
+    );
+    ensure!(
+        !zc_core::zeepnet::decode_zeepkist_level_payload(&bytes)
+            .context("Level payload decode failed")?
+            .is_empty(),
+        "Level payload is empty"
+    );
+    let sha256 = hex::encode(Sha256::digest(&bytes));
+    let object_key = format!("zsl-practice/payloads/{sha256}.gz");
+    let byte_size = bytes.len();
+    storage
+        .upload(&object_key, bytes, "application/gzip")
+        .await
+        .context("Level payload upload failed")?;
+    Ok(PracticePayload {
+        xx_hash: Some(parsed.hash),
+        legacy_hash: Some(parsed.zeep_hash),
+        author_time: Some(parsed.validation_time_author),
+        level,
+        object_key,
+        sha256,
+        byte_size,
+    })
 }
 
 #[cfg(test)]

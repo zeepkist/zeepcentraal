@@ -1449,6 +1449,19 @@ impl JobHandler for ServiceJobHandler {
                 self.prepare_practice_playlist(&payload).await
             }
             TaskIdentifier::PrepareZslWarmupPlaylist => self.prepare_zsl_warmup(&payload).await,
+            TaskIdentifier::PrepareZslPlaylistRevision => {
+                crate::zsl_playlist::prepare(
+                    &self.database,
+                    self.downloader.as_ref(),
+                    self.storage.as_ref(),
+                    i32::try_from(
+                        payload["revision"]
+                            .as_i64()
+                            .context("revision is missing")?,
+                    )?,
+                )
+                .await
+            }
             TaskIdentifier::PrepareTrackTournamentLobbyAsset => {
                 self.prepare_tournament_lobby_asset(&payload).await
             }

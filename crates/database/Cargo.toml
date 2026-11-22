@@ -23,8 +23,8 @@ opentelemetry.workspace = true
 url.workspace = true
 
 utoipa.workspace = true
+jiff.workspace = true
 
 [dev-dependencies]
-jiff.workspace = true
 tokio-postgres.workspace = true
 tracing-subscriber.workspace = true

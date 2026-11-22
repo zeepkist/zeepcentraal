@@ -31,6 +31,7 @@ pub mod super_league;
 pub mod surface_statistics;
 pub mod workshop;
 pub mod zsl;
+pub mod zsl_admin;
 pub mod zsl_tournament;
 
 #[derive(Clone, Debug, Deserialize, QueryableByName, Serialize)]

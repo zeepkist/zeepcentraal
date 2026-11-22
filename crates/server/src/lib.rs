@@ -16,6 +16,7 @@ pub mod routes;
 pub mod streamkist;
 pub mod super_league;
 pub mod turnstile;
+mod zsl_admin_routes;
 
 use std::sync::Arc;
 

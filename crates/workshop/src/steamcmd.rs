@@ -50,6 +50,20 @@ impl Drop for WorkshopDownload {
 #[async_trait]
 impl WorkshopDownloader for SteamCmdDownloader {
     async fn download(&self, workshop_ids: &[u64]) -> Result<WorkshopDownload> {
+        self.download_batch(workshop_ids, true).await
+    }
+
+    async fn download_available(&self, workshop_ids: &[u64]) -> Result<WorkshopDownload> {
+        self.download_batch(workshop_ids, false).await
+    }
+}
+
+impl SteamCmdDownloader {
+    async fn download_batch(
+        &self,
+        workshop_ids: &[u64],
+        require_all: bool,
+    ) -> Result<WorkshopDownload> {
         ensure!(
             !workshop_ids.is_empty(),
             "At least one workshop ID is required"
@@ -57,19 +71,17 @@ impl WorkshopDownloader for SteamCmdDownloader {
         let root =
             std::env::temp_dir().join(format!("zeepcentraal-workshop-{}", zc_core::generate_uid()));
         fs::create_dir_all(&root).await?;
-        let result = self.download_into(&root, workshop_ids).await;
+        let result = self.download_into(&root, workshop_ids, require_all).await;
         if result.is_err() {
             let _ = fs::remove_dir_all(&root).await;
         }
         result
     }
-}
-
-impl SteamCmdDownloader {
     async fn download_into(
         &self,
         root: &std::path::Path,
         workshop_ids: &[u64],
+        require_all: bool,
     ) -> Result<WorkshopDownload> {
         let mut command = Command::new(&self.executable);
         command.args([
@@ -89,11 +101,13 @@ impl SteamCmdDownloader {
         let output = timeout(STEAMCMD_TIMEOUT, command.output())
             .await
             .context("SteamCMD timed out")??;
-        ensure!(
-            output.status.success(),
-            "SteamCMD failed with exit code {}",
-            output.status.code().unwrap_or(-1)
-        );
+        if require_all {
+            ensure!(
+                output.status.success(),
+                "SteamCMD failed with exit code {}",
+                output.status.code().unwrap_or(-1)
+            );
+        }
         let content = root
             .join("steamapps")
             .join("workshop")
@@ -102,15 +116,20 @@ impl SteamCmdDownloader {
         let mut items = Vec::with_capacity(workshop_ids.len());
         for id in workshop_ids {
             let directory = content.join(id.to_string());
-            ensure!(
-                fs::try_exists(&directory).await?,
-                "SteamCMD omitted workshop item {id}"
-            );
+            if !fs::try_exists(&directory).await? {
+                ensure!(!require_all, "SteamCMD omitted workshop item {id}");
+                continue;
+            }
             items.push(DownloadedWorkshopItem {
                 directory,
                 workshop_id: *id,
             });
         }
+        ensure!(
+            output.status.success() || !items.is_empty(),
+            "SteamCMD failed with exit code {}",
+            output.status.code().unwrap_or(-1)
+        );
         Ok(WorkshopDownload {
             items,
             root: root.to_owned(),

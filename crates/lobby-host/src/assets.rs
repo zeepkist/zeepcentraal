@@ -21,6 +21,13 @@ pub trait LevelLoader: Send + Sync {
 }
 
 impl PreparedPlaylist {
+    pub(crate) fn only(&self, level: OnlineLevel) -> Self {
+        Self {
+            levels: vec![level].into(),
+            loader: self.loader.clone(),
+        }
+    }
+
     pub fn new(levels: Vec<OnlineLevel>, loader: Arc<dyn LevelLoader>) -> Result<Self> {
         anyhow::ensure!(
             !levels.is_empty() && levels.len() <= 1_001,

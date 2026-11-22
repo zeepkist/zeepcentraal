@@ -177,14 +177,14 @@ mod tests {
         practice.key = "practice".into();
         practice.profile = RoomProfile::ZslPractice {
             round_id: 50,
-            playlist: "https://example.com/z.zeeplist".into(),
+            playlist: Some("https://example.com/z.zeeplist".into()),
         };
         let mut tournament = practice.clone();
         tournament.key = "tournament".into();
         tournament.round_time_seconds = 420;
         tournament.profile = RoomProfile::Zsl {
             round_id: 50,
-            playlist: "https://example.com/z.zeeplist".into(),
+            playlist: Some("https://example.com/z.zeeplist".into()),
         };
         let rooms = vec![submissions, practice, tournament];
         let old = controller_rooms(&rooms)?;

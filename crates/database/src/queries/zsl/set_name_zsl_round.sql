@@ -1,1 +1,3 @@
-UPDATE public.zsl_round SET name=$2,workshop_id=CASE WHEN workshop_id=0 THEN $3 ELSE workshop_id END,event_date=$4::timestamptz, date_updated=clock_timestamp() WHERE id=$1 AND (name IS DISTINCT FROM $2 OR (workshop_id=0 AND workshop_id IS DISTINCT FROM $3) OR event_date IS DISTINCT FROM $4::timestamptz) RETURNING id
+UPDATE public.zsl_round SET name=$2,workshop_id=CASE WHEN workshop_id=0 THEN $3 ELSE workshop_id END,event_date=$4::timestamptz, date_updated=clock_timestamp() WHERE id=$1 AND (name IS DISTINCT FROM $2 OR (workshop_id=0 AND workshop_id IS DISTINCT FROM $3) OR event_date IS DISTINCT FROM $4::timestamptz)
+AND NOT EXISTS (SELECT FROM zc_private.zsl_admin_change WHERE entity = 'round' AND entity_id = $1)
+RETURNING id

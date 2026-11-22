@@ -31,13 +31,19 @@ pub struct ManagedRoomConfig {
 #[serde(tag = "type", deny_unknown_fields)]
 pub enum RoomProfile {
     #[serde(rename = "zsl", rename_all = "camelCase")]
-    Zsl { round_id: i32, playlist: String },
+    Zsl {
+        round_id: i32,
+        playlist: Option<String>,
+    },
     #[serde(rename = "track-tournament", rename_all = "camelCase")]
     TrackTournament { tournament_type: TournamentType },
     #[serde(rename = "zsl-submissions", rename_all = "camelCase")]
     ZslSubmissions { round_id: i32 },
     #[serde(rename = "zsl-practice", rename_all = "camelCase")]
-    ZslPractice { round_id: i32, playlist: String },
+    ZslPractice {
+        round_id: i32,
+        playlist: Option<String>,
+    },
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
@@ -115,8 +121,14 @@ impl ManagedRoomConfig {
             (60_000..=1_800_000).contains(&self.message_refresh_ms),
             "Invalid message refresh interval"
         );
-        if let RoomProfile::ZslPractice { playlist, .. } | RoomProfile::Zsl { playlist, .. } =
-            &self.profile
+        if let RoomProfile::ZslPractice {
+            playlist: Some(playlist),
+            ..
+        }
+        | RoomProfile::Zsl {
+            playlist: Some(playlist),
+            ..
+        } = &self.profile
         {
             zc_core::practice::validate_playlist_url(playlist)?;
         }
@@ -210,14 +222,14 @@ mod tests {
             "practice",
             RoomProfile::ZslPractice {
                 round_id: 50,
-                playlist: "https://example.com/z.zeeplist".into(),
+                playlist: Some("https://example.com/z.zeeplist".into()),
             },
         )?;
         let tournament = make_room(
             "tournament",
             RoomProfile::Zsl {
                 round_id: 50,
-                playlist: "https://example.com/z.zeeplist".into(),
+                playlist: Some("https://example.com/z.zeeplist".into()),
             },
         )?;
         let mut submissions =
