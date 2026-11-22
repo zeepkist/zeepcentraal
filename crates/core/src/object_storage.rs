@@ -148,6 +148,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn constructs_https_client() {
+        let config = ObjectStorageConfig {
+            access_key: "test-access-key".to_owned(),
+            secret_key: "test-secret-key".to_owned(),
+            bucket: "test-bucket".to_owned(),
+            endpoint: "https://example.com".to_owned(),
+            region: "us-east-1".to_owned(),
+            ghost_folder: "ghosts".to_owned(),
+            thumbnail_folder: "thumbnails".to_owned(),
+        };
+
+        S3ObjectStorage::new(&config).expect("build HTTPS S3 client");
+    }
+
+    #[test]
     fn rejects_unsafe_keys() {
         assert!(S3ObjectStorage::validate_key("").is_err());
         assert!(S3ObjectStorage::validate_key("/ghosts/a.bin").is_err());
