@@ -11,6 +11,11 @@ const READINESS_CACHE_DEFAULT = ms('1s')
 const LIVE_QUERY_POLL_DEFAULT = ms('250ms')
 const LIVE_QUERY_DEBOUNCE_DEFAULT = ms('100ms')
 
+const httpOrigin = z.string().refine((origin) => {
+	const url = URL.parse(origin)
+	return url?.origin === origin && (url.protocol === 'https:' || url.protocol === 'http:')
+}, 'Expected an HTTP(S) origin without a path')
+
 const postgraphileEnvSchema = z.object({
 	NODE_ENV: nodeEnvSchema,
 	POSTGRAPHILE_DATABASE_URL: z.string().min(1).optional(),
@@ -24,6 +29,16 @@ const postgraphileEnvSchema = z.object({
 	POSTGRAPHILE_HOST: z.string().default('0.0.0.0'),
 	POSTGRAPHILE_PORT: z.coerce.number().int().positive().default(5000),
 	POSTGRAPHILE_REQUEST_LOGGING: z.stringbool().default(false),
+	POSTGRAPHILE_CORS_CREDENTIAL_ORIGINS: z
+		.string()
+		.default('')
+		.transform((origins) =>
+			origins
+				.split(',')
+				.map((origin) => origin.trim())
+				.filter(Boolean),
+		)
+		.pipe(z.array(httpOrigin)),
 	POSTGRAPHILE_DATABASE_CONNECT_TIMEOUT_MS: z.coerce
 		.number()
 		.int()
@@ -146,6 +161,11 @@ function resolveDatabaseUrl(env: z.infer<typeof postgraphileEnvSchema>): string 
 
 export function parsePostgraphileConfig(env: EnvSource) {
 	const parsedEnv = postgraphileEnvSchema.parse(env)
+	const corsCredentialOrigins = ['https://zeepki.st']
+	if (parsedEnv.NODE_ENV !== 'production') {
+		corsCredentialOrigins.push('http://localhost:4000', 'http://127.0.0.1:4000')
+	}
+	corsCredentialOrigins.push(...parsedEnv.POSTGRAPHILE_CORS_CREDENTIAL_ORIGINS)
 
 	return {
 		nodeEnv: parsedEnv.NODE_ENV,
@@ -154,6 +174,7 @@ export function parsePostgraphileConfig(env: EnvSource) {
 		databaseUrl: resolveDatabaseUrl(parsedEnv),
 		superuserDatabaseUrl: parsedEnv.POSTGRAPHILE_SUPERUSER_DATABASE_URL,
 		requestLogging: parsedEnv.POSTGRAPHILE_REQUEST_LOGGING,
+		corsCredentialOrigins,
 		databaseTimeouts: {
 			connectMs: parsedEnv.POSTGRAPHILE_DATABASE_CONNECT_TIMEOUT_MS,
 			statementMs: parsedEnv.POSTGRAPHILE_DATABASE_STATEMENT_TIMEOUT_MS,

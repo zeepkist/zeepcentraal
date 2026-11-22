@@ -311,6 +311,44 @@ describe('buildPostGraphileServer', () => {
 		expect(response.status).toBe(404)
 	})
 
+	test.each([
+		{ origin: 'https://zeepki.st', credentials: 'true' },
+		{ origin: 'https://zeepki.st.example', credentials: null },
+		{ origin: undefined, credentials: null },
+	])('serves GraphQL preflight and POST for origin $origin', async ({ origin, credentials }) => {
+		const app = createApp()
+		const originHeaders = origin ? { origin } : undefined
+		const preflight = await app.handle(
+			new Request('http://localhost/', {
+				method: 'OPTIONS',
+				headers: {
+					...originHeaders,
+					'access-control-request-method': 'POST',
+					'access-control-request-headers': 'content-type, authorization',
+				},
+			}),
+		)
+		expect(preflight.status).toBe(204)
+		expect(preflight.headers.get('access-control-allow-origin')).toBe(origin ?? '*')
+		expect(preflight.headers.get('access-control-allow-credentials')).toBe(credentials)
+		expect(preflight.headers.get('access-control-allow-methods')).toBe('POST')
+		expect(preflight.headers.get('access-control-allow-headers')).toBe(
+			'content-type, authorization',
+		)
+
+		const response = await app.handle(
+			new Request('http://localhost/', {
+				method: 'POST',
+				headers: { ...originHeaders, 'content-type': 'application/json' },
+				body: JSON.stringify({ query: '{ level { id } }' }),
+			}),
+		)
+		expect(response.status).toBe(200)
+		expect(response.headers.get('access-control-allow-origin')).toBe(origin ?? '*')
+		expect(response.headers.get('access-control-allow-credentials')).toBe(credentials)
+		expect(await response.json()).toEqual({ data: { ok: true } })
+	})
+
 	test('passes valid GraphQL post to Grafserv and sets query cost header', async () => {
 		const response = await createApp().handle(
 			new Request('http://localhost/', {

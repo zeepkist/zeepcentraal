@@ -1,8 +1,8 @@
-import cors from '@elysia/cors'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import { createElysiaRequestLoggingPlugin, createElysiaTelemetryPlugin } from '@zeepkist/telemetry'
 import { Elysia } from 'elysia'
 import { websocket } from 'elysia/websocket'
+import { createPostGraphileCors } from './middleware/cors'
 import { serveGraphiql } from './middleware/serveGraphiql'
 import { createPostGraphileHandler } from './postgraphileOptions'
 import { createPostGraphileRuntime } from './postgraphileRuntime'
@@ -68,7 +68,7 @@ export function buildPostGraphileServer(
 		},
 	})
 		.use(withLogging)
-		.use(cors())
+		.use(createPostGraphileCors(postgraphileConfig.corsCredentialOrigins))
 		.use(websocket())
 		.use(createWithTelemetry())
 		.get('/healthz', () => 'OK')
@@ -84,7 +84,6 @@ export function buildPostGraphileServer(
 		.get('/graphql', ({ request }) => redirectToRoot(request))
 		.all('/ruru-static/*', ({ request }) => runtime.serveRuruStatic(request))
 		.post('/', runtime.graphqlRoute)
-		.options('/', runtime.graphqlRoute)
 		.onStop(async () => {
 			await readiness.dispose()
 			await runtime.stop()

@@ -1,7 +1,6 @@
 /** Only disposable, local Adventure databases are accepted. */
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
-import cors from '@elysia/cors'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import { SQL } from 'bun'
 import { Elysia } from 'elysia'
@@ -9,6 +8,7 @@ import { websocket } from 'elysia/websocket'
 import { postgraphile } from 'postgraphile'
 import { parse, print, printType } from 'postgraphile/graphql'
 import { elysiaGrafserv } from '../src/elysiaGrafserv'
+import { createPostGraphileCors } from '../src/middleware/cors'
 import { createPostGraphilePreset } from '../src/postgraphileOptions'
 import { createPostGraphileRuntime } from '../src/postgraphileRuntime'
 
@@ -252,11 +252,10 @@ try {
 				},
 			)
 			new Elysia()
-				.use(cors())
+				.use(createPostGraphileCors(['http://127.0.0.1:4173']))
 				.use(websocket())
 				.ws('/', runtime.liveQueryWebSocket)
 				.post('/', runtime.graphqlRoute)
-				.options('/', runtime.graphqlRoute)
 				.get('/healthz', () => 'ok')
 				.post('/__test/improve', async () => {
 					await sql.begin(async (tx) => {

@@ -1,7 +1,6 @@
 /** Isolated database only. Generates lobby schema additions from real PostGraphile. */
 import assert from 'node:assert/strict'
 import { readFile, writeFile } from 'node:fs/promises'
-import cors from '@elysia/cors'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import type {
 	Zc_LobbyDetailQuery,
@@ -14,6 +13,7 @@ import { websocket } from 'elysia/websocket'
 import { postgraphile } from 'postgraphile'
 import { getNamedType, isObjectType, parse, print, printType } from 'postgraphile/graphql'
 import { elysiaGrafserv } from '../src/elysiaGrafserv'
+import { createPostGraphileCors } from '../src/middleware/cors'
 import { createPostGraphilePreset } from '../src/postgraphileOptions'
 import { createPostGraphileRuntime } from '../src/postgraphileRuntime'
 
@@ -273,11 +273,14 @@ try {
 				},
 			)
 			new Elysia()
-				.use(cors())
+				.use(
+					createPostGraphileCors([
+						new URL(process.env.ZC_LOBBY_WEB_URL ?? 'http://127.0.0.1:4173').origin,
+					]),
+				)
 				.use(websocket())
 				.ws('/', runtime.liveQueryWebSocket)
 				.post('/', runtime.graphqlRoute)
-				.options('/', runtime.graphqlRoute)
 				.get('/healthz', () => 'ok')
 				.post('/__test/update', async () => {
 					await sql`UPDATE public.lobby SET players=CASE WHEN players=3 THEN 2 ELSE 3 END,last_seen=now() WHERE id=1001`

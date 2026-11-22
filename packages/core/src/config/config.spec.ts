@@ -245,6 +245,30 @@ test('migrate config preserves migration candidate fallback', () => {
 	expect(config.migrationsFolder).toBe(resolve(process.cwd(), 'packages/database/drizzle'))
 })
 
+test('postgraphile config sets trusted CORS credential origins', () => {
+	expect(parsePostgraphileConfig({ NODE_ENV: 'development' }).corsCredentialOrigins).toEqual([
+		'https://zeepki.st',
+		'http://localhost:4000',
+		'http://127.0.0.1:4000',
+	])
+	expect(
+		parsePostgraphileConfig({
+			NODE_ENV: 'production',
+			POSTGRAPHILE_CORS_CREDENTIAL_ORIGINS:
+				' https://preview.zeepki.st , http://localhost:4173 ',
+		}).corsCredentialOrigins,
+	).toEqual(['https://zeepki.st', 'https://preview.zeepki.st', 'http://localhost:4173'])
+})
+
+test.each(['*', 'null', 'ftp://preview.zeepki.st', 'https://preview.zeepki.st/path'])(
+	'postgraphile config rejects invalid CORS credential origin %s',
+	(origin) => {
+		expect(() =>
+			parsePostgraphileConfig({ POSTGRAPHILE_CORS_CREDENTIAL_ORIGINS: origin }),
+		).toThrow('Expected an HTTP(S) origin without a path')
+	},
+)
+
 test('postgraphile config accepts a separate development schema-watch connection', () => {
 	const config = parsePostgraphileConfig({
 		NODE_ENV: 'development',
