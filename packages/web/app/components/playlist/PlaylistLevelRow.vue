@@ -10,47 +10,48 @@ defineEmits<{ move: [from: number, to: number]; remove: [uid: string] }>()
 
 <template>
 	<li
-		class="flex items-center gap-3 rounded-xl border border-border bg-card/75 p-3"
+		class="grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-center gap-2 rounded-xl border border-border bg-card/75 p-2 @min-[24rem]/playlist-list:grid-cols-[auto_minmax(0,1fr)_auto]"
 		:data-uid="level.UID"
 	>
-		<button
-			class="playlist-drag-handle cursor-grab touch-none text-muted-foreground hover:text-highlighted"
-			type="button"
-			:aria-label="t('playlist.levels.drag')"
+		<span
+			class="playlist-drag-handle grid size-11 cursor-grab touch-none select-none place-items-center rounded-lg text-muted-foreground hover:text-highlighted active:cursor-grabbing"
+			aria-hidden="true"
+			:title="t('playlist.levels.drag')"
 		>
 			<UIcon name="i-tabler-grip-vertical" class="size-5" />
-		</button>
+		</span>
 		<NuxtLink
 			v-if="level.xxHash"
 			:to="`/level/${level.xxHash}`"
-			class="flex min-w-0 flex-1 items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
+			class="flex min-h-11 min-w-0 items-center gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
 		>
 			<NuxtImg
 				v-if="level.imageUrl"
 				:src="level.imageUrl"
-				:alt="level.Name"
+				alt=""
 				width="160"
 				height="90"
-				class="h-14 w-24 rounded-lg object-cover"
+				class="h-10 w-16 shrink-0 rounded-lg object-cover"
 				loading="lazy"
 			/>
-			<div v-else class="grid h-14 w-24 shrink-0 place-items-center rounded-lg bg-muted">
+			<div v-else class="grid h-10 w-16 shrink-0 place-items-center rounded-lg bg-muted" aria-hidden="true">
 				<UIcon name="i-tabler-photo-off" />
 			</div>
 			<div class="min-w-0">
-				<p class="truncate font-semibold text-highlighted">{{ level.Name }}</p>
+				<p class="line-clamp-2 font-semibold wrap-anywhere text-highlighted">{{ level.Name }}</p>
 				<p class="truncate text-sm text-muted-foreground">{{ level.Author }}</p>
 			</div>
 		</NuxtLink>
-		<div v-else class="min-w-0 flex-1">
-			<p class="truncate font-semibold text-highlighted">{{ level.Name }}</p>
+		<div v-else class="min-w-0">
+			<p class="line-clamp-2 font-semibold wrap-anywhere text-highlighted">{{ level.Name }}</p>
 			<p class="truncate text-sm text-muted-foreground">{{ level.Author }}</p>
 		</div>
-		<div class="flex shrink-0 items-center gap-1">
+		<div class="col-span-full flex flex-wrap items-center justify-end gap-1 @min-[24rem]/playlist-list:col-span-1">
 			<UButton
 				icon="i-tabler-arrow-up"
 				color="neutral"
 				variant="ghost"
+				class="size-11 touch-manipulation justify-center"
 				square
 				:disabled="index === 0"
 				:aria-label="t('playlist.levels.moveUp')"
@@ -60,6 +61,7 @@ defineEmits<{ move: [from: number, to: number]; remove: [uid: string] }>()
 				icon="i-tabler-arrow-down"
 				color="neutral"
 				variant="ghost"
+				class="size-11 touch-manipulation justify-center"
 				square
 				:disabled="index === total - 1"
 				:aria-label="t('playlist.levels.moveDown')"
@@ -68,7 +70,8 @@ defineEmits<{ move: [from: number, to: number]; remove: [uid: string] }>()
 			<UButton
 				icon="i-tabler-trash"
 				color="error"
-				variant="ghost"
+				variant="soft"
+				class="size-11 touch-manipulation justify-center"
 				square
 				:aria-label="t('playlist.levels.remove')"
 				@click="$emit('remove', level.UID)"

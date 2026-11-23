@@ -6,7 +6,7 @@
 		:ui="{ root: 'bg-warm-neutral-900/75 backdrop-blur' }"
 	>
 		<template #left>
-			<div class="relative h-8 w-40 shrink-0 overflow-hidden">
+			<div class="relative h-8 w-8 shrink-0 overflow-hidden min-[384px]:w-40">
 				<Transition
 					enter-active-class="transition-[transform,opacity] duration-150 ease-out motion-reduce:transition-none"
 					enter-from-class="-translate-x-2 opacity-0"
@@ -17,7 +17,7 @@
 				>
 					<AppLogo
 						v-if="showHeaderLogo"
-						class="absolute inset-0 h-8 w-40 transform-gpu will-change-transform"
+						class="absolute inset-0 h-8 transform-gpu will-change-transform max-[384px]:[&>span]:sr-only"
 					/>
 				</Transition>
 			</div>

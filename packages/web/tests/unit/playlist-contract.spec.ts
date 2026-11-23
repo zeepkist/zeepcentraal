@@ -69,7 +69,7 @@ describe('playlist integration contracts', () => {
 		expect(page).toContain('class="max-w-none')
 		expect(toolbar).toContain('border-dashed border-border bg-muted/25')
 		expect(toolbar).toContain("t('playlist.import.drop')")
-		expect(toolbar).toContain('sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2')
+		expect(toolbar).toContain('@min-[22rem]/playlist-library:grid-cols-2')
 		expect(workspace.match(/<PlaylistLibraryToolbar/g)).toHaveLength(1)
 		expect(workspace.indexOf('<PlaylistLibraryToolbar')).toBeLessThan(
 			workspace.indexOf('<PlaylistSettingsForm'),

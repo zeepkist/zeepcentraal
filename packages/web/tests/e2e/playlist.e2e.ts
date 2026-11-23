@@ -29,6 +29,213 @@ const importedPlaylist = {
 	],
 }
 
+test('keeps playlist row controls reachable in portrait, landscape, and split view', async ({
+	page,
+	context,
+	hasTouch,
+	baseURL,
+}) => {
+	await context.addCookies([{ name: 'sidebar-open', value: 'true', url: baseURL }])
+	await page.setViewportSize({ width: 320, height: 568 })
+	await page.goto('/playlist')
+	const longName = 'LongLevelName'.repeat(20)
+	const levels = [
+		{
+			...importedPlaylist.levels[0],
+			Name: longName,
+			Author: 'LongAuthorName'.repeat(20),
+			xxHash: 'layout-test-level',
+			imageUrl: '/favicon-32x32.png',
+		},
+		importedPlaylist.levels[1],
+	]
+	await page.locator('input[type="file"]').setInputFiles({
+		name: 'Layout test.zeeplist',
+		mimeType: 'application/json',
+		buffer: Buffer.from(JSON.stringify({ ...importedPlaylist, levels })),
+	})
+	const name = page.getByRole('textbox', { name: 'Playlist name' })
+	if (hasTouch) await expect(name).toHaveCSS('font-size', '16px')
+	const rows = page.locator('[data-uid]')
+	await expect(rows).toHaveCount(2)
+	const linkedRow = rows.filter({ has: page.getByRole('link', { name: new RegExp(longName) }) })
+	await expect(linkedRow.locator('img')).toBeVisible()
+	await expect(rows.nth(1).locator('img')).toHaveCount(0)
+	const remove = linkedRow.getByRole('button', { name: 'Remove level' })
+
+	for (const { width, height, inline } of [
+		{ width: 320, height: 568, inline: false },
+		{ width: 390, height: 844, inline: false },
+		{ width: 667, height: 375, inline: true },
+		{ width: 1024, height: 600, inline: true },
+		{ width: 1280, height: 900, inline: false },
+		{ width: 1920, height: 900, inline: true },
+	]) {
+		await page.setViewportSize({ width, height })
+		await expect(remove).toBeVisible()
+		const layout = await linkedRow.evaluate((row) => {
+			const bounds = row.getBoundingClientRect()
+			const controls = [...row.querySelectorAll('button, .playlist-drag-handle')].map(
+				(control) => control.getBoundingClientRect(),
+			)
+			return {
+				controlsFit: controls.every(
+					(control) =>
+						control.width >= 44 &&
+						control.height >= 44 &&
+						control.left >= bounds.left &&
+						control.right <=
+							Math.min(bounds.right, document.documentElement.clientWidth),
+				),
+				inline: controls[0]?.top === controls[3]?.top,
+				pageFits:
+					document.documentElement.scrollWidth === document.documentElement.clientWidth,
+				rowFits: row.scrollWidth === row.clientWidth,
+			}
+		})
+		expect(layout, `${width} × ${height}`).toEqual({
+			controlsFit: true,
+			inline,
+			pageFits: true,
+			rowFits: true,
+		})
+	}
+
+	await page.setViewportSize({ width: 320, height: 568 })
+	await rows.first().getByRole('button', { name: 'Move level down' }).press('Enter')
+	await expect(rows.first()).toHaveAttribute('data-uid', 'uid-two')
+	const undo = page.getByRole('button', { name: 'Undo', exact: true })
+	if (hasTouch) {
+		await remove.tap()
+		await undo.tap()
+	} else {
+		await remove.click()
+		await undo.click()
+	}
+	await expect(rows).toHaveCount(2)
+	await expect(rows.nth(1)).toHaveAttribute('data-uid', 'uid-one')
+})
+
+test('keeps filters, level cards, and pagination usable after rotating and resizing', async ({
+	page,
+}) => {
+	await page.route('**/graphql', (route) => {
+		const request = route.request()
+		if (request.method() !== 'POST') return route.fallback()
+		const { query, variables } = request.postDataJSON()
+		if (!query?.includes('query ZC_Levels')) return route.fallback()
+		const secondPage = Boolean(variables?.after)
+		const name = secondPage ? 'Second browser page' : 'First browser page'
+		const cursor = secondPage ? 'second-page' : 'first-page'
+		return route.fulfill({
+			headers: {
+				'access-control-allow-origin': new URL(page.url()).origin,
+				'access-control-allow-credentials': 'true',
+			},
+			json: {
+				data: {
+					levels: {
+						edges: [
+							{
+								cursor,
+								node: {
+									id: secondPage ? 2 : 1,
+									xxHash: cursor,
+									adventure: false,
+									dateCreated: '2026-10-01T00:00:00Z',
+									levelItems: {
+										nodes: [{ name, fileUid: cursor, workshopId: '123' }],
+									},
+									records: { totalCount: 0 },
+									personalBestGlobals: { totalCount: 0 },
+									votes: { totalCount: 0 },
+								},
+							},
+						],
+						totalCount: 2,
+						pageInfo: {
+							startCursor: cursor,
+							endCursor: cursor,
+							hasNextPage: !secondPage,
+							hasPreviousPage: secondPage,
+						},
+					},
+				},
+			},
+		})
+	})
+	await page.setViewportSize({ width: 390, height: 844 })
+	await page.goto('/playlist')
+	const playlist = page.getByTestId('playlist-pane')
+	const browser = page.getByTestId('browser-pane')
+	const findLevels = page.getByRole('button', { name: 'Find levels', exact: true })
+	await expect(findLevels).toHaveAttribute('aria-pressed', 'false', { timeout: 30_000 })
+	await findLevels.click()
+	await expect(findLevels).toHaveAttribute('aria-pressed', 'true')
+	await expect(playlist).toBeHidden()
+	const search = browser.getByRole('textbox', { name: 'Name or hash' })
+	await search.fill('browser')
+	await browser.getByRole('button', { name: 'Apply filters' }).click()
+	await expect(page).toHaveURL(/q=browser/)
+	await expect(browser.getByRole('heading', { name: 'First browser page' })).toBeVisible()
+	const pagination = browser.getByRole('navigation', { name: 'Results pagination' })
+	const next = pagination.getByRole('button', { name: 'Next', exact: true })
+	await expect(next).toHaveCSS('width', '44px')
+	await expect(next.getByText('Next')).toBeHidden()
+	await next.click()
+	const secondLevel = browser.getByRole('heading', { name: 'Second browser page' })
+	await expect(secondLevel).toBeVisible()
+	await browser.getByRole('button', { name: 'Add to playlist' }).click()
+	await expect(browser.getByRole('button', { name: 'Remove from playlist' })).toBeVisible()
+
+	for (const viewport of [
+		{ width: 667, height: 375 },
+		{ width: 1280, height: 575 },
+	]) {
+		await page.setViewportSize(viewport)
+		await expect(findLevels).toHaveAttribute('aria-pressed', 'true')
+		await expect(browser).toBeVisible()
+		await expect(playlist).toBeHidden()
+		expect(
+			await page.evaluate(
+				() => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+			),
+		).toBe(0)
+	}
+	await page.setViewportSize({ width: 1280, height: 576 })
+	await expect(findLevels).toBeHidden()
+	await expect(browser).toBeVisible()
+	await expect(playlist.getByText('Second browser page', { exact: true })).toBeVisible()
+
+	for (const viewport of [
+		{ width: 320, height: 568 },
+		{ width: 2560, height: 900 },
+	]) {
+		await page.setViewportSize(viewport)
+		const layout = await secondLevel.evaluate((heading) => {
+			const grid = heading.closest('article')?.parentElement
+			const section = heading.closest('section[aria-label]')
+			if (!grid || !section) throw new Error('Missing level browser layout')
+			return {
+				columns: getComputedStyle(grid).gridTemplateColumns.split(' ').length,
+				filterColumns: getComputedStyle(
+					section.firstElementChild as Element,
+				).gridTemplateColumns.split(' ').length,
+				pageFits:
+					document.documentElement.scrollWidth === document.documentElement.clientWidth,
+			}
+		})
+		expect(layout).toEqual({
+			columns: viewport.width === 320 ? 1 : 4,
+			filterColumns: viewport.width === 320 ? 1 : 2,
+			pageFits: true,
+		})
+	}
+	await page.setViewportSize({ width: 390, height: 844 })
+	await expect(findLevels).toHaveAttribute('aria-pressed', 'true')
+	await expect(playlist).toBeHidden()
+})
+
 test('imports, edits, persists, downloads, and deletes a local playlist', async ({ page }) => {
 	await page.goto('/playlist')
 	await expect(page.getByRole('heading', { name: 'Build a Zeepkist playlist' })).toBeVisible()

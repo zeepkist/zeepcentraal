@@ -65,9 +65,10 @@ const levelLabels = computed(() => ({
 </script>
 
 <template>
-	<section aria-labelledby="playlist-browser-heading" class="space-y-5">
-		<div class="grid gap-5 xl:grid-cols-[17rem_minmax(0,1fr)]">
+	<section :aria-label="t('playlist.tabs.browser')" class="@container/playlist-browser min-w-0">
+		<div class="grid min-w-0 gap-5 @min-[40rem]/playlist-browser:grid-cols-[17rem_minmax(0,1fr)]">
 			<LevelFilterPanel
+				class="min-w-0 self-start"
 				:title="t('levels.filters.title')"
 				:result-count-label="t('levels.results', { count: result.data.value?.levels?.totalCount ?? 0 })"
 				:search="search"
@@ -108,7 +109,7 @@ const levelLabels = computed(() => ({
 				@update:sort="sort = $event"
 				@apply="applyFilters"
 			/>
-			<div class="min-w-0 space-y-5">
+			<div class="@container/playlist-results min-w-0 space-y-5">
 				<DataState
 					:pending="pagination.isInitialPending(result.fetching.value, levels.length)"
 					:error="result.error.value?.message"
@@ -117,9 +118,10 @@ const levelLabels = computed(() => ({
 					:error-title="t('common.error')"
 					:empty-title="t('common.empty')"
 				>
-					<LevelGrid :levels="levels" :columns="4" transition-scope="playlist-browser" v-bind="levelLabels" />
+					<LevelGrid :levels="levels" container-responsive transition-scope="playlist-browser" v-bind="levelLabels" />
 				</DataState>
 				<CursorPagination
+					container-responsive
 					:page="page"
 					:can-go-previous="pagination.canGoPrevious(page)"
 					:can-go-next="pagination.canGoNext(page)"

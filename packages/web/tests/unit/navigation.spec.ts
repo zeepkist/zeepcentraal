@@ -130,13 +130,15 @@ describe('navigation model', () => {
 	})
 
 	test('fades the header logo within a stable reduced-motion-safe slot', () => {
-		expect(header).toContain('class="relative h-8 w-40 shrink-0 overflow-hidden"')
+		expect(header).toContain(
+			'class="relative h-8 w-8 shrink-0 overflow-hidden min-[384px]:w-40"',
+		)
 		expect(header).toContain('<Transition')
 		expect(header).toContain('enter-from-class="-translate-x-2 opacity-0"')
 		expect(header).toContain('leave-to-class="-translate-x-2 opacity-0"')
 		expect(header).toContain('v-if="showHeaderLogo"')
 		expect(header).toContain(
-			'class="absolute inset-0 h-8 w-40 transform-gpu will-change-transform"',
+			'class="absolute inset-0 h-8 transform-gpu will-change-transform max-[384px]:[&>span]:sr-only"',
 		)
 		expect(header).not.toContain('transition-[grid-template-columns]')
 		expect(header).toContain('sidebarPreference.value === false')

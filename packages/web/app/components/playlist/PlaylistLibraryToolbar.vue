@@ -129,29 +129,31 @@ function dropFile(event: DragEvent) {
 
 <template>
 	<UCard
-		class="border-border bg-card/85 transition-colors"
+		class="min-w-0 border-border bg-card/85 transition-colors"
+		:ui="{ body: 'p-3 sm:p-6' }"
 		:class="{ 'border-primary bg-primary/5': dragging }"
 		@dragenter.prevent="dragging = true"
 		@dragover.prevent="dragging = true"
 		@dragleave.prevent="dragging = false"
 		@drop.prevent="dropFile"
 	>
-		<div class="space-y-4">
+		<div class="@container/playlist-library space-y-4">
 			<UFormField :label="t('playlist.library.current')">
 				<USelect
 					:model-value="activePlaylistId ?? undefined"
 					:items="items"
 					value-key="value"
-					class="w-full"
+					class="min-h-11 w-full min-w-0"
 					:placeholder="t('playlist.library.none')"
 					@update:model-value="store.setActivePlaylist(String($event))"
 				/>
 			</UFormField>
-			<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-1 2xl:grid-cols-2">
-				<UButton icon="i-tabler-plus" color="primary" variant="soft" block @click="store.createPlaylist()">
+			<div class="grid gap-2 @min-[22rem]/playlist-library:grid-cols-2">
+				<UButton class="min-h-11 min-w-0 wrap-anywhere" icon="i-tabler-plus" color="primary" variant="soft" block @click="store.createPlaylist()">
 					{{ t('playlist.actions.new') }}
 				</UButton>
 				<UButton
+					class="min-h-11 min-w-0 wrap-anywhere"
 					icon="i-tabler-copy"
 					color="neutral"
 					variant="soft"
@@ -161,10 +163,11 @@ function dropFile(event: DragEvent) {
 				>
 					{{ t('playlist.actions.duplicate') }}
 				</UButton>
-				<UButton class="motion-press motion-feedback" icon="i-tabler-download" block :disabled="!downloadable" @click="download">
+				<UButton class="motion-press motion-feedback min-h-11 min-w-0 wrap-anywhere" icon="i-tabler-download" block :disabled="!downloadable" @click="download">
 					{{ t('playlist.actions.download') }}
 				</UButton>
 				<UButton
+					class="min-h-11 min-w-0 wrap-anywhere"
 					icon="i-tabler-trash"
 					color="error"
 					variant="soft"
@@ -176,21 +179,21 @@ function dropFile(event: DragEvent) {
 				</UButton>
 			</div>
 			<div
-				class="rounded-lg border border-dashed border-border bg-muted/25 p-3 transition-colors flex justify-center "
+				class="rounded-lg border border-dashed border-border bg-muted/25 p-3 transition-colors"
 				:class="{ 'border-primary bg-primary/10': dragging }"
 			>
-				<div class="flex items-center gap-3">
+				<div class="flex flex-wrap items-center justify-center gap-3 text-center">
 					<UButton
 						icon="i-tabler-upload"
 						color="neutral"
 						variant="soft"
-						class="shrink-0"
+						class="min-h-11 min-w-0 wrap-anywhere"
 						:loading="importing"
 						@click="fileInput?.click()"
 					>
 						{{ t('playlist.actions.import') }}
 					</UButton>
-					<span class="text-sm text-muted-foreground">{{ t('playlist.import.drop') }}</span>
+					<span class="min-w-0 text-sm wrap-anywhere text-muted-foreground">{{ t('playlist.import.drop') }}</span>
 				</div>
 				<input
 					ref="fileInput"
@@ -207,18 +210,19 @@ function dropFile(event: DragEvent) {
 						class="size-4 shrink-0"
 						:class="{ 'animate-spin': persistenceStatus === 'saving' || persistenceStatus === 'loading' }"
 					/>
-					<span>{{ statusLabel }}</span>
+					<span class="min-w-0 wrap-anywhere">{{ statusLabel }}</span>
 				</div>
 				<div class="grid gap-1 text-muted-foreground">
-					<div class="flex min-w-0 items-center gap-1">
-						<span class="min-w-0 flex-1 truncate">
+					<div class="flex min-w-0 items-center gap-2">
+						<span class="min-w-0 flex-1 wrap-anywhere">
 							{{ t('playlist.download.guidance') }}
-							<code class="pl-1">%AppData%\Zeepkist\Playlists</code>
+							<code class="select-all">%AppData%\Zeepkist\Playlists</code>
 						</span>
 						<UButton
 							icon="i-tabler-copy"
 							color="neutral"
 							variant="ghost"
+							class="size-11 shrink-0 justify-center"
 							square
 							:aria-label="t('playlist.actions.copyPath')"
 							@click="copyPath"
@@ -235,11 +239,11 @@ function dropFile(event: DragEvent) {
 		:description="t('playlist.delete.description')"
 	>
 		<template #footer>
-			<div class="flex w-full justify-end gap-2">
-				<UButton color="neutral" variant="ghost" @click="deleteOpen = false">
+			<div class="flex w-full flex-wrap justify-end gap-2">
+				<UButton class="min-h-11" color="neutral" variant="ghost" @click="deleteOpen = false">
 					{{ t('playlist.actions.cancel') }}
 				</UButton>
-				<UButton color="error" @click="removePlaylist">
+				<UButton class="min-h-11" color="error" @click="removePlaylist">
 					{{ t('playlist.actions.delete') }}
 				</UButton>
 			</div>

@@ -40,9 +40,9 @@ function remove(uid: string) {
 </script>
 
 <template>
-	<UCard class="border-border bg-card/85">
+	<UCard class="min-w-0 border-border bg-card/85" :ui="{ body: 'p-3 sm:p-6' }">
 		<template #header>
-			<div class="flex items-center justify-between gap-3">
+			<div class="flex flex-wrap items-center justify-between gap-3">
 				<h2 class="font-semibold text-highlighted">{{ t('playlist.levels.title') }}</h2>
 				<UBadge color="neutral" variant="soft">
 					{{ t('playlist.levels.count', { count: levels.length }) }}
@@ -59,7 +59,7 @@ function remove(uid: string) {
 				<p class="text-sm text-muted-foreground">{{ t('playlist.levels.emptyDescription') }}</p>
 			</div>
 		</div>
-		<ul v-else ref="list" class="grid gap-2">
+		<ul v-else ref="list" class="@container/playlist-list grid gap-2">
 			<PlaylistLevelRow
 				v-for="(level, index) in levels"
 				:key="level.UID"

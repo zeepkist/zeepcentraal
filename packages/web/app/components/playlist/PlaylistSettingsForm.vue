@@ -28,17 +28,18 @@ function setRoundLength(value: number | undefined) {
 </script>
 
 <template>
-	<UCard class="border-border bg-card/85">
+	<UCard class="min-w-0 border-border bg-card/85" :ui="{ body: 'p-3 sm:p-6' }">
 		<template #header>
 			<h2 class="font-semibold text-highlighted">{{ t('playlist.settings.title') }}</h2>
 		</template>
-		<div class="grid gap-5">
+		<div class="grid min-w-0 gap-5">
 			<UFormField :label="t('playlist.settings.name')">
-				<UInput :model-value="playlist.name" class="w-full" @change="rename" />
+				<UInput :model-value="playlist.name" class="w-full" :ui="{ base: 'min-h-11' }" @change="rename" />
 			</UFormField>
 			<UFormField
 				:label="t('playlist.settings.roundLength')"
 				:hint="t('playlist.settings.roundLengthHint')"
+				:ui="{ labelWrapper: 'flex-wrap gap-x-2 gap-y-1', hint: 'min-w-0 wrap-anywhere' }"
 			>
 				<UInputNumber
 					:model-value="playlist.roundLength"
@@ -46,19 +47,18 @@ function setRoundLength(value: number | undefined) {
 					:max="PLAYLIST_MAX_ROUND_LENGTH"
 					:step="PLAYLIST_ROUND_LENGTH_STEP"
 					class="w-full"
+					:ui="{ base: 'min-h-11' }"
 					@update:model-value="setRoundLength"
 				/>
 			</UFormField>
 			<div
-				class="flex items-center justify-between gap-4 rounded-xl border border-border bg-muted/35 p-4"
+				class="rounded-xl border border-border bg-muted/35 p-3"
 			>
-				<div>
-					<p class="font-medium text-highlighted">{{ t('playlist.settings.shuffle') }}</p>
-					<p class="text-sm text-muted-foreground">{{ t('playlist.settings.shuffleHint') }}</p>
-				</div>
 				<USwitch
 					:model-value="playlist.shufflePlaylist"
-					:aria-label="t('playlist.settings.shuffle')"
+					:label="t('playlist.settings.shuffle')"
+					:description="t('playlist.settings.shuffleHint')"
+					:ui="{ root: 'min-h-11 items-center', container: 'shrink-0', wrapper: 'min-w-0 wrap-anywhere' }"
 					@update:model-value="store.setShuffle(playlist.id, $event)"
 				/>
 			</div>

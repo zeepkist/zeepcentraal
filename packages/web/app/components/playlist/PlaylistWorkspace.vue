@@ -9,13 +9,13 @@ const { activePlaylist, hydrated } = storeToRefs(store)
 const mobilePane = shallowRef<'playlist' | 'browser'>('playlist')
 const playlistPane = useTemplateRef<HTMLElement>('playlistPane')
 const browserPane = useTemplateRef<HTMLElement>('browserPane')
-const desktop = useMediaQuery('(min-width: 1024px)')
+const splitView = useMediaQuery('(min-width: 1280px) and (min-height: 576px)')
 const preferredMotion = usePreferredReducedMotion()
 let reveal: Animation | undefined
 let generation = 0
 
 function canReveal() {
-	return !desktop.value && preferredMotion.value !== 'reduce'
+	return !splitView.value && preferredMotion.value !== 'reduce'
 }
 
 function cancelReveal() {
@@ -42,22 +42,25 @@ async function selectPane(pane: 'playlist' | 'browser', event: MouseEvent) {
 	})
 }
 
-watch([desktop, preferredMotion], cancelReveal, { flush: 'sync' })
+watch([splitView, preferredMotion], cancelReveal, { flush: 'sync' })
 onScopeDispose(cancelReveal)
 </script>
 
 <template>
-	<div class="space-y-6">
+	<div class="playlist-workspace min-w-0 space-y-6">
 		<UCard v-if="!hydrated" class="border-border bg-card/85">
 			<div class="flex min-h-24 items-center justify-center gap-3 text-muted-foreground">
 				<UIcon name="i-tabler-loader-2" class="size-5 animate-spin" />
 				<span>{{ t('playlist.persistence.loading') }}</span>
 			</div>
 		</UCard>
-		<div v-if="hydrated" class="grid grid-cols-2 gap-2 lg:hidden">
+		<div v-if="hydrated" class="playlist-pane-controls grid grid-cols-2 gap-2">
 			<UButton
 				:variant="mobilePane === 'playlist' ? 'solid' : 'soft'"
 				icon="i-tabler-layout-list"
+				class="min-h-11 min-w-0 text-center wrap-anywhere"
+				:aria-pressed="mobilePane === 'playlist'"
+				aria-controls="playlist-editor-pane"
 				block
 				@click="selectPane('playlist', $event)"
 			>
@@ -66,17 +69,23 @@ onScopeDispose(cancelReveal)
 			<UButton
 				:variant="mobilePane === 'browser' ? 'solid' : 'soft'"
 				icon="i-tabler-search"
+				class="min-h-11 min-w-0 text-center wrap-anywhere"
+				:aria-pressed="mobilePane === 'browser'"
+				aria-controls="playlist-browser-pane"
 				block
 				@click="selectPane('browser', $event)"
 			>
 				{{ t('playlist.tabs.browser') }}
 			</UButton>
 		</div>
-		<div
-			v-if="hydrated"
-			class="grid min-w-0 gap-6 lg:grid-cols-[minmax(21rem,25rem)_minmax(0,1fr)] 2xl:grid-cols-[minmax(30rem,30rem)_minmax(0,1fr)]"
-		>
-			<div ref="playlistPane" data-testid="playlist-pane" :class="{ 'hidden lg:block': mobilePane !== 'playlist' }" class="min-w-0 space-y-6">
+		<div v-if="hydrated" class="playlist-panes grid min-w-0 gap-6">
+			<div
+				id="playlist-editor-pane"
+				ref="playlistPane"
+				data-testid="playlist-pane"
+				:class="{ 'playlist-pane-inactive': mobilePane !== 'playlist' }"
+				class="min-w-0 space-y-6"
+			>
 				<PlaylistLibraryToolbar />
 				<template v-if="activePlaylist">
 					<PlaylistSettingsForm :playlist="activePlaylist" />
@@ -95,9 +104,44 @@ onScopeDispose(cancelReveal)
 					</div>
 				</UCard>
 			</div>
-			<div ref="browserPane" data-testid="browser-pane" :class="{ 'hidden lg:block': mobilePane !== 'browser' }" class="min-w-0">
+			<div
+				id="playlist-browser-pane"
+				ref="browserPane"
+				data-testid="browser-pane"
+				:class="{ 'playlist-pane-inactive': mobilePane !== 'browser' }"
+				class="min-w-0"
+			>
 				<PlaylistLevelBrowser />
 			</div>
 		</div>
 	</div>
 </template>
+
+<style scoped>
+.playlist-pane-inactive {
+	display: none;
+}
+
+/* Keep in sync with splitView so pane reveals cancel on entering split view. */
+@media (min-width: 1280px) and (min-height: 576px) {
+	.playlist-pane-controls {
+		display: none;
+	}
+
+	.playlist-panes {
+		grid-template-columns: clamp(21rem, 32%, 30rem) minmax(0, 1fr);
+	}
+
+	.playlist-pane-inactive {
+		display: block;
+	}
+}
+
+@media (any-pointer: coarse) {
+	.playlist-workspace :deep(input),
+	.playlist-workspace :deep([role="combobox"]) {
+		font-size: 1rem;
+		min-height: 2.75rem;
+	}
+}
+</style>

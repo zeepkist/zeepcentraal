@@ -1,10 +1,12 @@
 <template>
 	<div
-		class="grid gap-4 sm:grid-cols-2"
-		:class="{
-			'3xl:grid-cols-4 2xl:grid-cols-3 xl:grid-cols-2 grid-cols-1': columns === 4,
-			'xl:grid-cols-3': columns === 3,
-		}"
+		class="grid gap-4"
+		:class="containerResponsive
+			? 'min-w-0 grid-cols-1 @min-[36rem]/playlist-results:grid-cols-2 @min-[54rem]/playlist-results:grid-cols-3 @min-[72rem]/playlist-results:grid-cols-4'
+			: ['sm:grid-cols-2', {
+				'3xl:grid-cols-4 2xl:grid-cols-3 xl:grid-cols-2 grid-cols-1': columns === 4,
+				'xl:grid-cols-3': columns === 3,
+			}]"
 	>
 		<LevelCard
 			v-for="level in levels"
@@ -43,6 +45,7 @@ withDefaults(
 		byLabel?: string
 		createdLabel?: string
 		columns?: 2 | 3 | 4
+		containerResponsive?: boolean
 	}>(),
 	{ columns: 3 },
 )
