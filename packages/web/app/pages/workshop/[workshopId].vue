@@ -39,7 +39,7 @@ const levelLabels = computed(() => ({
 </script>
 
 <template>
-	<UContainer class="py-2">
+	<PageContainer class="py-2">
 		<DataState :pending="validId && detail.fetching.value" :error="validId ? detail.error.value?.message : null" :empty="!workshop" :loading-label="t('common.loading')" :error-title="t('common.error')" :empty-title="t('workshop.detail.notFound')">
 			<div v-if="workshop" class="space-y-8 lg:space-y-10">
 				<WorkshopDetailHero :workshop="workshop" />
@@ -52,5 +52,5 @@ const levelLabels = computed(() => ({
 				</section>
 			</div>
 		</DataState>
-	</UContainer>
+	</PageContainer>
 </template>

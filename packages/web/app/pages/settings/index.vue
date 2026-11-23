@@ -6,7 +6,7 @@ defineOgImage('Settings.takumi', { slug: 'settings' })
 </script>
 
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<PageHeader
 			:eyebrow="t('pages.settings.eyebrow')"
 			:title="t('settings.account.title')"
@@ -35,5 +35,5 @@ defineOgImage('Settings.takumi', { slug: 'settings' })
 				/>
 			</div>
 		</UCard>
-	</UContainer>
+	</PageContainer>
 </template>

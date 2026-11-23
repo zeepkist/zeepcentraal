@@ -1,7 +1,7 @@
 <template>
-	<UContainer class="py-2">
+	<PageContainer class="py-2">
 		<TournamentEvent :type="type" :slug="slug" :title="title" detail-page />
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

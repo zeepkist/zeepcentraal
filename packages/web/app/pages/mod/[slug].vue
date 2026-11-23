@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="space-y-8 py-2 lg:space-y-10">
+	<PageContainer class="space-y-8 py-2 lg:space-y-10">
 		<ModDetailHero v-if="data?.mod" :mod="data.mod" :by-label="byLabel" :labels="heroLabels" />
 		<DataState
 			v-else
@@ -45,7 +45,7 @@
 				</div>
 			</section>
 		</template>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

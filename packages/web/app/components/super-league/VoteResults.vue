@@ -78,7 +78,7 @@ useDiscordComponentEmbed(() => ({
 </script>
 
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<ZslBreadcrumbs :label="t('zsl.breadcrumbs')" :items="breadcrumbItems" />
 		<PageHeader :eyebrow="round?.name" :title="t('zsl.voting.resultsTitle')" :description="t('zsl.voting.description')">
 			<template #actions>
@@ -106,5 +106,5 @@ useDiscordComponentEmbed(() => ({
 		</div>
 		<UAlert v-if="loadError && snapshot" color="error" :title="t('common.error')" :description="loadError"
 			:actions="[{ label: t('zsl.voting.retry'), onClick: () => refresh() }]" />
-	</UContainer>
+	</PageContainer>
 </template>

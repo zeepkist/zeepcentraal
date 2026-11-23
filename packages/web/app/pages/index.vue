@@ -1,5 +1,5 @@
 <template>
-	<UContainer :ui="{ base: () => 'w-full max-w-(--ui-container) mx-auto' }" class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<UAlert
 			v-if="authVerificationFailed"
 			data-testid="auth-verification-error"
@@ -166,7 +166,7 @@
 				</section>
 			</DataState>
 		</section>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

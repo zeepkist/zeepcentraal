@@ -1,10 +1,10 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<PageHeader :title="t('pages.developer.title')" :description="t('pages.developer.description')" />
 		<div class="grid gap-4 md:grid-cols-2">
 			<ContentResourceCard v-for="link in links" :key="link.to" v-bind="link" />
 		</div>
-	</UContainer>
+	</PageContainer>
 </template>
 <script setup lang="ts">
 usePageSeo('developer')

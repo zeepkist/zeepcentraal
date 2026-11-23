@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="py-2">
+	<PageContainer class="py-2">
 		<UCard
 			class="relative overflow-hidden rounded-2xl border-primary/25 bg-linear-to-br from-primary/15 via-card to-card"
 		>
@@ -16,7 +16,7 @@
 				</UButton>
 			</div>
 		</UCard>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

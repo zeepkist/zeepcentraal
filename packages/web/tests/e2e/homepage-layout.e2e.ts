@@ -1,6 +1,23 @@
 import { expect } from '@playwright/test'
 import { test } from '../support/browser'
 
+for (const [path, classes] of [
+	['/cosmetics', 'w-full max-w-(--ui-container) mx-auto py-2'],
+	['/levels', 'w-full mx-auto max-w-[100rem] py-2'],
+	['/lobby/history', 'w-full mx-auto max-w-7xl space-y-6 py-2'],
+	['/playlist', 'w-full mx-auto max-w-none py-4 sm:py-6'],
+] as const) {
+	test(`${path} uses shared page container spacing`, async ({ request }) => {
+		const response = await request.get(path)
+		await expect(response).toBeOK()
+		const html = await response.text()
+		const container = html.match(
+			/<main\b[^>]*app-page-content[^>]*>(?:\s|<!--.*?-->)*<div class="([^"]*)"/,
+		)
+		expect(container?.[1]).toBe(classes)
+	})
+}
+
 test('homepage announcements fit within the main padding', async ({ page }) => {
 	const longText = 'Announcement'.repeat(40)
 	await page.route('**/api/steam-news', (route) =>

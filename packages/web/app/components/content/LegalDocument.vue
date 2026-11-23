@@ -1,8 +1,8 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<PageHeader :eyebrow="eyebrow" :title="title" :description="description" />
 		<ContentDocument :document="document" />
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

@@ -14,11 +14,11 @@ useSeoMeta({
 </script>
 
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<TournamentFormatNavigation :type="type" overall />
 		<section class="space-y-5">
 			<PageHeader :title="pageTitle" :description="description" />
 			<TournamentOverallLeaderboard :type="type" />
 		</section>
-	</UContainer>
+	</PageContainer>
 </template>

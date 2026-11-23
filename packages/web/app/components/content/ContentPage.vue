@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<PageHeader
 			:breadcrumbs="breadcrumbs"
 			:breadcrumb-label="breadcrumbLabel"
@@ -15,7 +15,7 @@
 			:show-table-of-contents="showTableOfContents"
 			:table-of-contents-title="tableOfContentsTitle"
 		/>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

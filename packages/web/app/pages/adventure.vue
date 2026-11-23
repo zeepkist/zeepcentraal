@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<PageHeader
 			:eyebrow="t('pages.adventure.eyebrow')"
 			:title="t('pages.adventure.title')"
@@ -20,7 +20,7 @@
 			:description="t('adventure.countsError')"
 		/>
 		<NuxtPage />
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

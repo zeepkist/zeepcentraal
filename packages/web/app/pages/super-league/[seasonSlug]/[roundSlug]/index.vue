@@ -1,5 +1,5 @@
 <template>
-	<UContainer>
+	<PageContainer>
 		<DataState
 			:pending="result.fetching.value"
 			:error="result.error.value?.message"
@@ -83,7 +83,7 @@
 				</section>
 			</template>
 		</DataState>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

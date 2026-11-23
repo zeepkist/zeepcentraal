@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="py-2">
+	<PageContainer class="py-2">
 		<DataState
 			:pending="profilePending"
 			:error="data.profile.error.value?.message"
@@ -334,7 +334,7 @@
 				</div>
 			</template>
 		</DataState>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

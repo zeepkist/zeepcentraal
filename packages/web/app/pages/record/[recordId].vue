@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="py-2">
+	<PageContainer class="py-2">
 		<DataState
 			:pending="recordData.detail.fetching.value"
 			:error="recordData.detail.error.value?.message"
@@ -63,7 +63,7 @@
 				</div>
 			</div>
 		</DataState>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

@@ -122,7 +122,7 @@ await initial
 </script>
 
 <template>
-	<UContainer class="space-y-6 py-8">
+	<PageContainer class="space-y-6 py-8">
 		<PageHeader eyebrow="Zeepkist Super League" title="Vote for contest levels" />
 		<BallotPlaylist :overview="publicOverview" :round-id="requestedRound ?? snapshot?.roundId"
 			:pending="previewOverview.pending.value" :error="!!previewOverview.error.value" />
@@ -175,5 +175,5 @@ await initial
 			<p v-else>Voting has closed. Your saved ballots remain above.</p>
 		</template>
 		<UAlert v-if="error && snapshot" color="error" :title="error" :actions="[{ label: 'Try again', onClick: () => refresh() }]" />
-	</UContainer>
+	</PageContainer>
 </template>

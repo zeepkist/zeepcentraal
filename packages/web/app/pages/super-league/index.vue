@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<PageHeader
 			:eyebrow="t('pages.zsl.eyebrow')"
 			:title="t('pages.zsl.title')"
@@ -30,7 +30,7 @@
 			@next="pagination.next(page)"
 			@last="pagination.last()"
 		/>
-	</UContainer>
+	</PageContainer>
 </template>
 <script setup lang="ts">
 usePageSeo('zsl')

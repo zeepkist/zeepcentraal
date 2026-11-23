@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<PageContainer class="space-y-8 py-2">
 		<PageHeader
 			:eyebrow="t('pages.myRecords.eyebrow')"
 			:title="t('pages.myRecords.title')"
@@ -70,7 +70,7 @@
 				@last="data.pagination.last()"
 			/>
 		</template>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">

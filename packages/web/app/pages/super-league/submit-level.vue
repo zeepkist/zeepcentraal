@@ -44,7 +44,7 @@ await initial
 </script>
 
 <template>
-	<UContainer class="space-y-6 py-8">
+	<PageContainer class="space-y-6 py-8">
 		<PageHeader eyebrow="Zeepkist Super League" title="Submit your level" :description="contest?.name" />
 		<ContestLoading v-if="loading" label="Loading level contest" />
 		<template v-else-if="contest">
@@ -75,5 +75,5 @@ await initial
 		<UButton to="/super-league" variant="link" color="primary">Back to Super League</UButton>
 		<ValidSubmissions v-if="contest" :contest="contest" :overview="overview" :error="overviewError" @refresh="refreshOverview" />
 		<UAlert v-else-if="overviewError" color="error" :title="overviewError" :actions="[{ label: 'Try again', onClick: () => refreshOverview() }]" />
-	</UContainer>
+	</PageContainer>
 </template>

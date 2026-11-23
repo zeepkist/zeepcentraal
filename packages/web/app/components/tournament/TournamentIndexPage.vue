@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="space-y-12 py-2">
+	<PageContainer class="space-y-12 py-2">
 		<TournamentFormatNavigation :type="type" />
 		<TournamentEvent v-if="active" :type="type" :slug="active.slug" :title="title" />
 		<TournamentCountdown v-else :title="title" :start-at="countdownStart" />
@@ -43,7 +43,7 @@
 				@last="pagination.last()"
 			/>
 		</section>
-	</UContainer>
+	</PageContainer>
 </template>
 
 <script setup lang="ts">
