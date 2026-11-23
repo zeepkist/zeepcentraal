@@ -1,10 +1,11 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Ghost validation review', robots: 'noindex, nofollow' })
+const { t } = useAppI18n()
+useSeoMeta({ title: () => t('auth.ghostValidation'), robots: 'noindex, nofollow' })
 </script>
 
 <template>
-	<main class="mx-auto max-w-7xl space-y-6 px-6 py-8">
-		<h1 class="text-2xl font-semibold">Ghost validation review</h1>
+	<UContainer class="space-y-8 py-2">
+		<PageHeader :title="t('auth.ghostValidation')" description="Review validation results, compare level versions, and queue historical audits." />
 		<GhostValidationReview />
-	</main>
+	</UContainer>
 </template>

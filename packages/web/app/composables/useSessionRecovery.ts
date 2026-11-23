@@ -9,7 +9,7 @@ type SessionState = {
 	resolved: boolean
 	revision: number
 	loggingOut: boolean
-	setUser: (user: SessionUser | null) => void
+	setUser: (user: SessionUser | null, isAdmin?: boolean) => void
 	refreshSession: (operation: () => Promise<void>) => Promise<void>
 	invalidate: () => void
 	waitForSessionRefresh: () => Promise<void>
@@ -55,7 +55,7 @@ export function useSessionRecovery(
 				})
 				if (!result) return
 				if (disposed || revision !== session.revision) return
-				session.setUser(result.user)
+				session.setUser(result.user, result.isAdmin === true)
 				refreshAt.value = result.refreshAt
 				if (notify && result.user) notifyWebAuthChange('updated')
 			} catch {

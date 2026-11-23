@@ -52,6 +52,20 @@ afterEach(() => {
 })
 
 describe('session recovery', () => {
+	it('refreshes admin status and preserves it through a profile update', async () => {
+		const flow = setup()
+		flow.load.mockResolvedValueOnce({ user, isAdmin: true, refreshAt: flow.refreshAt.value })
+		await flow.recovery.refresh()
+		expect(flow.session.isAdmin).toBe(true)
+		flow.session.setUser({ ...user, discordId: '-1' })
+		expect(flow.session.isAdmin).toBe(true)
+		await flow.recovery.refresh()
+		expect(flow.session.isAdmin).toBe(false)
+		flow.session.setUser(user, true)
+		flow.session.setUser({ ...user, id: 2 })
+		expect(flow.session.isAdmin).toBe(false)
+	})
+
 	it('rechecks shared cookies after waiting for another tab instead of rotating again', async () => {
 		const flow = setup()
 		let grant!: () => void
@@ -183,9 +197,11 @@ describe('session recovery', () => {
 
 	it('shows signed out on refresh failure, then recovers with saved cookies', async () => {
 		const flow = setup()
+		flow.session.setUser(user, true)
 		flow.fetcher.mockRejectedValueOnce(new Error('Network unavailable'))
 		await vi.advanceTimersByTimeAsync(60_000)
 		expect(flow.session.user).toBeNull()
+		expect(flow.session.isAdmin).toBe(false)
 		expect(flow.refreshAt.value).toBeNull()
 		flow.windowTarget.dispatchEvent(new Event('online'))
 		await flow.session.waitForSessionRefresh()
@@ -205,6 +221,7 @@ describe('session recovery', () => {
 
 	it('waits for delayed refresh before logout clears cookies and rejects delayed user', async () => {
 		const flow = setup()
+		flow.session.setUser(user, true)
 		let finish!: (value: unknown) => void
 		flow.load.mockImplementationOnce(
 			() =>
@@ -223,10 +240,12 @@ describe('session recovery', () => {
 		const logout = useAccountActions().logout()
 		flow.windowTarget.dispatchEvent(new Event('focus'))
 		expect(flow.session.user).toBeNull()
+		expect(flow.session.isAdmin).toBe(false)
 		expect(flow.fetcher).not.toHaveBeenCalled()
-		finish({ user, isAdmin: false, refreshAt: Date.now() + 600_000 })
+		finish({ user, isAdmin: true, refreshAt: Date.now() + 600_000 })
 		await Promise.all([refreshing, logout])
 		expect(flow.session.user).toBeNull()
+		expect(flow.session.isAdmin).toBe(false)
 		expect(flow.refreshAt.value).toBeNull()
 		expect(flow.fetcher).toHaveBeenCalledWith('/api/auth/logout', expect.anything())
 	})

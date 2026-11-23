@@ -77,15 +77,15 @@ async function compare() {
 </script>
 
 <template>
-	<UCard class="rounded-xl border-border bg-card/85" aria-label="Candidate version comparison">
-		<template #header><h2 class="font-semibold">Candidate version comparison</h2></template>
+	<UCard class="min-w-0 rounded-2xl border-border/80 bg-card/90" aria-label="Candidate version comparison">
+		<template #header><h2 class="font-semibold text-highlighted">Candidate version comparison</h2></template>
 		<div class="space-y-4">
 		<UAlert v-if="error" color="error" variant="soft" title="Evidence unavailable" :description="error" />
 		<UFormField label="Candidate level version">
 			<USelect v-model="selectedSnapshot" :items="snapshotItems" placeholder="Select a level version" :disabled="!snapshotItems.length" class="w-full" />
 		</UFormField>
 		<UButton :loading="comparing" :disabled="!selectedSnapshot" @click="compare">Compare selected version</UButton>
-        <UAlert v-if="comparison" :color="comparison.status === 'fail' ? 'error' : comparison.status === 'pass' ? 'success' : 'warning'" variant="soft" :title="comparison.status" :description="comparison.reasons.join(', ') || 'Compatible with selected geometry'" />
+        <UAlert v-if="comparison" :color="comparison.status === 'fail' ? 'error' : comparison.status === 'pass' ? 'success' : 'warning'" variant="soft" :title="comparison.status" :description="comparison.reasons.join(', ') || 'Compatible with selected geometry'" role="status" />
         <div class="flex flex-wrap gap-2">
 			<UBadge color="error" variant="soft">Missing checkpoint group</UBadge>
 			<UBadge color="success" variant="soft">Compatible contact</UBadge>
@@ -94,9 +94,9 @@ async function compare() {
 		</div>
 		<p class="text-sm text-muted">Candidate matches do not establish original version.</p>
 		<GhostPlaybackViewer v-if="review" :key="`${recordId}:${selectedSnapshot}`" :ghosts="ghosts" :level-id="review.record.levelId" :level-blocks="blocks" :level-asset-url="assetUrl" :show-level-geometry="performance.preferences.value.showLevelGeometry" :paint-mode="performance.preferences.value.paintMode" :show-ghost-trails="performance.preferences.value.showGhostTrails" :validation-overlays="overlays" v-model:current-time="time" v-model:playing="playing" v-model:following="following" :playback-rate="1" :loop="false" :selected-record-id="recordId" camera-mode="orbit" :frame-rate="performance.frameRate.value" :quality="performance.renderQuality.value" :labels="labels" />
-		<div class="flex items-center gap-4">
+		<div class="flex flex-wrap items-center gap-3">
 			<UButton :disabled="!ghosts.length" @click="playing = !playing">{{ playing ? 'Pause' : 'Play' }}</UButton>
-			<USlider v-model="time" :min="0" :max="Math.max(review?.record.time ?? 0, 0.01)" :step="0.01" :disabled="!ghosts.length" class="flex-1" aria-label="Ghost time" />
+			<USlider v-model="time" :min="0" :max="Math.max(review?.record.time ?? 0, 0.01)" :step="0.01" :disabled="!ghosts.length" class="min-w-20 flex-1" aria-label="Ghost time" />
 			<GhostPerformanceSettings
 				:preferences="performance.preferences.value"
 				:cache-stats="performance.cacheStats.value"

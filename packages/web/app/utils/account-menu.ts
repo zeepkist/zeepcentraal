@@ -1,3 +1,4 @@
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { LocaleOption, SessionUser } from '~/types/app'
 
 export type AccountMenuLabels = {
@@ -6,6 +7,9 @@ export type AccountMenuLabels = {
 	profile: string
 	settings: string
 	language: string
+	admin: string
+	ghostValidation: string
+	zslManagement: string
 	logout: string
 	steam: string
 	discord: string
@@ -13,6 +17,7 @@ export type AccountMenuLabels = {
 
 type AccountMenuInput = {
 	user: SessionUser | null
+	isAdmin: boolean
 	locale: string
 	localeOptions: LocaleOption[]
 	labels: AccountMenuLabels
@@ -22,7 +27,7 @@ type AccountMenuInput = {
 	onDiscord: () => void
 }
 
-export function buildAccountMenuItems(input: AccountMenuInput) {
+export function buildAccountMenuItems(input: AccountMenuInput): DropdownMenuItem[][] {
 	if (!input.user) {
 		return [
 			[
@@ -51,6 +56,26 @@ export function buildAccountMenuItems(input: AccountMenuInput) {
 					onSelect: () => input.onLocale(option.code),
 				})),
 			},
+			...(input.isAdmin === true
+				? [
+						{
+							label: input.labels.admin,
+							slot: 'admin',
+							children: [
+								{
+									label: input.labels.ghostValidation,
+									slot: 'ghost-validation',
+									to: '/admin/ghost-validation',
+								},
+								{
+									label: input.labels.zslManagement,
+									slot: 'zsl-management',
+									to: '/admin/zsl',
+								},
+							],
+						},
+					]
+				: []),
 		],
 		[
 			{

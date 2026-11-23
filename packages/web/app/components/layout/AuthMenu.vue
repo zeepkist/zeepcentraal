@@ -13,6 +13,9 @@
 		<template #profile-leading><TablerIcon name="user" class="size-4" /></template>
 		<template #settings-leading><TablerIcon name="settings" class="size-4" /></template>
 		<template #language-leading><TablerIcon name="world" class="size-4" /></template>
+		<template #admin-leading><TablerIcon name="shield-check" class="size-4" /></template>
+		<template #ghost-validation-leading><TablerIcon name="ghost" class="size-4" /></template>
+		<template #zsl-management-leading><TablerIcon name="trophy" class="size-4" /></template>
 		<template #logout-leading><TablerIcon name="logout" class="size-4" /></template>
 		<template #steam-leading><TablerIcon name="brand-steam" class="size-4" /></template>
 		<template #discord-leading><TablerIcon name="brand-discord" class="size-4" /></template>
@@ -25,6 +28,7 @@ import { type AccountMenuLabels, buildAccountMenuItems } from '~/utils/account-m
 
 const props = defineProps<{
 	user: SessionUser | null
+	isAdmin: boolean
 	locale: string
 	localeOptions: LocaleOption[]
 	labels: AccountMenuLabels

@@ -49,6 +49,7 @@
 			<ThemeToggle />
 			<AuthMenu
 				:user="session.user"
+				:is-admin="session.isAdmin"
 				:locale="locale"
 				:locale-options="localeOptions"
 				:labels="accountLabels"
@@ -108,6 +109,9 @@ const accountLabels = computed(() => ({
 	profile: t('auth.profile'),
 	settings: t('auth.settings'),
 	language: t('auth.language'),
+	admin: t('auth.admin'),
+	ghostValidation: t('auth.ghostValidation'),
+	zslManagement: t('auth.zslManagement'),
 	logout: t('auth.logout'),
 	steam: t('auth.steam'),
 	discord: t('auth.discord'),

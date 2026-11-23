@@ -41,6 +41,20 @@ const rows = computed(() => data.value?.[collections[kind.value]] ?? [])
 const record = computed(() => rows.value.find((row) => row.id === selected.value))
 const relationship = computed(() => kind.value === 'round' ? 'seasonId' : 'pointsStructureId')
 const targetRows = computed(() => kind.value === 'round' ? data.value?.seasons : data.value?.points)
+const targetItems = computed(() => targetRows.value?.map((row) => ({
+	label: row.name,
+	value: String(row.id),
+})) ?? [])
+const recordLabel = computed(() => kind.value === 'points' ? 'points structure' : kind.value)
+const tabs = computed(() => Object.entries(labels).map(([value, label]) => ({
+	value,
+	label,
+	disabled: !mounted.value || saving.value,
+})))
+
+function fieldRequired(field: Field) {
+	return field.type === 'number' || ['points', 'startDate', 'endDate', 'eventDate'].includes(field.key)
+}
 
 function select(id: number | null) {
 	selected.value = id
@@ -56,9 +70,15 @@ function select(id: number | null) {
 	status.value = ''
 }
 
-function changeKind(next: Kind) {
+function changeKind(next: string | number) {
+	if (next !== 'round' && next !== 'season' && next !== 'points') return
 	kind.value = next
 	select(null)
+}
+
+async function reloadSettings() {
+	await refresh()
+	select(selected.value)
 }
 
 function copyPoints() {
@@ -109,54 +129,88 @@ onMounted(() => {
 </script>
 
 <template>
-	<nav aria-label="ZSL settings" class="mb-5 flex flex-wrap gap-2">
-		<button v-for="(label, tab) in labels" :key="tab" type="button"
-			:aria-pressed="kind === tab" :disabled="!mounted || saving"
-			class="rounded border px-4 py-2 aria-pressed:font-bold" @click="changeKind(tab)">
-			{{ label }}
-		</button>
-	</nav>
-	<p v-if="loadError" role="alert" class="mb-4">{{ zslError(loadError) }}</p>
-	<div class="grid gap-6 md:grid-cols-[minmax(12rem,1fr)_3fr]">
-		<aside>
-			<button type="button" class="mb-3 rounded border px-3 py-2" :disabled="!mounted || saving" @click="select(null)">Add {{ kind === 'points' ? 'points structure' : kind }}</button>
-			<ul class="space-y-1">
-				<li v-for="row in rows" :key="row.id">
-					<button type="button" class="w-full rounded px-3 py-2 text-left aria-pressed:font-bold"
-						:aria-pressed="selected === row.id" :disabled="!mounted || saving" @click="select(row.id)">
-						{{ row.name }} <span class="opacity-70">#{{ row.id }}</span>
-					</button>
-				</li>
-			</ul>
-		</aside>
-		<div class="min-w-0">
-			<form class="grid gap-4 rounded border p-4 sm:grid-cols-2" @submit.prevent="save">
-				<h2 class="text-lg font-semibold sm:col-span-2">{{ selected ? 'Edit' : 'New' }} {{ kind === 'points' ? 'points structure' : kind }}</h2>
-				<label class="grid gap-1">Name
-					<input v-model="form.name" class="rounded border px-3 py-2" required maxlength="256">
-				</label>
-				<label v-if="kind !== 'points'" class="grid gap-1">{{ kind === 'round' ? 'Season' : 'Points structure' }}
-					<select v-model="form[relationship]" class="rounded border px-3 py-2" required>
-						<option value="">Select</option>
-						<option v-for="target in targetRows" :key="target.id" :value="String(target.id)">{{ target.name }}</option>
-					</select>
-				</label>
-				<p v-if="kind !== 'points'" class="text-sm opacity-80 sm:col-span-2">Europe/London. Enter a timestamp with its UTC offset, such as 2027-07-04T18:00:00+01:00.</p>
-				<label v-for="field in fields[kind]" :key="field.key" class="grid gap-1">
-					{{ field.label }}
-					<input v-model="form[field.key]" class="min-w-0 rounded border px-3 py-2"
-						:type="field.type === 'number' ? 'number' : 'text'"
-						:required="field.type === 'number' || ['points', 'startDate', 'endDate', 'eventDate'].includes(field.key)">
-				</label>
-				<div class="flex flex-wrap gap-2 sm:col-span-2">
-					<button type="submit" class="rounded border px-4 py-2 font-semibold" :disabled="!mounted || saving || pending || !!loadError">{{ saving ? 'Saving…' : 'Save' }}</button>
-					<button v-if="kind === 'points' && selected" type="button" class="rounded border px-4 py-2" :disabled="saving" @click="copyPoints">Copy structure</button>
-					<button type="button" class="rounded border px-4 py-2" :disabled="saving" @click="async () => { await refresh(); select(selected) }">Reload settings</button>
+	<UTabs
+		:model-value="kind"
+		:items="tabs"
+		aria-label="ZSL settings"
+		variant="pill"
+		class="w-full"
+		:ui="{ list: 'w-full self-start rounded-xl border border-border bg-card/60 sm:w-fit', content: 'space-y-6 pt-4' }"
+		@update:model-value="changeKind"
+	>
+		<template #content>
+			<UAlert v-if="loadError" color="error" variant="soft" title="Settings unavailable" role="alert" :description="zslError(loadError)" />
+			<div class="grid items-start gap-6 lg:grid-cols-[minmax(13rem,1fr)_3fr]">
+				<UCard class="min-w-0 rounded-2xl border-border/80 bg-card/90">
+					<template #header>
+						<div class="flex flex-wrap items-center justify-between gap-3">
+							<h2 class="font-semibold text-highlighted">{{ labels[kind] }}</h2>
+							<UButton color="neutral" variant="soft" size="sm" icon="i-tabler-plus" :disabled="!mounted || saving" @click="select(null)">
+								Add {{ recordLabel }}
+							</UButton>
+						</div>
+					</template>
+					<USkeleton v-if="pending && !rows.length" class="h-9 rounded-lg" />
+					<p v-else-if="!rows.length && !loadError" class="text-sm text-muted">No {{ labels[kind].toLowerCase() }} yet.</p>
+					<ul v-else class="max-h-56 space-y-1 overflow-y-auto lg:max-h-96">
+						<li v-for="row in rows" :key="row.id">
+							<UButton
+								:color="selected === row.id ? 'primary' : 'neutral'"
+								:variant="selected === row.id ? 'soft' : 'ghost'"
+								:aria-pressed="selected === row.id"
+								:disabled="!mounted || saving"
+								block
+								class="justify-between text-left"
+								@click="select(row.id)"
+							>
+								<span class="min-w-0 break-words">{{ row.name }}</span>
+								<span class="shrink-0 text-xs text-muted">#{{ row.id }}</span>
+							</UButton>
+						</li>
+					</ul>
+				</UCard>
+				<div class="min-w-0 space-y-6">
+					<UCard class="rounded-2xl border-border/80 bg-card/90">
+						<template #header>
+							<h2 class="font-semibold text-highlighted">{{ selected ? 'Edit' : 'New' }} {{ recordLabel }}</h2>
+						</template>
+						<form class="grid gap-4 sm:grid-cols-2" @submit.prevent="save">
+							<UFormField label="Name" name="name" required>
+								<UInput v-model="form.name" class="w-full" required :maxlength="256" />
+							</UFormField>
+							<UFormField v-if="kind !== 'points'" :label="kind === 'round' ? 'Season' : 'Points structure'" :name="relationship" required>
+								<USelect v-model="form[relationship]" :items="targetItems" placeholder="Select" class="w-full" required />
+							</UFormField>
+							<p v-if="kind !== 'points'" class="text-sm text-muted sm:col-span-2">
+								Europe/London. Enter a timestamp with its UTC offset, such as 2027-07-04T18:00:00+01:00.
+							</p>
+							<UFormField
+								v-for="field in fields[kind]"
+								:key="field.key"
+								:label="field.label"
+								:name="field.key"
+								:required="fieldRequired(field)"
+							>
+								<UInput
+									:model-value="form[field.key]"
+									:type="field.type === 'number' ? 'number' : 'text'"
+									:required="fieldRequired(field)"
+									class="w-full"
+									@update:model-value="form[field.key] = String($event ?? '')"
+								/>
+							</UFormField>
+							<div class="flex flex-wrap gap-2 sm:col-span-2">
+								<UButton type="submit" :loading="saving" :disabled="!mounted || pending || !!loadError">Save</UButton>
+								<UButton v-if="kind === 'points' && selected" color="neutral" variant="outline" :disabled="saving" @click="copyPoints">Copy structure</UButton>
+								<UButton color="neutral" variant="ghost" :loading="pending" :disabled="saving" @click="reloadSettings">Reload settings</UButton>
+							</div>
+							<UAlert v-if="error" color="error" variant="soft" title="Save failed" role="alert" :description="error" class="sm:col-span-2" />
+							<UAlert v-if="status" color="success" variant="soft" :title="status" role="status" class="sm:col-span-2" />
+						</form>
+					</UCard>
+					<ZslPlaylists v-if="kind === 'round' && selected && record" :key="selected" :round="record as Round" />
 				</div>
-				<p v-if="error" role="alert" class="sm:col-span-2">{{ error }}</p>
-				<p v-if="status" role="status" class="sm:col-span-2">{{ status }}</p>
-			</form>
-			<ZslPlaylists v-if="kind === 'round' && selected && record" :key="selected" :round="record as Round" />
-		</div>
-	</div>
+			</div>
+		</template>
+	</UTabs>
 </template>

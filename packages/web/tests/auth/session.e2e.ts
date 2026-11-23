@@ -1,5 +1,6 @@
 import { type BrowserContext, expect, type Page } from '@playwright/test'
 import { webAuthCookieNames } from '../../shared/authCookies'
+import { ghostPlaybackLzma } from '../fixtures/ghostPlayback'
 import { test } from '../support/browser'
 
 const fixture = 'http://127.0.0.1:4199'
@@ -95,6 +96,224 @@ test('root and admin checks share rotated cookies in one SSR navigation', async 
 	await expect(page).toHaveURL('/admin/ghost-validation')
 	expect(await state(context)).toEqual({ attempts: 1, rotations: 1 })
 })
+
+test('regular accounts and guests do not get admin navigation', async ({ page, context }) => {
+	await page.goto('/terms')
+	await hydrated(page)
+	await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+	await expect(page.getByRole('menuitem', { name: 'Sign in with Steam' })).toBeVisible()
+	await expect(page.getByRole('menuitem', { name: 'Admin', exact: true })).toHaveCount(0)
+
+	await seed(context, { role: 'user' })
+	await page.goto('/terms')
+	await signedIn(page)
+	await page.getByRole('button', { name: 'Account', exact: true }).click()
+	await expect(page.getByRole('menuitem', { name: 'Language' })).toBeVisible()
+	await expect(page.getByRole('menuitem', { name: 'Admin', exact: true })).toHaveCount(0)
+})
+
+for (const device of [
+	{ width: 1440, height: 900, theme: 'light' },
+	{ width: 390, height: 844, theme: 'dark' },
+] as const) {
+	test(`admin pages support editing and review at ${device.width}px in ${device.theme} mode`, async ({
+		page,
+		context,
+		baseURL,
+	}) => {
+		test.setTimeout(120_000)
+		if (!baseURL) throw new Error('Auth fixture requires a base URL')
+		await page.setViewportSize({ width: device.width, height: device.height })
+		await seed(context)
+		await context.addCookies([{ name: 'colour_mode', value: device.theme, url: baseURL }])
+		const report = {
+			status: 'pass',
+			reasons: ['Fixture comparison'],
+			matchedGroups: [],
+			missingGroups: [],
+			validatorVersion: 'fixture',
+		}
+		await page.route('**/api/admin/ghost-validation**', async (route) => {
+			const { pathname, searchParams } = new URL(route.request().url())
+			const json = pathname.endsWith('/audit')
+				? { queued: true }
+				: pathname.endsWith('/compare')
+					? { report }
+					: pathname.endsWith('/ghost')
+						? { ghost: ghostPlaybackLzma.toString('base64') }
+						: pathname.endsWith('/records/9002')
+							? {
+									record: {
+										id: 9002,
+										levelId: 51,
+										time: 42,
+										steamId: '76561198000000000',
+										hash: 'fixture',
+									},
+									snapshots: [
+										{
+											snapshot: {
+												id: 51,
+												canonicalHash: 'Fixture snapshot',
+												blocks: [],
+											},
+											overlays: [],
+										},
+									],
+								}
+							: {
+									attempts:
+										searchParams.get('after') === '9001'
+											? []
+											: [
+													{
+														id: '9001',
+														id_record: 9002,
+														status: 'pass',
+														updated_at: '2027-07-04',
+														validator_version: 'fixture',
+														report,
+													},
+												],
+								}
+			await route.fulfill({ json })
+		})
+		await page.route('**/api/admin/zsl', (route) =>
+			route.request().method() === 'POST'
+				? route.fulfill({ json: { id: 51 } })
+				: route.continue(),
+		)
+		await page.route('**/api/admin/zsl/rounds/51/playlists', (route) =>
+			route.fulfill({
+				json:
+					route.request().method() === 'POST'
+						? { revision: 3 }
+						: {
+								alerts: [],
+								tournamentPinned: true,
+								playlists: [
+									{
+										kind: 'practice',
+										state: 'failed',
+										selectedRevision: 2,
+										verifiedRevision: 1,
+										diagnostics: [{ stage: 'Fixture diagnostic' }],
+										verifiedLevels: [
+											{
+												name: 'Fixture Track',
+												workshopId: '42',
+												uid: 'fixture-track',
+											},
+										],
+									},
+								],
+							},
+			}),
+		)
+		await page.goto('/terms')
+		await signedIn(page)
+		const account = page.getByRole('button', { name: 'Account', exact: true })
+		await account.press('Enter')
+		await page.getByRole('menuitem', { name: 'Admin', exact: true }).press('ArrowRight')
+		await expect(page.getByRole('menuitem', { name: 'Ghost Validation' })).toBeVisible()
+		await page.getByRole('menuitem', { name: 'ZSL Management' }).press('Enter')
+		await expect(
+			page.getByRole('heading', { name: 'ZSL Management', exact: true }),
+		).toBeVisible()
+		await expect(page.locator('html')).toHaveClass(new RegExp(`\\b${device.theme}\\b`))
+
+		await page.getByRole('tab', { name: 'Points structures' }).click()
+		await page.getByRole('button', { name: 'Fixture Points' }).click()
+		await page.getByRole('button', { name: 'Copy structure' }).click()
+		await expect(page.getByRole('textbox', { name: /^Name/ })).toHaveValue(
+			'Fixture Points (copy)',
+		)
+		await page.getByRole('tab', { name: 'Rounds' }).click()
+		await page.getByRole('button', { name: 'Fixture Round' }).click()
+		await expect(page.getByRole('textbox', { name: 'Timeslot 1 start' })).toHaveValue(
+			'2027-07-04T18:00:00+01:00',
+		)
+		await page.getByRole('textbox', { name: /^Name/ }).fill('Edited Round')
+		const save = page.waitForRequest(
+			(request) => request.url().endsWith('/api/admin/zsl') && request.method() === 'POST',
+		)
+		await page.getByRole('button', { name: 'Save', exact: true }).click()
+		expect((await save).postDataJSON()).toMatchObject({
+			id: 51,
+			version: 'fixture-version',
+			settings: {
+				name: 'Edited Round',
+				eventDate: '2027-07-04T17:00:00Z',
+				seasonId: 1,
+				number: 1,
+				workshopId: '9007199254740993',
+			},
+		})
+		await expect(page.getByRole('status').filter({ hasText: 'Saved' })).toBeVisible()
+		await page.getByRole('button', { name: 'Reload settings' }).click()
+		await expect(page.getByRole('textbox', { name: /^Name/ })).toHaveValue('Fixture Round')
+		await expect(page.getByText('Tournament revision locked')).toBeVisible()
+		await expect(page.getByText('Fixture diagnostic')).toBeVisible()
+		await expect(page.getByText(/Fixture Track · 42/)).toBeVisible()
+		await expect(page.getByRole('button', { name: 'Upload tournament playlist' })).toHaveCount(
+			0,
+		)
+		const playlist = '{"levels":[]}'
+		await page.locator('input[type=file]').setInputFiles({
+			name: 'fixture.zeeplist',
+			mimeType: 'application/json',
+			buffer: Buffer.from(playlist),
+		})
+		const upload = page.waitForRequest(
+			(request) => request.url().endsWith('/playlists') && request.method() === 'POST',
+		)
+		await page.getByRole('button', { name: 'Upload practice playlist' }).click()
+		expect((await upload).postDataJSON()).toEqual({
+			action: 'uploadPractice',
+			source: playlist,
+		})
+		await expect(
+			page.getByRole('status').filter({ hasText: 'Preparation queued' }),
+		).toBeVisible()
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			device.width,
+		)
+
+		await account.click()
+		await page.getByRole('menuitem', { name: 'Admin', exact: true }).press('ArrowRight')
+		await page.getByRole('menuitem', { name: 'Ghost Validation' }).click()
+		await expect(
+			page.getByRole('heading', { name: 'Ghost Validation', exact: true }),
+		).toBeVisible()
+		const table = page.getByRole('region', { name: 'Validation results table' })
+		await expect(table.getByRole('cell', { name: '9002', exact: true })).toBeVisible()
+		if (device.width === 390) {
+			expect(
+				await table.evaluate((element) => element.scrollWidth > element.clientWidth),
+			).toBe(true)
+		}
+		expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+			device.width,
+		)
+		const exportCsv = page.waitForEvent('download')
+		await page.getByRole('button', { name: 'Export loaded CSV' }).click()
+		expect((await exportCsv).suggestedFilename()).toBe('ghost-validation.csv')
+		await table.getByRole('button', { name: 'Compare', exact: true }).click()
+		await page.getByRole('button', { name: 'Compare selected version' }).click()
+		await expect(
+			page.getByRole('status').filter({ hasText: 'Fixture comparison' }),
+		).toBeVisible()
+		await page.getByRole('button', { name: 'Play', exact: true }).click({ timeout: 20_000 })
+		await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible()
+		await page.getByRole('spinbutton', { name: 'Record ID' }).fill('9002')
+		const audit = page.waitForRequest(
+			(request) => request.url().endsWith('/audit') && request.method() === 'POST',
+		)
+		await page.getByRole('button', { name: 'Queue audit', exact: true }).click()
+		expect((await audit).postDataJSON()).toEqual({ idRecord: 9002 })
+		await expect(page.getByRole('status').filter({ hasText: 'Audit queued' })).toBeVisible()
+	})
+}
 
 test('overdue session recovers on resume with overlapping lifecycle events', async ({
 	page,

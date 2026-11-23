@@ -74,9 +74,10 @@ Bun.serve({
 				fail?: boolean
 				delay?: number
 				responseDelay?: number
+				role?: 'admin' | 'user'
 			}
 			await sql`TRUNCATE public.auth, public."user" RESTART IDENTITY`
-			await sql`INSERT INTO public."user" VALUES (1, ${steamId}, 'Auth fixture', NULL, 'admin', ${options.invalid === 'banned'})`
+			await sql`INSERT INTO public."user" VALUES (1, ${steamId}, 'Auth fixture', NULL, ${options.role ?? 'admin'}, ${options.invalid === 'banned'})`
 			const tokens = pair(options.ttl)
 			await sql`INSERT INTO public.auth(id_user,access_token,access_token_expiry,refresh_token_hash,refresh_token_expiry)
 				VALUES (1, ${tokens.access}, ${tokens.expires}, ${hash(tokens.refresh)}, ${Math.floor(Date.now() / 1000) + (options.invalid === 'expired' ? -1 : 604800)})`
@@ -90,6 +91,25 @@ Bun.serve({
 			return response(tokens, !options.missing)
 		}
 		if (url.pathname === '/__test/state') return Response.json({ attempts, rotations })
+		if (url.pathname === '/admin/zsl' && request.method === 'GET') {
+			return Response.json({
+				rounds: [
+					{
+						id: 51,
+						version: 'fixture-version',
+						name: 'Fixture Round',
+						number: 1,
+						seasonId: 1,
+						workshopId: '9007199254740993',
+						eventDate: '2027-07-04T17:00:00Z',
+					},
+				],
+				seasons: [{ id: 1, name: 'Fixture Season' }],
+				points: [
+					{ id: 1, name: 'Fixture Points', points: [10, 5], minimumPoints: 1, bestOf: 2 },
+				],
+			})
+		}
 		if (url.pathname === '/auth/web/refresh') {
 			attempts++
 			if (delayRefresh) await Bun.sleep(delayRefresh)

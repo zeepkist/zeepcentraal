@@ -64,8 +64,8 @@ onMounted(() => load())
 
 <template>
 	<div class="space-y-6">
-		<UCard class="rounded-xl border-border bg-card/85">
-			<template #header><h2 class="font-semibold">Review filters</h2></template>
+		<UCard class="min-w-0 rounded-2xl border-border/80 bg-card/90">
+			<template #header><h2 class="font-semibold text-highlighted">Review filters</h2></template>
 			<UForm :state="formState" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" @submit="load()">
 				<UFormField label="Record ID" name="record">
 					<UInput :model-value="recordFilter" type="number" :min="1" placeholder="All records" class="w-full" @update:model-value="recordFilter = String($event ?? '')" />
@@ -85,17 +85,26 @@ onMounted(() => load())
 			</UForm>
 		</UCard>
 		<UAlert v-if="error" color="error" variant="soft" title="Review unavailable" :description="error" />
-		<UCard class="rounded-xl border-border bg-card/85">
+		<UCard class="min-w-0 rounded-2xl border-border/80 bg-card/90" :ui="{ body: 'min-w-0 p-0 sm:p-0' }">
 			<template #header>
 				<div class="flex flex-wrap items-center justify-between gap-3">
-					<h2 class="font-semibold">Validation results</h2>
+					<h2 class="font-semibold text-highlighted">Validation results</h2>
 					<div class="flex flex-wrap gap-2">
-						<UButton color="neutral" variant="outline" @click="download('json')">Export loaded JSON</UButton>
-						<UButton color="neutral" variant="outline" @click="download('csv')">Export loaded CSV</UButton>
+						<UButton color="neutral" variant="outline" size="sm" @click="download('json')">Export loaded JSON</UButton>
+						<UButton color="neutral" variant="outline" size="sm" @click="download('csv')">Export loaded CSV</UButton>
 					</div>
 				</div>
 			</template>
-			<UTable :data="attempts" :columns="columns" :loading="busy" empty="No validation results found.">
+			<UTable
+				:data="attempts"
+				:columns="columns"
+				:loading="busy"
+				:ui="{ base: 'w-full min-w-[46rem]' }"
+				empty="No validation results found."
+				as="section"
+				aria-label="Validation results table"
+				tabindex="0"
+			>
 				<template #status-cell="{ row }">
 					<div class="flex items-center gap-2">
 						<UBadge :color="row.original.status === 'pass' ? 'success' : row.original.status === 'fail' ? 'error' : row.original.status === 'uncertain' ? 'warning' : 'neutral'" variant="soft">{{ row.original.status }}</UBadge>
@@ -107,11 +116,11 @@ onMounted(() => load())
 			<template #footer><UButton color="neutral" variant="outline" :loading="busy" @click="load(true)">Load more results</UButton></template>
 		</UCard>
 		<GhostValidationComparison v-if="selectedRecord" :record-id="selectedRecord" :attempts="attempts" />
-		<UCard class="rounded-xl border-border bg-card/85">
-			<template #header><h2 class="font-semibold">Queue historical audit</h2></template>
+		<UCard class="min-w-0 rounded-2xl border-border/80 bg-card/90">
+			<template #header><h2 class="font-semibold text-highlighted">Queue historical audit</h2></template>
 			<UForm :state="formState" class="space-y-4" @submit="audit">
 				<p class="text-sm text-muted">Uses review filters above. Empty filters audit all records. Dates, scores, and eligibility remain unchanged.</p>
-				<UButton type="submit" :loading="busy">Queue audit</UButton>
+				<UButton type="submit" color="neutral" variant="outline" :loading="busy">Queue audit</UButton>
 				<UAlert v-if="auditMessage" color="success" variant="soft" title="Audit queued" :description="auditMessage" role="status" />
 			</UForm>
 		</UCard>

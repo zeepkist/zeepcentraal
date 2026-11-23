@@ -3,6 +3,7 @@ import type { SessionUser } from '~/types/app'
 
 export const useSessionStore = defineStore('session', () => {
 	const user = ref<SessionUser | null>(null)
+	const isAdmin = ref(false)
 	const pending = ref(false)
 	const resolved = ref(false)
 	const revision = ref(0)
@@ -26,17 +27,22 @@ export const useSessionStore = defineStore('session', () => {
 
 	function invalidate() {
 		revision.value += 1
-		user.value = null
+		setUser(null)
 		pending.value = false
 		resolved.value = true
 	}
 
-	function setUser(nextUser: SessionUser | null) {
+	function setUser(
+		nextUser: SessionUser | null,
+		admin = user.value?.id === nextUser?.id && isAdmin.value,
+	) {
 		user.value = nextUser
+		isAdmin.value = nextUser !== null && admin === true
 	}
 
 	return {
 		invalidate,
+		isAdmin,
 		loggingOut,
 		pending,
 		refreshSession,

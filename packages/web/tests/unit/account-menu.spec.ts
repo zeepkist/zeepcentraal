@@ -8,6 +8,9 @@ const labels = {
 	profile: 'View profile',
 	settings: 'Settings',
 	language: 'Language',
+	admin: 'Admin',
+	ghostValidation: 'Ghost Validation',
+	zslManagement: 'ZSL Management',
 	logout: 'Log out',
 	steam: 'Sign in with Steam',
 	discord: 'Sign in with Discord',
@@ -23,6 +26,7 @@ describe('account menu model', () => {
 	test('provides login providers while logged out', () => {
 		const items = buildAccountMenuItems({
 			user: null,
+			isAdmin: true,
 			locale: 'en',
 			localeOptions: [],
 			labels,
@@ -34,6 +38,7 @@ describe('account menu model', () => {
 	test('provides player, profile, settings, language submenu, and logout while logged in', () => {
 		const items = buildAccountMenuItems({
 			user: { id: 7, steamId: '76561198000000000', steamName: 'Player' },
+			isAdmin: false,
 			locale: 'en',
 			localeOptions: [
 				{ code: 'en', name: 'English' },
@@ -47,7 +52,26 @@ describe('account menu model', () => {
 		expect(items[1]?.[1]).toMatchObject({ to: '/settings', slot: 'settings' })
 		expect(items[1]?.[2]).toMatchObject({ slot: 'language' })
 		expect(items[1]?.[2]?.children).toHaveLength(2)
+		expect(items[1]).toHaveLength(3)
 		expect(items[2]?.[0]).toMatchObject({ color: 'error', slot: 'logout' })
+	})
+
+	test('adds admin navigation after the language submenu for verified admins', () => {
+		const items = buildAccountMenuItems({
+			user: { id: 7, steamId: '76561198000000000' },
+			isAdmin: true,
+			locale: 'en',
+			localeOptions: [],
+			labels,
+			...callbacks,
+		})
+		expect(items[1]?.[3]).toMatchObject({
+			label: 'Admin',
+			children: [
+				{ label: 'Ghost Validation', to: '/admin/ghost-validation' },
+				{ label: 'ZSL Management', to: '/admin/zsl' },
+			],
+		})
 	})
 
 	test('uses distinct Tabler login and account icons', () => {
