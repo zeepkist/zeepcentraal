@@ -1,5 +1,5 @@
 <template>
-	<div class="grid gap-4 md:grid-cols-2">
+	<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 		<NuxtLink
 			v-for="item in items"
 			:key="item.id"
@@ -23,10 +23,10 @@
 				/>
 			</div>
 
-			<h3 class="mt-4 text-lg font-bold transition-colors group-hover:text-primary">
+			<h3 class="mt-4 wrap-anywhere text-lg font-bold transition-colors group-hover:text-primary">
 				{{ item.title }}
 			</h3>
-			<p class="mt-2 line-clamp-2 flex-1 text-sm leading-relaxed text-muted-foreground">
+			<p class="mt-2 line-clamp-2 flex-1 wrap-anywhere text-sm leading-relaxed text-muted-foreground">
 				{{ item.contents }}
 			</p>
 

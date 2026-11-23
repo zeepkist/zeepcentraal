@@ -1,5 +1,5 @@
 <template>
-	<UContainer class="space-y-8 py-2">
+	<UContainer :ui="{ base: () => 'w-full max-w-(--ui-container) mx-auto' }" class="space-y-8 py-2">
 		<UAlert
 			v-if="authVerificationFailed"
 			data-testid="auth-verification-error"
@@ -26,7 +26,7 @@
 				:title="t('tournaments.features.activeTitle')"
 				:description="t('tournaments.features.activeDescription')"
 			/>
-			<div class="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+			<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
 				<TournamentFeatureCard
 					v-for="tournament in dashboard.activeTournaments.value"
 					:key="tournament.id"
@@ -71,7 +71,7 @@
 				:empty-title="t('common.empty')"
 			>
 				<template #pending>
-					<div class="grid gap-4 md:grid-cols-2">
+					<div class="grid grid-cols-1 gap-4 md:grid-cols-2">
 						<div
 							v-for="index in 6"
 							:key="index"
