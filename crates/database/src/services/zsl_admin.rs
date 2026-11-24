@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use zc_core::practice::PracticeBundle;
 
+mod playlist_status;
+
 #[derive(Debug)]
 pub struct ZslAdminConflict;
 impl std::fmt::Display for ZslAdminConflict {
@@ -358,13 +360,14 @@ impl Database {
     }
 
     pub async fn zsl_playlist_status(&self, round_id: i32) -> Result<Value> {
-        Ok(
-            sql_query(include_str!("../queries/zsl_admin/playlist_status.sql"))
-                .bind::<Integer, _>(round_id)
-                .get_result::<JsonRow>(&mut self.connection().await?)
-                .await?
-                .value,
-        )
+        let mut connection = self.connection().await?;
+        let mut status = sql_query(include_str!("../queries/zsl_admin/playlist_status.sql"))
+            .bind::<Integer, _>(round_id)
+            .get_result::<JsonRow>(&mut connection)
+            .await?
+            .value;
+        playlist_status::add_level_rows(&mut connection, &mut status).await?;
+        Ok(status)
     }
 
     pub async fn request_zsl_playlist(

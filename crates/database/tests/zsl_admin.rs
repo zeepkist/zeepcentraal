@@ -63,6 +63,7 @@ async fn admin_settings_and_playlist_revisions_are_fenced() -> anyhow::Result<()
         include_str!("fixtures/zsl_admin.sql"),
         include_str!("../migrations/20261010120000_zsl_tournament/up.sql"),
         include_str!("../migrations/20261122001000_zsl_admin/up.sql"),
+        include_str!("../migrations/20261122002000_zsl_practice_upload/up.sql"),
     ] {
         client.batch_execute(sql).await?;
     }
@@ -133,14 +134,22 @@ async fn admin_settings_and_playlist_revisions_are_fenced() -> anyhow::Result<()
         .await?;
     assert!(!database.verify_zsl_playlist(first, None).await?);
     let second_job = database.claim_zsl_playlist(second).await?.unwrap();
+    let rejected = json!({"position":1,"name":"Rejected candidate","workshopId":"100",
+        "uid":"missing","state":"failed","stage":"Workshop UID missing"});
     database
-        .finish_zsl_playlist(&second_job, Some(&bundle(round_id)), json!([]))
+        .finish_zsl_playlist(&second_job, Some(&bundle(round_id)), json!([rejected]))
         .await?;
     assert_eq!(
         database.zsl_playlist_status(round_id).await?["playlists"][0]["state"],
         "prepared"
     );
     assert!(database.verify_zsl_playlist(second, None).await?);
+    let verified = &database.zsl_playlist_status(round_id).await?["playlists"][0];
+    assert_eq!(verified["levels"].as_array().unwrap().len(), 4);
+    assert_eq!(verified["levels"][0]["state"], "ready");
+    assert_eq!(verified["levels"][0]["uid"], "warmup-0");
+    assert_eq!(verified["rejectedCandidates"][0]["uid"], "missing");
+    assert_eq!(verified["rejectedCandidates"][0]["state"], "failed");
     let third = database
         .request_zsl_playlist(ADMIN, round_id, "warmup", None, None)
         .await?;
@@ -149,14 +158,17 @@ async fn admin_settings_and_playlist_revisions_are_fenced() -> anyhow::Result<()
         .finish_zsl_playlist(
             &third_job,
             None,
-            json!([{"state":"failed","uid":"missing","stage":"Workshop UID missing"}]),
+            json!([rejected, {"state":"failed","stage":"Too few playable levels"}]),
         )
         .await?;
     let status = database.zsl_playlist_status(round_id).await?;
     let warmup = &status["playlists"][0];
     assert_eq!(warmup["verifiedRevision"], second);
     assert_eq!(warmup["verifiedLevels"][3]["uid"], "warmup-3");
-    assert_eq!(warmup["diagnostics"][0]["uid"], "missing");
+    assert_eq!(warmup["verifiedLevels"][3]["state"], "ready");
+    assert_eq!(warmup["levels"], json!([]));
+    assert_eq!(warmup["rejectedCandidates"][0]["uid"], "missing");
+    assert_eq!(warmup["playlistErrors"], json!(["Too few playable levels"]));
     assert_eq!(
         database.host_zsl_playlists(round_id, false).await?[0].id,
         second
@@ -171,6 +183,7 @@ async fn admin_settings_and_playlist_revisions_are_fenced() -> anyhow::Result<()
             .await?
             > third
     );
+    check_practice_level_status(&database, &client, round_id).await?;
 
     client
         .execute(
@@ -215,10 +228,93 @@ async fn admin_settings_and_playlist_revisions_are_fenced() -> anyhow::Result<()
 
     client
         .batch_execute(include_str!(
+            "../migrations/20261122002000_zsl_practice_upload/down.sql"
+        ))
+        .await?;
+    client
+        .batch_execute(include_str!(
             "../migrations/20261122001000_zsl_admin/down.sql"
         ))
         .await?;
     drop(client);
     connection.await??;
+    Ok(())
+}
+
+async fn check_practice_level_status(
+    database: &Database,
+    client: &tokio_postgres::Client,
+    round_id: i32,
+) -> anyhow::Result<()> {
+    client
+        .batch_execute(include_str!("fixtures/zsl_admin_playlist_levels.sql"))
+        .await?;
+    let mut practice = bundle(round_id);
+    for payload in &mut practice.levels {
+        payload.level.workshop_id = 100;
+    }
+    let source =
+        json!({"levels": practice.levels.iter().map(|payload| &payload.level).collect::<Vec<_>>()});
+    let upload = database
+        .request_zsl_playlist(ADMIN, round_id, "practice", Some(source.to_string()), None)
+        .await?;
+    let queued = &database.zsl_playlist_status(round_id).await?["playlists"][0];
+    assert_eq!(queued["kind"], "practice");
+    assert_eq!(queued["levels"].as_array().unwrap().len(), 4);
+    assert_eq!(queued["levels"][0]["state"], "pending");
+    assert_eq!(queued["levels"][0]["stage"], "Queued for preparation");
+    assert_eq!(queued["levels"][0]["xxHash"], "A".repeat(32));
+    assert_eq!(
+        queued["levels"][0]["imageUrl"],
+        "https://example.test/track-a.jpg"
+    );
+    assert_eq!(queued["levels"][1]["xxHash"], "B".repeat(32));
+    assert!(queued["levels"][2].get("xxHash").is_none());
+    assert!(queued["levels"][3].get("xxHash").is_none());
+    assert!(queued.get("source").is_none());
+
+    practice.levels[0].xx_hash = Some("E".repeat(32)); // Stored hash is unavailable.
+    practice.levels[2].xx_hash = Some("D".repeat(32)); // Resolves the ambiguous identity.
+    let job = database.claim_zsl_playlist(upload).await?.unwrap();
+    database
+        .finish_zsl_playlist(
+            &job,
+            Some(&practice),
+            json!([{"position":1,"workshopId":"100","uid":"warmup-0",
+                "state":"prepared","stage":"Payload uploaded"}]),
+        )
+        .await?;
+    let prepared = &database.zsl_playlist_status(round_id).await?["playlists"][0];
+    assert_eq!(prepared["levels"][0]["state"], "pending");
+    assert_eq!(
+        prepared["levels"][0]["stage"],
+        "Payload uploaded. Awaiting host verification"
+    );
+    assert!(prepared["levels"][0].get("xxHash").is_none());
+    assert_eq!(prepared["levels"][2]["xxHash"], "D".repeat(32));
+    assert!(database.verify_zsl_playlist(upload, Some(json!([
+        {"position":3,"workshopId":"100","uid":"warmup-0","state":"failed","stage":"Host payload corrupt"}
+    ]))).await?);
+    let failed = &database.zsl_playlist_status(round_id).await?["playlists"][0];
+    assert_eq!(failed["levels"][0]["position"], 1);
+    assert_eq!(failed["levels"][0]["state"], "failed");
+    assert_eq!(failed["levels"][0]["stage"], "Host payload corrupt");
+    assert_eq!(failed["levels"][2]["state"], "pending");
+    assert_eq!(
+        failed["levels"][2]["stage"],
+        "Awaits verification after retry"
+    );
+
+    let retry = database
+        .request_zsl_playlist(ADMIN, round_id, "", None, Some(upload))
+        .await?;
+    let job = database.claim_zsl_playlist(retry).await?.unwrap();
+    database
+        .finish_zsl_playlist(&job, Some(&practice), json!([]))
+        .await?;
+    assert!(database.verify_zsl_playlist(retry, None).await?);
+    let verified = &database.zsl_playlist_status(round_id).await?["playlists"][0];
+    assert_eq!(verified["levels"][0]["state"], "ready");
+    assert_eq!(verified["levels"][2]["state"], "ready");
     Ok(())
 }

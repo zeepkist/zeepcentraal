@@ -128,12 +128,16 @@ pub async fn prepare(
             .await;
             match prepared {
                 Ok(payload) => {
-                    diagnostics.push(entry(
+                    let mut diagnostic = entry(
                         if warmup { bundle.levels.len() } else { index },
                         &level,
                         "prepared",
                         "Payload uploaded",
-                    ));
+                    );
+                    if let Some(hash) = &payload.xx_hash {
+                        diagnostic["xxHash"] = json!(hash);
+                    }
+                    diagnostics.push(diagnostic);
                     bundle.levels.push(payload);
                     if warmup && bundle.levels.len() == 4 {
                         break;

@@ -1,22 +1,18 @@
 <script setup lang="ts">
-import type { Round } from './zslTypes'
-import { londonTimestamp, zslError } from './zslTypes'
+import ZslPlaylistLevelRows from './ZslPlaylistLevelRows.vue'
+import type { Round, ZslPlaylistLevel } from './zslTypes'
+import { londonTimestamp, playlistLevelStates, zslError } from './zslTypes'
 
 const { round } = defineProps<{ round: Round }>()
-interface Diagnostic {
-	name?: string
-	position?: number
-	stage: string
-	state: string
-	uid?: string
-	workshopId?: string
-}
 interface Revision {
-	diagnostics: Diagnostic[]
 	kind: 'practice' | 'tournament' | 'warmup'
+	levels: ZslPlaylistLevel[]
+	pendingCandidates: ZslPlaylistLevel[]
+	playlistErrors: string[]
+	rejectedCandidates: ZslPlaylistLevel[]
 	selectedRevision: number
 	state: string
-	verifiedLevels: { uid: string; name: string; workshopId: string }[]
+	verifiedLevels: ZslPlaylistLevel[]
 	verifiedRevision: number | null
 }
 interface Readiness {
@@ -27,10 +23,12 @@ interface Readiness {
 const endpoint = computed(() => `/api/admin/zsl/rounds/${round.id}/playlists`)
 const { data, refresh, pending, error: loadError } = useFetch<Readiness>(endpoint, { lazy: true })
 const kinds = ['practice', 'warmup', 'tournament'] as const
-const panels = computed(() => kinds.map((kind) => ({
-	kind,
-	revision: data.value?.playlists.find((playlist) => playlist.kind === kind),
-})))
+const panels = computed(() => kinds.map((kind) => {
+	const revision = data.value?.playlists.find((playlist) => playlist.kind === kind)
+	const counts = { ready: 0, pending: 0, failed: 0 }
+	for (const level of revision?.levels ?? []) counts[level.state] += 1
+	return { kind, revision, counts }
+}))
 const files = shallowRef<Partial<Record<'practice' | 'tournament', File>>>({})
 const busy = shallowRef(false)
 const error = shallowRef('')
@@ -98,12 +96,18 @@ async function request(action: 'upload' | 'uploadPractice' | 'regenerate' | 'ret
 			</template>
 		</UAlert>
 		<div class="space-y-3">
-			<UCard v-for="{ kind, revision } in panels" :key="kind" class="min-w-0 rounded-2xl border-border/80 bg-card/90">
+			<UCard v-for="{ kind, revision, counts } in panels" :key="kind" class="min-w-0 rounded-2xl border-border/80 bg-card/90">
 				<template #header>
 					<div class="flex flex-wrap items-center justify-between gap-2">
 						<h3 class="font-semibold text-highlighted capitalize">{{ kind }}</h3>
 						<UBadge v-if="revision" :color="stateColor(revision.state)" variant="soft" class="capitalize">{{ revision.state }}</UBadge>
 						<UBadge v-else-if="!pending && !loadError" color="neutral" variant="soft">No admin revision</UBadge>
+					</div>
+					<div v-if="revision" class="mt-2 flex flex-wrap gap-2">
+						<span class="sr-only">Selected level counts</span>
+						<UBadge v-for="(status, state) in playlistLevelStates" :key="state" :color="status.color" :icon="status.icon" variant="soft" size="sm">
+							{{ counts[state] }} {{ status.label }}
+						</UBadge>
 					</div>
 				</template>
 				<div class="space-y-4">
@@ -138,23 +142,37 @@ async function request(action: 'upload' | 'uploadPractice' | 'regenerate' | 'ret
 					>
 						Retry preparation
 					</UButton>
-					<div v-if="revision?.verifiedLevels.length" class="space-y-2">
-						<h4 class="text-sm font-medium text-highlighted">Verified play order</h4>
-						<ol class="ms-5 list-decimal space-y-1 text-sm text-muted">
-							<li v-for="(level, index) in revision.verifiedLevels" :key="`${level.workshopId}:${level.uid}:${index}`" class="break-words">
-								{{ level.name }} · {{ level.workshopId }} · {{ level.uid }}
-							</li>
-						</ol>
-					</div>
-					<div v-if="revision?.diagnostics.length" class="space-y-2">
-						<h4 class="text-sm font-medium text-highlighted">Preparation diagnostics</h4>
-						<ul class="space-y-1 break-words text-sm text-muted">
-							<li v-for="(entry, index) in revision.diagnostics" :key="index">
-								<span v-if="entry.name">{{ entry.position }}. {{ entry.name }} · Workshop {{ entry.workshopId }} · {{ entry.uid }} · </span>
-								{{ entry.stage }}
-							</li>
-						</ul>
-					</div>
+					<template v-if="revision">
+						<UAlert v-if="revision.playlistErrors.length" color="error" variant="soft" title="Playlist errors" icon="i-tabler-alert-circle">
+							<template #description>
+								<ul class="space-y-1">
+									<li v-for="reason in revision.playlistErrors" :key="reason" class="wrap-anywhere">{{ reason }}</li>
+								</ul>
+							</template>
+						</UAlert>
+						<section class="space-y-2" :aria-labelledby="`${kind}-selected-levels`">
+							<h4 :id="`${kind}-selected-levels`" class="text-sm font-semibold text-highlighted">Selected play order</h4>
+							<ZslPlaylistLevelRows v-if="revision.levels.length" :levels="revision.levels" />
+							<p v-else class="text-sm text-muted">No levels selected yet.</p>
+						</section>
+						<details
+							v-if="revision.verifiedRevision !== revision.selectedRevision && revision.verifiedLevels.length"
+							class="rounded-xl border border-default p-3"
+						>
+							<summary class="cursor-pointer rounded-sm text-sm font-semibold text-highlighted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+								Previous verified play order #{{ revision.verifiedRevision }}
+							</summary>
+							<ZslPlaylistLevelRows :levels="revision.verifiedLevels" class="mt-3" />
+						</details>
+						<section v-if="revision.pendingCandidates.length" class="space-y-2" aria-labelledby="warmup-pending-candidates">
+							<h4 id="warmup-pending-candidates" class="text-sm font-semibold text-highlighted">Warmup candidates being checked</h4>
+							<ZslPlaylistLevelRows :levels="revision.pendingCandidates" />
+						</section>
+						<section v-if="revision.rejectedCandidates.length" class="space-y-2" aria-labelledby="warmup-rejected-candidates">
+							<h4 id="warmup-rejected-candidates" class="text-sm font-semibold text-highlighted">Rejected warmup candidates</h4>
+							<ZslPlaylistLevelRows :levels="revision.rejectedCandidates" />
+						</section>
+					</template>
 				</div>
 			</UCard>
 		</div>

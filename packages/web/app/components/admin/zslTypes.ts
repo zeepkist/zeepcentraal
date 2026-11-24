@@ -35,6 +35,23 @@ export interface ZslDashboard {
 	seasons: Season[]
 }
 
+export interface ZslPlaylistLevel {
+	imageUrl?: string
+	name: string
+	position: number
+	stage: string
+	state: 'ready' | 'pending' | 'failed'
+	uid: string
+	workshopId: string
+	xxHash?: string
+}
+
+export const playlistLevelStates = {
+	ready: { label: 'Ready', color: 'success', icon: 'i-tabler-circle-check' },
+	pending: { label: 'Pending', color: 'warning', icon: 'i-tabler-clock' },
+	failed: { label: 'Failed', color: 'error', icon: 'i-tabler-circle-x' },
+} as const
+
 export function londonTimestamp(value?: string | null) {
 	if (!value) return ''
 	const parts = new Intl.DateTimeFormat('en-GB', {

@@ -13,12 +13,9 @@ FROM (
     SELECT selected.kind, jsonb_build_object(
         'kind', selected.kind, 'selectedRevision', selected.id, 'state', selected.state, 'updatedAt', selected.updated_at,
         'diagnostics', selected.diagnostics,
-        'verifiedRevision', verified.id, 'verifiedLevels', (
-            SELECT coalesce(jsonb_agg(jsonb_build_object('uid', entry->'level'->>'UID',
-                'name', entry->'level'->>'Name', 'workshopId', entry->'level'->>'WorkshopID')
-                ORDER BY position), '[]')
-            FROM jsonb_array_elements(verified.bundle->'levels') WITH ORDINALITY AS levels(entry, position)
-        )
+        'source', selected.source, 'manifest', selected.bundle->'levels',
+        'verifiedRevision', verified.id, 'verifiedManifest',
+        CASE WHEN verified.id <> selected.id THEN verified.bundle->'levels' END
     ) AS status
     FROM (SELECT DISTINCT ON (kind) * FROM zc_private.zsl_playlist_revision
         WHERE round_id = $1 ORDER BY kind, id DESC) selected

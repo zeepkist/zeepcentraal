@@ -197,12 +197,56 @@ for (const device of [
 										state: 'failed',
 										selectedRevision: 2,
 										verifiedRevision: 1,
-										diagnostics: [{ stage: 'Fixture diagnostic' }],
+										playlistErrors: ['Fixture diagnostic'],
+										pendingCandidates: [],
+										rejectedCandidates: [],
+										levels: [
+											{
+												position: 1,
+												name: 'Exact Track',
+												workshopId: '42',
+												uid: 'exact-track',
+												xxHash: 'A'.repeat(32),
+												state: 'pending',
+												stage: 'Awaits verification after retry',
+											},
+											{
+												position: 2,
+												name: 'Missing Track',
+												workshopId: '42',
+												uid: 'missing-track',
+												state: 'failed',
+												stage: 'Host payload corrupt',
+											},
+										],
 										verifiedLevels: [
 											{
+												position: 1,
 												name: 'Fixture Track',
 												workshopId: '42',
 												uid: 'fixture-track',
+												state: 'ready',
+												stage: 'Payload verified by host',
+											},
+										],
+									},
+									{
+										kind: 'warmup',
+										state: 'failed',
+										selectedRevision: 3,
+										verifiedRevision: null,
+										playlistErrors: [],
+										pendingCandidates: [],
+										levels: [],
+										verifiedLevels: [],
+										rejectedCandidates: [
+											{
+												position: 1,
+												name: 'Rejected Track',
+												workshopId: '43',
+												uid: 'rejected-track',
+												state: 'failed',
+												stage: 'Workshop UID missing',
 											},
 										],
 									},
@@ -254,7 +298,57 @@ for (const device of [
 		await expect(page.getByRole('textbox', { name: /^Name/ })).toHaveValue('Fixture Round')
 		await expect(page.getByText('Tournament revision locked')).toBeVisible()
 		await expect(page.getByText('Fixture diagnostic')).toBeVisible()
-		await expect(page.getByText(/Fixture Track · 42/)).toBeVisible()
+		await expect(page.getByText('1 Pending', { exact: true })).toBeVisible()
+		await expect(page.getByText('1 Failed', { exact: true })).toBeVisible()
+		const selected = page
+			.getByRole('region', { name: 'Selected play order' })
+			.filter({ hasText: 'Exact Track' })
+		const rows = selected.getByRole('listitem')
+		await expect(rows.nth(0)).toContainText('Pending')
+		await expect(rows.nth(0)).toContainText('Awaits verification after retry')
+		await expect(rows.nth(1)).toContainText('Failed')
+		await expect(rows.nth(1)).toContainText('Host payload corrupt')
+		await expect(selected).not.toContainText('Rejected Track')
+		await expect(
+			page.getByRole('region', { name: 'Rejected warmup candidates' }),
+		).toContainText('Rejected Track')
+
+		const exact = rows.nth(0).getByRole('link', { name: /Exact Track/ })
+		const workshop = rows.nth(1).getByRole('link', { name: /^Steam Workshop/ })
+		const exactPath = `/level/${'A'.repeat(32)}`
+		const workshopUrl = 'https://steamcommunity.com/sharedfiles/filedetails/?id=42'
+		await expect(exact).toHaveAttribute('href', exactPath)
+		await expect(workshop).toHaveAttribute('href', workshopUrl)
+		await expect(exact).toHaveAttribute('target', '_blank')
+		await expect(workshop).toHaveAttribute('target', '_blank')
+		await exact.focus()
+		await page.keyboard.press('Tab')
+		await expect(workshop).toBeFocused()
+		await expect(workshop).toHaveCSS('outline-style', 'solid')
+		await page.keyboard.press('Shift+Tab')
+		await expect(exact).toBeFocused()
+		await expect(exact).toHaveCSS('outline-style', 'solid')
+
+		await context.route(`**${exactPath}`, (route) => route.fulfill({ body: 'Level page' }))
+		await context.route(workshopUrl, (route) => route.fulfill({ body: 'Steam Workshop item' }))
+		for (const [link, url] of [
+			[exact, `http://127.0.0.1:4173${exactPath}`],
+			[workshop, workshopUrl],
+		] as const) {
+			const popup = context.waitForEvent('page')
+			await link.press('Enter')
+			const tab = await popup
+			await expect(tab).toHaveURL(url)
+			await tab.close()
+		}
+
+		const previous = page
+			.locator('details')
+			.filter({ hasText: 'Previous verified play order #1' })
+		await expect(previous.getByText('Fixture Track', { exact: true })).toBeHidden()
+		await previous.locator('summary').press('Enter')
+		await expect(previous.getByText('Fixture Track', { exact: true })).toBeVisible()
+		await expect(previous.getByText('Ready', { exact: true })).toBeVisible()
 		await expect(page.getByRole('button', { name: 'Upload tournament playlist' })).toHaveCount(
 			0,
 		)

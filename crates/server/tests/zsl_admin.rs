@@ -193,7 +193,14 @@ async fn routes_require_current_admin_and_expose_validation() -> Result<()> {
         dashboard["playlists"][0]["selectedRevision"],
         upload["revision"]
     );
-    assert_eq!(dashboard["playlists"][1]["kind"], "tournament");
+    assert_eq!(dashboard["playlists"][0]["levels"][0]["uid"], "track-0");
+    assert_eq!(dashboard["playlists"][0]["levels"][0]["state"], "pending");
+    let tournament = &dashboard["playlists"][1];
+    assert_eq!(tournament["kind"], "tournament");
+    assert_eq!(tournament["levels"].as_array().unwrap().len(), 15);
+    assert_eq!(tournament["levels"][7]["name"], "Break Time");
+    assert_eq!(tournament["levels"][7]["position"], 8);
+    assert_eq!(tournament["levels"][7]["state"], "pending");
     client
         .batch_execute(include_str!(
             "../../database/migrations/20261122002000_zsl_practice_upload/down.sql"
