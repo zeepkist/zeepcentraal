@@ -187,6 +187,20 @@ async fn routes_require_current_admin_and_expose_validation() -> Result<()> {
     )
     .await?;
     assert_eq!(status, StatusCode::OK);
+    client
+        .batch_execute(
+            "WITH level AS (
+                INSERT INTO public.level (hash, xx_hash) VALUES ('fixture', repeat('A', 32))
+                RETURNING id
+            )
+            INSERT INTO public.level_item (id_level, workshop_id, file_uid, image_url)
+            SELECT id, 42, uid, image_url
+            FROM level CROSS JOIN (VALUES
+                ('track-0', '/thumbnails/01M824XTHT9CPQVVDBYFG3SE8M.jpg'),
+                ('track-1', 'https://example.test/preview.jpg')
+            ) AS items(uid, image_url)",
+        )
+        .await?;
     let (_, dashboard) = request(&app, path, &admin, None).await?;
     assert_eq!(dashboard["playlists"][0]["kind"], "practice");
     assert_eq!(
@@ -195,9 +209,17 @@ async fn routes_require_current_admin_and_expose_validation() -> Result<()> {
     );
     assert_eq!(dashboard["playlists"][0]["levels"][0]["uid"], "track-0");
     assert_eq!(dashboard["playlists"][0]["levels"][0]["state"], "pending");
+    assert_eq!(
+        dashboard["playlists"][0]["levels"][0]["imageUrl"],
+        "https://cdn.zeepki.st/thumbnails/01M824XTHT9CPQVVDBYFG3SE8M.jpg"
+    );
     let tournament = &dashboard["playlists"][1];
     assert_eq!(tournament["kind"], "tournament");
     assert_eq!(tournament["levels"].as_array().unwrap().len(), 15);
+    assert_eq!(
+        tournament["levels"][1]["imageUrl"],
+        "https://example.test/preview.jpg"
+    );
     assert_eq!(tournament["levels"][7]["name"], "Break Time");
     assert_eq!(tournament["levels"][7]["position"], 8);
     assert_eq!(tournament["levels"][7]["state"], "pending");

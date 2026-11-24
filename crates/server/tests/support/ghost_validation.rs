@@ -65,6 +65,7 @@ pub fn state(url: &str, storage: Arc<dyn ObjectStorage>, enforce: bool) -> Resul
             cors_origins: vec!["http://localhost:4000".into()],
             frontend_url: "http://localhost:4000".into(),
             backend_url: "http://localhost:3000".into(),
+            cdn_base_url: Some("https://cdn.zeepki.st".parse()?),
             trust_proxy: false,
             rate_limits: RateLimits {
                 auth: 100,

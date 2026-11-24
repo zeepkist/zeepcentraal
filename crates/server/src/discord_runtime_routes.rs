@@ -1,4 +1,4 @@
-use crate::{AppState, auth, problem::Problem};
+use crate::{AppState, auth, cdn, problem::Problem};
 use axum::{
     Json,
     extract::{Path, Query, State},
@@ -103,13 +103,16 @@ pub async fn level_lookup(
     if query.is_empty() || query.len() > 200 {
         return Err(invalid());
     }
-    state
+    let mut level = state
         .database
         .discord_level_lookup(query)
         .await
         .map_err(Problem::internal)?
-        .map(Json)
-        .ok_or_else(not_found)
+        .ok_or_else(not_found)?;
+    if let Some(base) = &state.config.cdn_base_url {
+        cdn::resolve_image_urls(&mut level, base);
+    }
+    Ok(Json(level))
 }
 
 #[utoipa::path(post, path = "/discord-bot/levels/search", request_body = LevelQueryBody, responses((status = 200), (status = 400), (status = 401)))]
@@ -366,13 +369,17 @@ pub async fn activity_events(
     if !(1..=500).contains(&query.limit) {
         return Err(invalid());
     }
-    Ok(Json(
-        state
-            .database
-            .discord_activity_events_after(unsigned_bigint(&query.after)?, query.limit)
-            .await
-            .map_err(Problem::internal)?,
-    ))
+    let mut events = state
+        .database
+        .discord_activity_events_after(unsigned_bigint(&query.after)?, query.limit)
+        .await
+        .map_err(Problem::internal)?;
+    if let Some(base) = &state.config.cdn_base_url {
+        for event in &mut events {
+            cdn::resolve_image_urls(event, base);
+        }
+    }
+    Ok(Json(events))
 }
 
 #[utoipa::path(get, path = "/discord-bot/tournaments/current", responses((status = 200), (status = 401)))]
@@ -381,13 +388,17 @@ pub async fn current_tournaments(
     headers: HeaderMap,
 ) -> ApiResult<Json<Vec<Value>>> {
     authorize(&state, &headers)?;
-    Ok(Json(
-        state
-            .database
-            .discord_tournament_snapshots()
-            .await
-            .map_err(Problem::internal)?,
-    ))
+    let mut tournaments = state
+        .database
+        .discord_tournament_snapshots()
+        .await
+        .map_err(Problem::internal)?;
+    if let Some(base) = &state.config.cdn_base_url {
+        for tournament in &mut tournaments {
+            cdn::resolve_image_urls(tournament, base);
+        }
+    }
+    Ok(Json(tournaments))
 }
 
 #[utoipa::path(get, path = "/discord-bot/tournaments/{tournament_id}/standings", params(("tournament_id" = i32, Path), LeaderboardPageQuery), responses((status = 200), (status = 400), (status = 401)))]

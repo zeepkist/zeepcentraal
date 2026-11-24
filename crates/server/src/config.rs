@@ -19,6 +19,7 @@ pub struct ServerConfig {
     pub cors_origins: Vec<String>,
     pub frontend_url: String,
     pub backend_url: String,
+    pub cdn_base_url: Option<url::Url>,
     pub trust_proxy: bool,
     pub rate_limits: RateLimits,
     pub turnstile_secret: Arc<str>,
@@ -92,6 +93,15 @@ impl ServerConfig {
             .unwrap_or_else(|_| "http://localhost:3000".to_owned());
         url::Url::parse(&frontend_url).context("FRONTEND_URL must be a URL")?;
         url::Url::parse(&backend_url).context("BACKEND_URL must be a URL")?;
+        let cdn_base_url =
+            optional("CDN_BASE_URL").unwrap_or_else(|| "https://cdn.zeepki.st".to_owned());
+        let cdn_base_url = match url::Url::parse(&cdn_base_url) {
+            Ok(url) => Some(url),
+            Err(error) => {
+                tracing::warn!(%error, "CDN URL base invalid");
+                None
+            }
+        };
         let cors_origins: Vec<String> = zc_core::environment::var("CORS_ALLOWED_ORIGINS")
             .unwrap_or_else(|_| frontend_url.clone())
             .split(',')
@@ -196,6 +206,7 @@ impl ServerConfig {
             cors_origins,
             frontend_url,
             backend_url,
+            cdn_base_url,
             trust_proxy,
             rate_limits,
             turnstile_secret: turnstile_secret.into(),

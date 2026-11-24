@@ -1,5 +1,5 @@
 use crate::{
-    AppState, auth,
+    AppState, auth, cdn,
     problem::{AUTH_INVALID_TOKEN, AUTH_USER_NOT_FOUND, INVALID_REQUEST, Problem},
     turnstile,
 };
@@ -34,12 +34,21 @@ pub async fn get_vote_results(
     if query.round_id <= 0 {
         return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
     }
-    let snapshot = state
+    let mut snapshot = state
         .database
         .super_league_vote_results(query.round_id)
         .await
         .map_err(Problem::internal)?
         .ok_or_else(|| Problem::code(StatusCode::NOT_FOUND, INVALID_REQUEST))?;
+    for level in snapshot
+        .categories
+        .iter_mut()
+        .flat_map(|category| &mut category.levels)
+    {
+        if let Some(url) = &mut level.image_url {
+            cdn::resolve_image_url(url, state.config.cdn_base_url.as_ref());
+        }
+    }
     Ok((
         [(axum::http::header::CACHE_CONTROL, "no-store")],
         Json(snapshot),
@@ -95,7 +104,7 @@ pub async fn get_vote(
     if query.round_id.is_some_and(|id| id <= 0) {
         return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
     }
-    let snapshot = state
+    let mut snapshot = state
         .database
         .super_league_vote_snapshot(
             query.round_id,
@@ -104,6 +113,13 @@ pub async fn get_vote(
         )
         .await
         .map_err(Problem::internal)?;
+    if let Some(snapshot) = &mut snapshot {
+        for candidate in &mut snapshot.candidates {
+            if let Some(url) = &mut candidate.image_url {
+                cdn::resolve_image_url(url, state.config.cdn_base_url.as_ref());
+            }
+        }
+    }
     Ok((
         [(axum::http::header::CACHE_CONTROL, "private, no-store")],
         Json(snapshot),
@@ -204,11 +220,16 @@ pub async fn get_submission_overview(
     if query.round_id.is_some_and(|id| id <= 0) {
         return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
     }
-    let overview = state
+    let mut overview = state
         .database
         .submission_overview(query.round_id)
         .await
         .map_err(Problem::internal)?;
+    if let Some(base) = &state.config.cdn_base_url {
+        for submission in &mut overview.submissions {
+            cdn::resolve_image_urls(&mut submission.level, base);
+        }
+    }
     Ok((
         [(axum::http::header::CACHE_CONTROL, "no-store")],
         Json(overview),

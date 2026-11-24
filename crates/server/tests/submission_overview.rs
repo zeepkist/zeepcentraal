@@ -131,6 +131,7 @@ async fn anonymous_submission_overview_contract() -> Result<()> {
             cors_origins: vec!["http://localhost:4000".into()],
             frontend_url: "http://localhost:4000".into(),
             backend_url: "http://localhost:3000".into(),
+            cdn_base_url: Some("https://cdn.example.test".parse()?),
             trust_proxy: false,
             rate_limits: RateLimits {
                 auth: 100,

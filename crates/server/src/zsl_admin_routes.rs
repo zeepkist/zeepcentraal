@@ -1,4 +1,4 @@
-use crate::{AppState, ghost_validation_routes::administrator, problem::Problem};
+use crate::{AppState, cdn, ghost_validation_routes::administrator, problem::Problem};
 use axum::{
     Json,
     extract::{Path, State},
@@ -67,13 +67,15 @@ pub async fn status(
     Path(round_id): Path<i32>,
 ) -> Result<Response, Problem> {
     administrator(&state, &headers).await?;
-    Ok(private(
-        state
-            .database
-            .zsl_playlist_status(round_id)
-            .await
-            .map_err(Problem::internal)?,
-    ))
+    let mut status = state
+        .database
+        .zsl_playlist_status(round_id)
+        .await
+        .map_err(Problem::internal)?;
+    if let Some(base) = &state.config.cdn_base_url {
+        cdn::resolve_image_urls(&mut status, base);
+    }
+    Ok(private(status))
 }
 
 #[derive(Deserialize)]
