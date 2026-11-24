@@ -46,7 +46,7 @@ describe('user profile record results', () => {
 		expect(composable).toContain("['LEVEL_POINTS_DESC', 'RECORD_ID_DESC']")
 		expect(resultsQuery).toContain('orderBy: [DATE_CREATED_DESC, ID_DESC]')
 		expect(composable).toContain('useCursorPagination(25,')
-		expect(composable).toContain("ref<RecordHistorySort>('valuable-pbs')")
+		expect(composable).toContain("const defaultSort = 'valuable-pbs'")
 	})
 
 	it('loads current PB and WR relations with WR precedence', () => {
@@ -87,7 +87,8 @@ describe('user profile record results', () => {
 	it('aligns selectors and renders PB/recent results full-width', () => {
 		expect(section).toContain('<SectionHeader')
 		expect(section).toContain('i-tabler-arrows-sort')
-		expect(section).toContain('class="w-48"')
+		expect(section).toContain(':icon="IconAward"')
+		expect(section).toContain('class="w-48 min-w-0"')
 		expect(page).not.toContain('xl:grid-cols-2 xl:items-start')
 		expect(page).toContain('<div class="space-y-8 lg:space-y-10">')
 		expect(page).toContain('id="profile-personal-bests"')
@@ -122,6 +123,6 @@ describe('user profile record results', () => {
 		expect(section).toContain(':pending="pending && records.length === 0"')
 		expect(section).toContain(':pending="pending"')
 		expect(section).toContain('v-if="records.length > 0"')
-		expect(page).toContain('data.wrResult.value.data.value === undefined')
+		expect(page).toContain('data.wrResult.value.fetching.value')
 	})
 })

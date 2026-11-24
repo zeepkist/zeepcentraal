@@ -5,6 +5,8 @@ import {
 	LEVEL_DECAY_FACTOR,
 } from '@zeepkist/core/score'
 import {
+	type IntFilter,
+	type RecordFilter,
 	type UserPointContributionsOrderBy,
 	Zc_UserContributionsDocument,
 	Zc_UserResultsDocument,
@@ -14,7 +16,14 @@ import type { UserProfileSummaryModel } from '~/composables/useUserProfileSummar
 import type { CursorPage, RecordHistoryRow } from '~/types/app'
 import { getLevelDisplayName } from '~/utils/levelDisplay'
 import { resolveRecordPbOrWr } from '~/utils/levelRecordRows'
-import type { RecordHistorySort } from '~/utils/recordHistory'
+import { MEDALS, type MedalFilter, normalizeMedalFilter } from '~/utils/medals'
+import { type RecordHistorySort, recordHistorySorts } from '~/utils/recordHistory'
+
+const defaultSort = 'valuable-pbs'
+
+function normalizeProfileResultSort(value: unknown): RecordHistorySort {
+	return recordHistorySorts.find((sort) => sort === value) ?? defaultSort
+}
 
 function cursorPage(
 	info?: {
@@ -34,6 +43,17 @@ function cursorPage(
 		: { hasNextPage: false, hasPreviousPage: false }
 }
 
+function recordMedalFilter(value: MedalFilter): IntFilter | undefined {
+	if (value === 'none') return { isNull: true }
+	const medal = MEDALS.find(({ key }) => key === value)
+	return medal ? { equalTo: medal.tier } : undefined
+}
+
+function personalBestMedalFilter(value: MedalFilter): RecordFilter['personalBestGlobals'] {
+	const medal = recordMedalFilter(value)
+	return medal && { some: { medal } }
+}
+
 export function useUserResults(
 	steamId: Ref<string>,
 	summaryData: UserProfileSummaryModel,
@@ -46,8 +66,14 @@ export function useUserResults(
 	const recentPagination = useCursorPagination(25, 'recent')
 	const wrPagination = useCursorPagination(25, 'wr')
 	const pbPagination = useCursorPagination(25, 'pb')
-	const wrSort = ref<RecordHistorySort>('valuable-pbs')
-	const pbSort = ref<RecordHistorySort>('valuable-pbs')
+	const route = useRoute()
+	const wrSort = computed(() => normalizeProfileResultSort(route.query.wrSort))
+	const pbSort = computed(() => normalizeProfileResultSort(route.query.pbSort))
+	const wrMedal = computed(() => normalizeMedalFilter(route.query.wrMedal))
+	const pbMedal = computed(() => normalizeMedalFilter(route.query.pbMedal))
+	const recentMedal = computed(() => normalizeMedalFilter(route.query.recentMedal))
+	const wrMedalFilter = computed(() => personalBestMedalFilter(wrMedal.value))
+	const pbMedalFilter = computed(() => personalBestMedalFilter(pbMedal.value))
 	const contributionOrderBy = (sort: RecordHistorySort): UserPointContributionsOrderBy[] =>
 		sort === 'valuable-levels'
 			? ['LEVEL_POINTS_DESC', 'RECORD_ID_DESC']
@@ -57,7 +83,12 @@ export function useUserResults(
 		query: Zc_UserContributionsDocument,
 		variables: computed(() => ({
 			...wrPagination.variables.value,
-			filter: { userId: { equalTo: userId.value ?? 0 }, levelPosition: { equalTo: 1 } },
+			filter: {
+				userId: { equalTo: userId.value ?? 0 },
+				levelPosition: { equalTo: 1 },
+				record: wrMedalFilter.value && { personalBestGlobals: wrMedalFilter.value },
+			},
+			includeMedalMatch: wrMedalFilter.value !== undefined,
 			orderBy: contributionOrderBy(wrSort.value),
 		})),
 		pause: computed(
@@ -72,7 +103,11 @@ export function useUserResults(
 		query: Zc_UserContributionsDocument,
 		variables: computed(() => ({
 			...pbPagination.variables.value,
-			filter: { userId: { equalTo: userId.value ?? 0 } },
+			filter: {
+				userId: { equalTo: userId.value ?? 0 },
+				record: pbMedalFilter.value && { personalBestGlobals: pbMedalFilter.value },
+			},
+			includeMedalMatch: pbMedalFilter.value !== undefined,
 			orderBy: contributionOrderBy(pbSort.value),
 		})),
 		pause: computed(
@@ -88,7 +123,12 @@ export function useUserResults(
 		query: Zc_UserResultsDocument,
 		variables: computed(() => ({
 			...wrPagination.variables.value,
-			filter: { userId: { equalTo: userId.value ?? 0 }, worldRecordGlobalsExist: true },
+			filter: {
+				userId: { equalTo: userId.value ?? 0 },
+				worldRecordGlobalsExist: true,
+				personalBestGlobals: wrMedalFilter.value,
+			},
+			includeMedalMatch: wrMedalFilter.value !== undefined,
 		})),
 		pause: computed(
 			() =>
@@ -105,7 +145,9 @@ export function useUserResults(
 			filter: {
 				userId: { equalTo: userId.value ?? 0 },
 				personalBestGlobalsExist: true,
+				personalBestGlobals: pbMedalFilter.value,
 			},
+			includeMedalMatch: pbMedalFilter.value !== undefined,
 		})),
 		pause: computed(
 			() =>
@@ -120,7 +162,10 @@ export function useUserResults(
 		query: Zc_UserResultsDocument,
 		variables: computed(() => ({
 			...recentPagination.variables.value,
-			filter: { userId: { equalTo: userId.value ?? 0 } },
+			filter: {
+				userId: { equalTo: userId.value ?? 0 },
+				medal: recordMedalFilter(recentMedal.value),
+			},
 		})),
 		pause: computed(
 			() =>
@@ -139,7 +184,7 @@ export function useUserResults(
 							{
 								id: node.record.id,
 								time: node.record.time,
-								medal: node.record.medal,
+								medal: (node.record.medalMatch?.nodes[0] ?? node.record).medal,
 								dateCreated: String(node.record.dateCreated),
 								userId: node.record.userId,
 								userSteamId: steamId.value,
@@ -179,7 +224,7 @@ export function useUserResults(
 					{
 						id: node.id,
 						time: node.time,
-						medal: node.medal,
+						medal: (node.medalMatch?.nodes[0] ?? node).medal,
 						dateCreated: String(node.dateCreated),
 						userId: node.userId,
 						userSteamId: steamId.value,
@@ -269,18 +314,10 @@ export function useUserResults(
 	)
 	const recentPage = computed(() => cursorPage(recent.data.value?.records?.pageInfo))
 
-	async function setWrSort(value: RecordHistorySort) {
-		wrSort.value = value
-		await wrPagination.reset()
-	}
-	async function setPbSort(value: RecordHistorySort) {
-		pbSort.value = value
-		await pbPagination.reset()
-	}
-
 	return {
 		personalBestsActive: personalBestsPrefetch.active,
 		personalBestsTarget: personalBestsPrefetch.target,
+		pbMedal,
 		pbPage,
 		pbPagination,
 		pbResult,
@@ -288,12 +325,22 @@ export function useUserResults(
 		pbSort,
 		recent,
 		recentActive: recentPrefetch.active,
+		recentMedal,
 		recentPage,
 		recentPagination,
 		recentRows,
 		recentTarget: recentPrefetch.target,
-		setPbSort,
-		setWrSort,
+		setPbMedal: (value: MedalFilter) =>
+			pbPagination.reset({ pbMedal: value === 'all' ? undefined : value }),
+		setPbSort: (value: RecordHistorySort) =>
+			pbPagination.reset({ pbSort: value === defaultSort ? undefined : value }),
+		setRecentMedal: (value: MedalFilter) =>
+			recentPagination.reset({ recentMedal: value === 'all' ? undefined : value }),
+		setWrMedal: (value: MedalFilter) =>
+			wrPagination.reset({ wrMedal: value === 'all' ? undefined : value }),
+		setWrSort: (value: RecordHistorySort) =>
+			wrPagination.reset({ wrSort: value === defaultSort ? undefined : value }),
+		wrMedal,
 		wrPage,
 		wrPagination,
 		wrResult,

@@ -5,6 +5,7 @@ query ZC_UserContributions(
 	$before: Cursor
 	$filter: UserPointContributionFilter!
 	$orderBy: [UserPointContributionsOrderBy!]!
+	$includeMedalMatch: Boolean! = false
 ) {
 	userPointContributions(
 		first: $first
@@ -30,6 +31,7 @@ query ZC_UserContributions(
 					dateCreated
 					levelId
 					userId
+					...ProfileRecordMedalMatch @include(if: $includeMedalMatch)
 				}
 				level {
 					xxHash

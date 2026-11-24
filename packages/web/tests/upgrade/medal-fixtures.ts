@@ -5,6 +5,27 @@ const connection = (nodes: object[]) => ({
 	totalCount: nodes.length,
 	pageInfo,
 })
+function profileConnection(nodes: object[], variables: Record<string, unknown>) {
+	const offset = typeof variables.after === 'string' ? Number(variables.after) + 1 : 0
+	const limit = typeof variables.first === 'number' ? variables.first : 25
+	const edges = nodes.slice(offset, offset + limit).map((node, index) => ({
+		cursor: String(offset + index),
+		node,
+	}))
+	return {
+		edges,
+		totalCount: nodes.length,
+		pageInfo: {
+			startCursor: edges[0]?.cursor ?? null,
+			endCursor: edges.at(-1)?.cursor ?? null,
+			hasNextPage: offset + limit < nodes.length,
+			hasPreviousPage: offset > 0,
+		},
+	}
+}
+
+type MedalCondition = { equalTo?: number; isNull?: boolean }
+type PersonalBestCondition = { some?: { medal?: MedalCondition } }
 const steamId = '76561198000000888'
 const headerMedals: Record<string, { medal: number | null; time: number }> = {
 	apex: { medal: 5, time: 35.2 },
@@ -167,37 +188,73 @@ export function applyMedalFixtures(
 				levelPosition?: { equalTo?: number }
 				worldRecordGlobalsExist?: boolean
 				personalBestGlobalsExist?: boolean
+				medal?: MedalCondition
+				personalBestGlobals?: PersonalBestCondition
+				record?: { personalBestGlobals?: PersonalBestCondition }
 		  }
 		| undefined
 	if (filter?.userId?.equalTo === 888) {
 		const isWorldRecord = filter.levelPosition?.equalTo === 1 || filter.worldRecordGlobalsExist
 		const isPersonalBest =
 			query.includes('ZC_UserContributions') || filter.personalBestGlobalsExist
-		const record = {
-			id: isWorldRecord ? 9003 : isPersonalBest ? 9004 : 9005,
-			time: isWorldRecord ? 35.2 : isPersonalBest ? 38 : 55,
-			medal: isWorldRecord ? 5 : isPersonalBest ? 4 : 0,
+		const medalCondition =
+			filter.medal ??
+			(filter.record?.personalBestGlobals ?? filter.personalBestGlobals)?.some?.medal
+		const record = (id: number, medal: number | null, time: number, worldRecord: boolean) => ({
+			id,
+			time,
+			medal: variables.includeMedalMatch ? 5 : medal,
+			medalMatch: variables.includeMedalMatch ? { nodes: [{ medal }] } : undefined,
 			dateCreated: '2026-01-01T00:00:00Z',
 			levelId: 9003,
 			userId: 888,
 			level,
 			userPointContributions: { nodes: [] },
-			personalBestGlobals: { totalCount: isWorldRecord || isPersonalBest ? 1 : 0 },
-			worldRecordGlobals: { totalCount: isWorldRecord ? 1 : 0 },
-		}
+			personalBestGlobals: { totalCount: worldRecord || isPersonalBest ? 1 : 0 },
+			worldRecordGlobals: { totalCount: worldRecord ? 1 : 0 },
+		})
+		const matches = (medal: number | null) =>
+			!medalCondition ||
+			(medalCondition.isNull ? medal === null : medal === medalCondition.equalTo)
+		const bests = Object.values(headerMedals)
+			.flatMap(({ medal, time }, index) =>
+				Array.from({ length: medal === 0 ? 27 : 1 }, (_, copy) => ({
+					id: 9003 + index + copy * 10,
+					medal,
+					time,
+					worldRecord: medal === 5,
+				})),
+			)
+			.filter(({ medal, worldRecord }) => (!isWorldRecord || worldRecord) && matches(medal))
+		const records = bests.map(({ id, medal, time, worldRecord }) =>
+			record(id, medal, time, worldRecord),
+		)
 		if (query.includes('ZC_UserContributions'))
-			data.userPointContributions = connection([
-				{
+			data.userPointContributions = profileConnection(
+				records.map((record) => ({
 					record,
 					level,
 					contributionRank: 1,
-					levelPosition: isWorldRecord ? 1 : 2,
+					levelPosition: record.worldRecordGlobals.totalCount ? 1 : 2,
 					levelPoints: 100,
 					levelDecayedPoints: 100,
 					playerDecayedPoints: 100,
-				},
-			])
-		if (query.includes('ZC_UserResults')) data.records = connection([record])
+				})),
+				variables,
+			)
+		if (query.includes('ZC_UserResults'))
+			data.records = profileConnection(
+				isWorldRecord || isPersonalBest
+					? records
+					: [
+							record(9005, 0, 55, false),
+							record(9006, null, 65, false),
+							...Array.from({ length: 27 }, (_, index) =>
+								record(9100 + index, 2, 43, false),
+							),
+						].filter(({ medal }) => matches(medal)),
+				variables,
+			)
 	}
 	if (query.includes('ZC_LevelRecords') && filter?.levelId?.equalTo === 9003)
 		data.records = connection([

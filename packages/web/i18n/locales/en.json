@@ -1412,6 +1412,11 @@
 				"description": "Levels this player has favourited.",
 				"empty": "No favourite levels found"
 			},
+			"medalFilter": {
+				"all": "All medals",
+				"tier": "{medal} Medal",
+				"none": "No Medal"
+			},
 			"worldRecords": {
 				"title": "World Records",
 				"description": "Every level where this player holds the fastest submitted time."

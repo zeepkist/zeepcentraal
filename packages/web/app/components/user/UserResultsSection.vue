@@ -1,19 +1,38 @@
 <template>
 	<section :aria-labelledby="id">
 		<SectionHeader :id="id" :title="title" :description="description">
-			<div v-if="sort && sortOptions?.length" class="flex min-w-0 items-center gap-2">
-				<span class="shrink-0 text-sm font-medium text-muted-foreground">
-					{{ sortLabel }}
-				</span>
-				<USelect
-					:id="`${id}-sort`"
-					:model-value="sort"
-					:items="sortOptions"
-					icon="i-tabler-arrows-sort"
-					class="w-48"
-					:aria-label="sortLabel"
-					@update:model-value="$emit('update:sort', String($event) as RecordHistorySort)"
-				/>
+			<div
+				v-if="(sort && sortOptions?.length) || medal !== undefined"
+				class="flex max-w-full flex-wrap items-center gap-3"
+			>
+				<div v-if="sort && sortOptions?.length" class="flex max-w-full items-center gap-2">
+					<span class="shrink-0 text-sm font-medium text-muted-foreground">
+						{{ sortLabel }}
+					</span>
+					<USelect
+						:id="`${id}-sort`"
+						:model-value="sort"
+						:items="sortOptions"
+						icon="i-tabler-arrows-sort"
+						class="w-48 min-w-0"
+						:aria-label="sortLabel"
+						@update:model-value="$emit('update:sort', String($event) as RecordHistorySort)"
+					/>
+				</div>
+				<div v-if="medal !== undefined" class="flex max-w-full items-center gap-2">
+					<span class="shrink-0 text-sm font-medium text-muted-foreground">
+						{{ t('medals.column') }}
+					</span>
+					<USelect
+						:id="`${id}-medal`"
+						:model-value="medal"
+						:items="medalOptions"
+						:icon="IconAward"
+						class="w-36 min-w-0"
+						:aria-label="t('medals.column')"
+						@update:model-value="$emit('update:medal', normalizeMedalFilter($event))"
+					/>
+				</div>
 			</div>
 		</SectionHeader>
 		<DataState
@@ -52,7 +71,9 @@
 </template>
 
 <script setup lang="ts">
+import IconAward from '@tabler/icons-vue/dist/esm/icons/IconAward.mjs'
 import type { CursorPage, RecordHistoryRow, SortOption } from '~/types/app'
+import { MEDALS, type MedalFilter, normalizeMedalFilter } from '~/utils/medals'
 import type { RecordHistorySort } from '~/utils/recordHistory'
 import type { SupporterMap } from '~/utils/supporters'
 
@@ -66,6 +87,7 @@ withDefaults(
 		transitionScope: string
 		sort?: RecordHistorySort
 		sortLabel?: string
+		medal?: MedalFilter
 		pending: boolean
 		error?: string | null
 		page: CursorPage
@@ -107,10 +129,21 @@ withDefaults(
 	{},
 )
 defineEmits<{
+	'update:medal': [value: MedalFilter]
 	'update:sort': [value: RecordHistorySort]
 	first: []
 	previous: []
 	next: []
 	last: []
 }>()
+
+const { t } = useI18n()
+const medalOptions = computed<SortOption<MedalFilter>[]>(() => [
+	{ value: 'all', label: t('users.profile.medalFilter.all') },
+	...MEDALS.map(({ key, labelKey }) => ({
+		value: key,
+		label: t('users.profile.medalFilter.tier', { medal: t(labelKey) }),
+	})),
+	{ value: 'none', label: t('users.profile.medalFilter.none') },
+])
 </script>

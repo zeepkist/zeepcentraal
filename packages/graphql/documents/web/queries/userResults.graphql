@@ -4,6 +4,7 @@ query ZC_UserResults(
 	$last: Int
 	$before: Cursor
 	$filter: RecordFilter!
+	$includeMedalMatch: Boolean! = false
 ) {
 	records(
 		first: $first
@@ -49,6 +50,7 @@ query ZC_UserResults(
 				personalBestGlobals(first: 0) {
 					totalCount
 				}
+				...ProfileRecordMedalMatch @include(if: $includeMedalMatch)
 				worldRecordGlobals(first: 0) {
 					totalCount
 				}
@@ -60,6 +62,13 @@ query ZC_UserResults(
 			hasNextPage
 			hasPreviousPage
 		}
-		totalCount
+	}
+}
+
+fragment ProfileRecordMedalMatch on Record {
+	medalMatch: personalBestGlobals(first: 1) {
+		nodes {
+			medal
+		}
 	}
 }

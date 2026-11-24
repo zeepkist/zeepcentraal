@@ -54,6 +54,12 @@ export const MEDALS = [
 
 export type MedalKey = (typeof MEDALS)[number]['key']
 export type MedalCounts = Record<MedalKey | 'none', number>
+export type MedalFilter = MedalKey | 'none' | 'all'
+
+export function normalizeMedalFilter(value: unknown): MedalFilter {
+	if (value === 'none') return value
+	return MEDALS.find(({ key }) => key === value)?.key ?? 'all'
+}
 
 export function formatMedalSettlementDuration(milliseconds: number): string {
 	const totalMinutes = Math.max(0, Math.ceil(milliseconds / 60_000))

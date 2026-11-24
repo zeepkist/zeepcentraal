@@ -207,6 +207,7 @@
 									:records="data.wrRows.value"
 									:supporters="supporters"
 									:sort="data.wrSort.value"
+									:medal="data.wrMedal.value"
 									:pending="wrPending"
 									:error="data.wrResult.value.error.value?.message"
 									:page="data.wrPage.value"
@@ -218,6 +219,7 @@
 									:pagination-labels="paginationLabels"
 									status-mode="none"
 									@update:sort="data.setWrSort"
+									@update:medal="data.setWrMedal"
 									@first="data.wrPagination.first()"
 									@previous="data.wrPagination.previous(data.wrPage.value)"
 									@next="data.wrPagination.next(data.wrPage.value)"
@@ -233,6 +235,7 @@
 										:records="data.pbRows.value"
 										:supporters="supporters"
 										:sort="data.pbSort.value"
+										:medal="data.pbMedal.value"
 										:sort-label="t('levels.filters.sort')"
 										:pending="pbPending"
 										:error="data.pbResult.value.error.value?.message"
@@ -244,6 +247,7 @@
 										:pagination-labels="paginationLabels"
 										status-mode="world-record-only"
 										@update:sort="data.setPbSort"
+										@update:medal="data.setPbMedal"
 										@first="data.pbPagination.first()"
 										@previous="data.pbPagination.previous(data.pbPage.value)"
 										@next="data.pbPagination.next(data.pbPage.value)"
@@ -259,6 +263,7 @@
 										:description="t('users.profile.recent.description')"
 										:records="data.recentRows.value"
 										:supporters="supporters"
+										:medal="data.recentMedal.value"
 										:pending="recentPending"
 										:error="data.recent.error.value?.message"
 										:page="data.recentPage.value"
@@ -267,6 +272,7 @@
 										:labels="resultLabels"
 										:pagination-labels="paginationLabels"
 										status-mode="all"
+										@update:medal="data.setRecentMedal"
 										@first="data.recentPagination.first()"
 										@previous="data.recentPagination.previous(data.recentPage.value)"
 										@next="data.recentPagination.next(data.recentPage.value)"
@@ -631,10 +637,7 @@ const favouritesPending = computed(() =>
 		activeTab.value === 'favourites',
 	),
 )
-const wrPending = computed(
-	() =>
-		data.wrResult.value.fetching.value && data.wrResult.value.data.value === undefined,
-)
+const wrPending = computed(() => data.wrResult.value.fetching.value)
 const pbPending = computed(
 	() => !data.personalBestsActive.value || data.pbResult.value.fetching.value,
 )
