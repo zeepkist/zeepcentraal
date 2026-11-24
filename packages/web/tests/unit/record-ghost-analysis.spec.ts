@@ -349,9 +349,9 @@ describe('record ghost analysis', () => {
 			'if (!chartHasFocusedSeries(chart) || seriesKey === focusedSeriesKey.value) return color',
 		)
 		expect(source).toContain('colorWithOpacity(color, 0.25)')
-		expect(source).toContain(':y-domain="yDomain(chart)"')
+		expect(source).toContain(':y-domain="chart.domain"')
 		expect(source).toContain(':y-explicit-ticks="yExplicitTicks(chart)"')
-		expect(source).toContain("chart.key === 'steering' ? [-1, 1] : undefined")
+		expect(source).toContain("chart.key === 'steering' ? [-1, 1] : getLineChartYDomain")
 		expect(source).toContain("chart.key === 'steering' ? [-1, 0, 1] : undefined")
 		expect(source).toContain('props.labels.steeringLeftLabel')
 		expect(source).toContain('props.labels.steeringRightLabel')

@@ -1,4 +1,5 @@
 import type { UserCareerHistoryPoint, UserCareerSecondaryHistoryPoint } from '~/types/app'
+import { getEvenlySpacedYAxis, getLineChartYDomain } from './lineChartDomain'
 
 type HistoryValue = {
 	dateCreated: unknown
@@ -108,6 +109,33 @@ export function buildUserCareerSecondaryHistory(input: {
 		})
 	}
 	return points
+}
+
+function getUserCareerPointsAxisUnit(value: number) {
+	const magnitude = Math.abs(value)
+	if (magnitude < 1000) return 2
+	return 1000 ** Math.floor(Math.log10(magnitude) / 3)
+}
+
+export function getUserCareerPointsAxis(data: readonly { value: number }[]) {
+	const domain = getLineChartYDomain(data, ['value'], getUserCareerPointsAxisUnit)
+	if (!domain) return undefined
+
+	const unit = getUserCareerPointsAxisUnit(Math.max(Math.abs(domain[0]), Math.abs(domain[1])))
+	return getEvenlySpacedYAxis(domain, unit)
+}
+
+export function getUserCareerRankAxis(domain: readonly [number, number]) {
+	if (domain[1] !== 0) return getEvenlySpacedYAxis(domain, 10)
+
+	// Extend the grid down from rank #1 so its label matches the plotted position.
+	const firstRank = -1
+	const axis = getEvenlySpacedYAxis([0, firstRank - domain[0]], 10)
+	const rankDomain: [number, number] = [firstRank - axis.domain[1], firstRank]
+	return {
+		domain: rankDomain,
+		ticks: axis.ticks.map((distance) => firstRank - distance).reverse(),
+	}
 }
 
 export function createUserCareerAxisFormatter(locale: string) {

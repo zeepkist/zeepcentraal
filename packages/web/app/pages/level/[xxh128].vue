@@ -399,7 +399,7 @@ const splitAnalysisLabels = computed(() => ({
 	deltaDescription: t('levels.detail.splitAnalysis.deltaDescription'),
 	speedTitle: t('levels.detail.splitAnalysis.speedTitle'),
 	speedDescription: t('levels.detail.splitAnalysis.speedDescription'),
-	secondsUnit: t('dashboard.totals.units.seconds'),
+	millisecondsUnit: t('dashboard.totals.units.milliseconds'),
 	speedUnit: t('dashboard.totals.units.kilometresPerHour'),
 	showMyComparison: t('levels.detail.splitAnalysis.showMyComparison'),
 	hideMyComparison: t('levels.detail.splitAnalysis.hideMyComparison'),

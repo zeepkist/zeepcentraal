@@ -33,6 +33,10 @@
 					:data="visibleDeltaData"
 					:categories="categories"
 					:y-axis="seriesKeys"
+					:y-domain="deltaAxis?.domain"
+					:y-explicit-ticks="deltaAxis?.ticks"
+					:y-formatter="formatDeltaTick"
+					:padding="deltaChartPadding"
 					:height="220"
 					:x-formatter="formatCheckpoint"
 					:line-width="3"
@@ -62,6 +66,7 @@
 					:data="visibleSpeedData"
 					:categories="categories"
 					:y-axis="seriesKeys"
+					:y-domain="speedDomain"
 					:height="220"
 					:x-formatter="formatCheckpoint"
 					:line-width="3"
@@ -85,6 +90,7 @@
 <script setup lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
 import type { LevelSplitAnalysis } from '~/utils/levelSplitAnalysis'
+import { getEvenlySpacedYAxis, getLineChartYDomain } from '~/utils/lineChartDomain'
 
 const props = withDefaults(
 	defineProps<{
@@ -97,7 +103,7 @@ const props = withDefaults(
 			deltaDescription: string
 			speedTitle: string
 			speedDescription: string
-			secondsUnit: string
+			millisecondsUnit: string
 			speedUnit: string
 		}
 	}>(),
@@ -106,7 +112,7 @@ const props = withDefaults(
 
 const { locale } = useAppI18n()
 const deltaFormat = computed(
-	() => new Intl.NumberFormat(locale.value, { minimumFractionDigits: 3, maximumFractionDigits: 3 }),
+	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 0 }),
 )
 const speedFormat = computed(
 	() => new Intl.NumberFormat(locale.value, { maximumFractionDigits: 1 }),
@@ -128,8 +134,15 @@ const seriesKeys = computed(() => visibleSeries.value.map((player) => player.key
 const lineDashArray = computed(() =>
 	visibleSeries.value.map((player) => (player.viewer ? [2, 4] : [])),
 )
-const visibleDeltaData = computed(() => selectVisibleData(props.analysis.deltaData))
+const visibleDeltaData = computed(() => selectVisibleData(props.analysis.deltaData, 1000))
 const visibleSpeedData = computed(() => selectVisibleData(props.analysis.speedData))
+const deltaTickUnit = 10
+const deltaChartPadding = { top: 20, right: 5, bottom: 5, left: 5 }
+const deltaAxis = computed(() => {
+	const domain = getLineChartYDomain(visibleDeltaData.value, seriesKeys.value, deltaTickUnit)
+	return domain && getEvenlySpacedYAxis(domain, deltaTickUnit)
+})
+const speedDomain = computed(() => getLineChartYDomain(visibleSpeedData.value, seriesKeys.value))
 const compactCardUi = { header: 'p-4 sm:p-4', body: 'p-3 sm:p-4' }
 const chartDuration = useMotionDuration(500)
 
@@ -137,6 +150,12 @@ function formatCheckpoint(index: number) {
 	return index >= props.analysis.checkpointCount
 		? props.labels.finish
 		: `${props.labels.checkpoint} ${index + 1}`
+}
+
+function formatDeltaTick(value: number | Date) {
+	return typeof value === 'number'
+		? `${deltaFormat.value.format(value)}${props.labels.millisecondsUnit}`
+		: ''
 }
 
 function resolveTooltipTitle(values: unknown) {
@@ -160,7 +179,7 @@ function resolveTooltipEntries(
 		if (typeof value !== 'number') return []
 		const formattedValue =
 			mode === 'delta'
-				? `${value > 0 ? '+' : ''}${deltaFormat.value.format(value)} ${props.labels.secondsUnit}`
+				? `${value > 0 ? '+' : ''}${formatDeltaTick(value)}`
 				: `${speedFormat.value.format(value)} ${props.labels.speedUnit}`
 		return [{
 			key: player.key,
@@ -172,13 +191,13 @@ function resolveTooltipEntries(
 	})
 }
 
-function selectVisibleData(data: Array<Record<string, number>>) {
+function selectVisibleData(data: Array<Record<string, number>>, scale = 1) {
 	return data.map((point) => ({
 		checkpoint: point.checkpoint ?? 0,
 		...Object.fromEntries(
 			visibleSeries.value.flatMap((player) => {
 				const value = point[player.key]
-				return typeof value === 'number' ? [[player.key, value]] : []
+				return typeof value === 'number' ? [[player.key, value * scale]] : []
 			}),
 		),
 	}))

@@ -2,6 +2,7 @@
 import { CartesianGrid, Line, ResponsiveContainer, LineChart as TimeLineChart, Tooltip, XAxis, YAxis } from 'vccs'
 import { h } from 'vue'
 import { DashboardChartTooltip } from '#components'
+import { getLineChartYDomain } from '~/utils/lineChartDomain'
 import type { LobbyChartPoint } from '~/utils/lobbyAnalytics'
 
 const props = defineProps<{ title: string; points: LobbyChartPoint[]; series: Array<{ key: string; label: string; color: string }>; step?: boolean }>()
@@ -11,6 +12,7 @@ const mounted = shallowRef(false)
 onMounted(() => { mounted.value = true })
 const active = computed(() => props.series.filter(series => !hidden.value.includes(series.key)))
 const keys = computed(() => active.value.map(series => series.key))
+const yDomain = computed(() => getLineChartYDomain(props.points, keys.value))
 const margin = { top: 10, right: 20, bottom: 15, left: 0 }
 const timeDomain: ['dataMin', 'dataMax'] = ['dataMin', 'dataMax']
 const axisTick = { fill: 'currentColor', fontSize: 11 }
@@ -46,7 +48,7 @@ function renderTooltip(value: { active?: boolean; payload?: readonly { payload?:
 				<ResponsiveContainer width="100%" :height="260"><TimeLineChart :data="points" :margin="margin">
 					<CartesianGrid stroke="currentColor" :stroke-opacity="0.12" :vertical="false" />
 					<XAxis data-key="time" type="number" scale="time" :domain="timeDomain" :tick-formatter="formatTime" :tick-count="4" :tick="axisTick" :min-tick-gap="35" />
-					<YAxis :tick="axisTick" :tick-formatter="formatNumber" />
+					<YAxis :domain="yDomain" :tick="axisTick" :tick-formatter="formatNumber" />
 					<Tooltip :content="renderTooltip" :is-animation-active="false" />
 					<Line v-for="series in active" :key="series.key" :data-key="series.key" :name="series.label" :stroke="series.color" :stroke-width="2" :type="step ? 'stepAfter' : 'linear'" :connect-nulls="false" :dot="step ? stepDot : points.length === 1" :is-animation-active="false">
 						<template #shape="shape"><LobbyChartLineShape :points="shape.points" :stroke="series.color" :step="step" /></template>

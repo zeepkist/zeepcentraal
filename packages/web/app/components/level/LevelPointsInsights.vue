@@ -4,6 +4,7 @@
 			:data="history"
 			:categories="categories"
 			:y-axis="['points']"
+			:y-domain="[LEVEL_POINTS_MIN, LEVEL_POINTS_MAX]"
 			:height="220"
 			:x-formatter="formatDateAtIndex"
 			:line-width="3"
@@ -23,6 +24,7 @@
 
 <script setup lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
+import { LEVEL_POINTS_MAX, LEVEL_POINTS_MIN } from '~/utils/levelExplorer'
 import type { LevelPointHistoryPoint } from '~/utils/levelPointsHistory'
 
 const props = defineProps<{

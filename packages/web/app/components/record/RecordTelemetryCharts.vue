@@ -21,8 +21,8 @@
 			<LineChart
 				:data="chart.data"
 				:categories="categories(chart)"
-				:y-axis="chart.series.map((series) => series.key)"
-				:y-domain="yDomain(chart)"
+				:y-axis="chart.seriesKeys"
+				:y-domain="chart.domain"
 				:y-explicit-ticks="yExplicitTicks(chart)"
 				:height="chartHeight"
 				:x-formatter="(index: number) => formatElapsed(chart.data[index]?.elapsed)"
@@ -76,6 +76,7 @@
 <script setup lang="ts">
 import type { DashboardChartEntry } from '~/types/app'
 import type { LoadedPlaybackGhost, ParsedPlaybackGhost } from '~/types/ghost'
+import { getLineChartYDomain } from '~/utils/lineChartDomain'
 import type { RecordAnalysisLabels } from '~/utils/recordAnalysisLabels'
 import {
 	buildRecordTelemetryChartsFromSources,
@@ -84,7 +85,11 @@ import {
 
 type RecordTelemetryChartConfig = RecordAnalysisLabels['telemetry']['config'][keyof RecordAnalysisLabels['telemetry']['config']]
 
-type VisibleChart = RecordTelemetryChartData & { config: RecordTelemetryChartConfig }
+type VisibleChart = RecordTelemetryChartData & {
+	config: RecordTelemetryChartConfig
+	domain: [number, number] | undefined
+	seriesKeys: string[]
+}
 
 const props = withDefaults(
 	defineProps<{
@@ -126,7 +131,11 @@ const visibleCharts = computed<VisibleChart[]>(() =>
 		const series = chart.series.filter((entry) =>
 			chart.data.some((point) => typeof point[entry.key] === 'number'),
 		)
-		return series.length > 0 ? [{ ...chart, series, config: props.labels.config[chart.key] }] : []
+		if (!series.length) return []
+		const seriesKeys = series.map((entry) => entry.key)
+		const domain: [number, number] | undefined =
+			chart.key === 'steering' ? [-1, 1] : getLineChartYDomain(chart.data, seriesKeys)
+		return [{ ...chart, series, seriesKeys, domain, config: props.labels.config[chart.key] }]
 	}),
 )
 
@@ -218,10 +227,6 @@ function formatAxisValue(value: number | Date, chart: VisibleChart) {
 		if (value === 1) return props.labels.steeringRightLabel
 	}
 	return numberFormat(chart.config).format(value)
-}
-
-function yDomain(chart: VisibleChart): [number | undefined, number | undefined] | undefined {
-	return chart.key === 'steering' ? [-1, 1] : undefined
 }
 
 function yExplicitTicks(chart: VisibleChart): number[] | undefined {

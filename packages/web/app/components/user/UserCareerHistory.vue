@@ -31,7 +31,7 @@
 					<TablerIcon name="loader-2" class="size-7 motion-safe:animate-spin" />
 					<span class="sr-only">{{ labels.loading }}</span>
 				</div>
-				<LineChart v-else :data="series.data" :categories="{ value: { name: series.title, color: series.color } }" :y-axis="['value']" :height="220" :x-formatter="(index: number) => formatDate(series.data[index]?.date)" :y-formatter="series.inverted ? formatRankTick : formatCompactTick" :line-width="3" :hide-legend="true" :duration="duration">
+				<LineChart v-else :data="series.data" :categories="{ value: { name: series.title, color: series.color } }" :y-axis="['value']" :y-domain="series.axis?.domain" :y-explicit-ticks="series.axis?.ticks" :padding="chartPadding" :height="220" :x-formatter="(index: number) => formatDate(series.data[index]?.date)" :y-formatter="series.inverted ? formatRankTick : formatCompactTick" :line-width="3" :hide-legend="true" :duration="duration">
 					<template #tooltip="{ values }">
 						<DashboardChartTooltip :entries="tooltipEntries(values, series)" :title="tooltipTitle(values)" :show-percentage="false" />
 					</template>
@@ -49,7 +49,12 @@ import type {
 } from '~/types/app'
 import type { TablerIconName } from '~/utils/icons'
 import { getDateTimeFormatter, getNumberFormatter } from '~/utils/intlFormatters'
-import { createUserCareerAxisFormatter } from '~/utils/userCareerHistory'
+import { getEvenlySpacedYAxis, getLineChartYDomain } from '~/utils/lineChartDomain'
+import {
+	createUserCareerAxisFormatter,
+	getUserCareerPointsAxis,
+	getUserCareerRankAxis,
+} from '~/utils/userCareerHistory'
 
 type PointsSeries = 'rankedPoints' | 'totalPoints'
 type StandingSeries = 'rank' | 'worldRecords'
@@ -79,6 +84,7 @@ const number = computed(() => getNumberFormatter(locale.value))
 const compactNumber = computed(() => createUserCareerAxisFormatter(locale.value))
 const date = computed(() => getDateTimeFormatter(locale.value, 'medium-london'))
 const duration = useMotionDuration(500)
+const chartPadding = { top: 20, right: 5, bottom: 5, left: 5 }
 const hydrated = ref(false)
 const pointsSeries = ref<PointsSeries>('rankedPoints')
 const standingSeries = ref<StandingSeries>('rank')
@@ -116,7 +122,13 @@ const seriesModels = computed(() => [
 	standingSeries.value === 'rank'
 		? { group: 'standing' as const, key: 'rank', title: props.labels.rank, description: props.labels.rankDescription, color: '#38bdf8', inverted: true, secondary: false, data: props.history.flatMap((point) => point.rank == null ? [] : [{ date: point.date, value: -point.rank }]) }
 		: { group: 'standing' as const, key: 'worldRecords', title: props.labels.worldRecords, description: props.labels.worldRecordsDescription, color: '#f43f5e', inverted: false, secondary: true, data: props.secondaryHistory.map((point) => ({ date: point.date, value: point.worldRecords })) },
-])
+].map((series) => {
+	if (series.group === 'points') return { ...series, axis: getUserCareerPointsAxis(series.data) }
+	const domain = getLineChartYDomain(series.data, ['value'], 10)
+	if (!domain) return { ...series, axis: undefined }
+	const axis = series.inverted ? getUserCareerRankAxis(domain) : getEvenlySpacedYAxis(domain, 10)
+	return { ...series, axis }
+}))
 
 function selectPointsSeries(value: PointsSeries) {
 	pointsSeries.value = value
@@ -132,7 +144,11 @@ function formatDate(value?: string) { return value ? date.value.format(new Date(
 
 function formatCompactTick(value: number | Date) { return typeof value === 'number' ? compactNumber.value.format(value) : '' }
 
-function formatRankTick(value: number | Date) { return typeof value === 'number' ? `#${compactNumber.value.format(Math.abs(value))}` : '' }
+function formatRankTick(value: number | Date) {
+	return typeof value === 'number' && Number.isInteger(value) && value < 0
+		? `#${compactNumber.value.format(Math.abs(value))}`
+		: ''
+}
 
 function tooltipTitle(values: unknown) { const value = values as { date?: unknown } | null; return typeof value?.date === 'string' ? formatDate(value.date) : '' }
 

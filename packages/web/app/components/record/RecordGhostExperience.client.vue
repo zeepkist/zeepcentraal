@@ -417,7 +417,7 @@ const checkpointLabels = computed(() => ({
 	deltaDescription: t('pages.recordDetail.checkpoints.deltaDescription'),
 	speedTitle: t('pages.recordDetail.checkpoints.speedTitle'),
 	speedDescription: t('pages.recordDetail.checkpoints.speedDescription'),
-	secondsUnit: t('dashboard.totals.units.seconds'),
+	millisecondsUnit: t('dashboard.totals.units.milliseconds'),
 	speedUnit: t('dashboard.totals.units.kilometresPerHour'),
 }))
 
