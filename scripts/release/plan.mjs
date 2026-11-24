@@ -106,9 +106,16 @@ const images = releases.flatMap((release) => {
 const plan = { sha, releases, images }
 writeFileSync(outputPath, `${JSON.stringify(plan, null, 2)}\n`)
 if (process.env.GITHUB_OUTPUT) {
+	const rustPackages = releases.map(({ target }) => target).filter((target) => target !== 'ts')
 	appendFileSync(
 		process.env.GITHUB_OUTPUT,
-		`images=${JSON.stringify({ include: images })}\ncount=${images.length}\n`,
+		[
+			`images=${JSON.stringify({ include: images })}`,
+			`count=${images.length}`,
+			`rust_packages=${rustPackages.join(' ')}`,
+			`rust_binaries=${rustPackages.map((target) => rustTargets[target].binary).join(' ')}`,
+			'',
+		].join('\n'),
 	)
 }
 process.stdout.write(`Planned ${releases.length} releases and ${images.length} images\n`)

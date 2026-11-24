@@ -536,11 +536,72 @@ test('Rust release stamping changes only planned crate and lock entry', () => {
 	}
 })
 
-test('Streamkist binary reaches both workflows and Docker context', () => {
-	assert.match(readFileSync('.dockerignore', 'utf8'), /^!dist\/zeepcentraal-streamkist$/m)
-	for (const workflow of ['pr-validate.yml', 'deploy.yml']) {
-		const content = readFileSync(`.github/workflows/${workflow}`, 'utf8')
-		assert.ok(content.includes('-p zc-streamkist'))
-		assert.ok(content.includes('lobby-host,discord,streamkist,inspector-zeep'))
+test('release plan selects Rust builds for planned and retried Rust images', () => {
+	const root = mkdtempSync(join(tmpdir(), 'zc-release-plan-'))
+	try {
+		git(root, 'init', '-q')
+		git(root, 'config', 'user.name', 'Release Test')
+		git(root, 'config', 'user.email', 'release@example.test')
+		git(root, 'commit', '--allow-empty', '-qm', 'chore: baseline')
+		for (const tag of ['3.0.1', ...Object.keys(rustTargets).map((name) => `${name}@3.0.0`)]) {
+			git(root, 'tag', tag)
+		}
+		git(root, 'commit', '--allow-empty', '-qm', 'fix: release candidate')
+		mkdirSync(join(root, 'scripts/release'), { recursive: true })
+		const planPath = join(root, 'plan.json')
+		const outputPath = join(root, 'outputs')
+		const script = fileURLToPath(new URL('./plan.mjs', import.meta.url))
+
+		const plan = (targets, rustPackages, rustBinaries, imageNames) => {
+			writeFileSync(
+				join(root, 'scripts/release/semantic-target.mjs'),
+				`const result = ${JSON.stringify(targets)}.includes(process.env.RELEASE_TARGET)
+					? { version: '3.0.2' } : null
+				console.log('ZC_RELEASE_RESULT=' + JSON.stringify(result))`,
+			)
+			writeFileSync(outputPath, '')
+			const result = spawnSync(process.execPath, [script, planPath], {
+				cwd: root,
+				env: { ...process.env, GITHUB_OUTPUT: outputPath },
+				encoding: 'utf8',
+			})
+			assert.equal(result.status, 0, result.stderr)
+			const outputs = Object.fromEntries(
+				readFileSync(outputPath, 'utf8')
+					.trimEnd()
+					.split('\n')
+					.map((line) => {
+						const separator = line.indexOf('=')
+						return [line.slice(0, separator), line.slice(separator + 1)]
+					}),
+			)
+			assert.equal(outputs.rust_packages, rustPackages)
+			assert.equal(outputs.rust_binaries, rustBinaries)
+			assert.equal(outputs.count, String(imageNames.length))
+			assert.deepEqual(
+				JSON.parse(outputs.images).include.map(({ name }) => name),
+				imageNames,
+			)
+		}
+
+		plan([], '', '', [])
+		plan(['ts'], '', '', ['postgraphile', 'web'])
+		plan(['zc-server'], 'zc-server', 'zeepcentraal-server', ['zc-server'])
+		git(root, 'tag', 'zc-streamkist@3.0.1')
+		plan(
+			['ts', 'zc-server'],
+			'zc-server zc-streamkist',
+			'zeepcentraal-server zeepcentraal-streamkist',
+			['postgraphile', 'web', 'zc-server', 'zc-streamkist'],
+		)
+	} finally {
+		rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
 	}
+})
+
+test('Streamkist binary reaches PR validation and Docker context', () => {
+	assert.match(readFileSync('.dockerignore', 'utf8'), /^!dist\/zeepcentraal-streamkist$/m)
+	const workflow = readFileSync('.github/workflows/pr-validate.yml', 'utf8')
+	assert.ok(workflow.includes('-p zc-streamkist'))
+	assert.ok(workflow.includes('lobby-host,discord,streamkist,inspector-zeep'))
 })

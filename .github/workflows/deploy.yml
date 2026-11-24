@@ -17,6 +17,8 @@ concurrency:
 
 jobs:
   rust-quality:
+    needs: release-plan
+    if: ${{ needs.release-plan.outputs.rust_packages != '' }}
     runs-on: ubuntu-latest
     env:
       CARGO_INCREMENTAL: '0'
@@ -70,12 +72,13 @@ jobs:
       - run: bunx --no-install biome check packages/postgraphile packages/web packages/telemetry packages/database/src/telemetry.ts
 
   release-plan:
-    needs: [rust-quality, ts-quality]
     if: ${{ github.ref == 'refs/heads/develop' }}
     runs-on: ubuntu-latest
     outputs:
       images: ${{ steps.plan.outputs.images }}
       count: ${{ steps.plan.outputs.count }}
+      rust_packages: ${{ steps.plan.outputs.rust_packages }}
+      rust_binaries: ${{ steps.plan.outputs.rust_binaries }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -100,6 +103,7 @@ jobs:
 
   rust-binaries:
     needs: release-plan
+    if: ${{ needs.release-plan.outputs.rust_packages != '' }}
     # SteamCMD runtime is Ubuntu 22.04 (glibc 2.35); all shipped Rust binaries need that ABI.
     runs-on: ubuntu-22.04
     env:
@@ -132,13 +136,26 @@ jobs:
         run: node scripts/release/stamp.mjs "$RUNNER_TEMP/release-plan.json"
       - run: cargo metadata --locked --format-version 1 --no-deps > /dev/null
       - name: Build Rust service binaries
-        run: cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-streamkist -p zc-inspector-zeep -p zc-import-zsl --bins
-      - name: Stage Rust binaries
+        env:
+          RUST_PACKAGES: ${{ needs.release-plan.outputs.rust_packages }}
         run: |
+          read -r -a packages <<< "$RUST_PACKAGES"
+          args=()
+          for package in "${packages[@]}"; do
+            args+=(-p "$package")
+          done
+          cargo build --locked --release "${args[@]}" --bins
+      - name: Stage Rust binaries
+        env:
+          RUST_BINARIES: ${{ needs.release-plan.outputs.rust_binaries }}
+        run: |
+          read -r -a binaries <<< "$RUST_BINARIES"
           mkdir -p dist
-          cp "$CARGO_TARGET_DIR"/release/zeepcentraal-{server,jobs,migrate,lobby-host,discord,streamkist,inspector-zeep,import-zsl} dist/
+          for binary in "${binaries[@]}"; do
+            cp "$CARGO_TARGET_DIR/release/$binary" dist/
+          done
       - name: Check Rust runtime ABI
-        run: node scripts/release/check-rust-abi.mjs dist/zeepcentraal-{server,jobs,migrate,lobby-host,discord,streamkist,inspector-zeep,import-zsl}
+        run: node scripts/release/check-rust-abi.mjs dist/zeepcentraal-*
       - uses: actions/upload-artifact@v7
         with:
           name: rust-binaries
@@ -180,8 +197,14 @@ jobs:
           include-hidden-files: ${{ matrix.package.hidden }}
 
   preflight-images:
-    needs: [release-plan, rust-binaries, ts-binaries]
-    if: ${{ needs.release-plan.outputs.count != '0' }}
+    needs: [release-plan, rust-quality, rust-binaries, ts-binaries]
+    if: >-
+      ${{ !cancelled() &&
+          needs.release-plan.result == 'success' &&
+          needs.release-plan.outputs.count != '0' &&
+          needs.ts-binaries.result == 'success' &&
+          (needs.release-plan.outputs.rust_packages == '' ||
+           (needs.rust-quality.result == 'success' && needs.rust-binaries.result == 'success')) }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -205,7 +228,7 @@ jobs:
 
   publish-release:
     needs: [release-plan, preflight-images]
-    if: ${{ needs.release-plan.outputs.count != '0' }}
+    if: ${{ !cancelled() && needs.release-plan.result == 'success' && needs.preflight-images.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -233,7 +256,7 @@ jobs:
 
   publish-images:
     needs: [release-plan, publish-release]
-    if: ${{ needs.release-plan.outputs.count != '0' }}
+    if: ${{ !cancelled() && needs.release-plan.result == 'success' && needs.publish-release.result == 'success' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
