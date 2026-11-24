@@ -239,6 +239,9 @@ impl ServiceJobHandler {
             .as_str()
             .context("workshopId is missing")?
             .parse::<u64>()?;
+        if payload["checkForUpdates"].as_bool() == Some(true) {
+            return self.refresh_requested_workshop_item(workshop_id).await;
+        }
         let result = self.scanner().scan_workshop_item(workshop_id).await?;
         self.database
             .release_level_request(i64::try_from(workshop_id)?)
@@ -247,6 +250,61 @@ impl ServiceJobHandler {
             workshop_id,
             changed_levels = result.changed_level_ids.len(),
             "Workshop scan committed with durable follow-ups"
+        );
+        Ok(())
+    }
+
+    async fn refresh_requested_workshop_item(&self, workshop_id: u64) -> Result<()> {
+        use zc_core::steam::{
+            STEAM_VISIBILITY_FRIENDS_ONLY, STEAM_VISIBILITY_HIDDEN, can_download_workshop_item,
+        };
+
+        let id = i64::try_from(workshop_id)?;
+        let mut items = self.metadata.get_items(&[workshop_id]).await?;
+        let metadata = items.pop().context("Workshop metadata is missing")?;
+        ensure!(
+            items.is_empty() && metadata.workshop_id == workshop_id,
+            "Unexpected Workshop metadata for {workshop_id}"
+        );
+        let inaccessible = matches!(
+            metadata.visibility,
+            STEAM_VISIBILITY_FRIENDS_ONLY | STEAM_VISIBILITY_HIDDEN
+        );
+        ensure!(
+            metadata.available
+                || inaccessible
+                || matches!(
+                    metadata.permanent_failure.as_deref(),
+                    Some("missing" | "banned" | "steam-result-9")
+                ),
+            "Steam could not confirm Workshop item {workshop_id} is unavailable"
+        );
+        let downloadable = metadata.available && can_download_workshop_item(metadata.visibility);
+        if downloadable
+            && !self
+                .database
+                .begin_requested_workshop_refresh(
+                    id,
+                    &metadata.updated_at,
+                    i16::try_from(metadata.visibility)?,
+                )
+                .await?
+        {
+            return Ok(());
+        }
+        let updated_at = downloadable.then(|| metadata.updated_at.clone());
+        let result = self
+            .scanner()
+            .scan_workshop_item_with_metadata(metadata)
+            .await?;
+        self.database
+            .finish_requested_workshop_refresh(id, updated_at.as_deref())
+            .await?;
+        tracing::info!(
+            workshop_id,
+            status = ?result.status,
+            changed_levels = result.changed_level_ids.len(),
+            "Requested Workshop refresh completed"
         );
         Ok(())
     }

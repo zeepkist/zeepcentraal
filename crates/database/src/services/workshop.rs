@@ -98,6 +98,38 @@ struct ChangedLevel {
 }
 
 impl Database {
+    pub async fn begin_requested_workshop_refresh(
+        &self,
+        workshop_id: i64,
+        steam_updated_at: &str,
+        visibility: i16,
+    ) -> Result<bool> {
+        Ok(sql_query(include_str!(
+            "../queries/workshop/begin_requested_refresh.sql"
+        ))
+        .bind::<BigInt, _>(workshop_id)
+        .bind::<Text, _>(steam_updated_at)
+        .bind::<SmallInt, _>(visibility)
+        .execute(&mut self.connection().await?)
+        .await?
+            != 0)
+    }
+
+    pub async fn finish_requested_workshop_refresh(
+        &self,
+        workshop_id: i64,
+        steam_updated_at: Option<&str>,
+    ) -> Result<()> {
+        sql_query(include_str!(
+            "../queries/workshop/finish_requested_refresh.sql"
+        ))
+        .bind::<BigInt, _>(workshop_id)
+        .bind::<Nullable<Text>, _>(steam_updated_at)
+        .execute(&mut self.connection().await?)
+        .await?;
+        Ok(())
+    }
+
     pub async fn find_workshop_level_author(
         &self,
         xx_hash: &str,
@@ -393,6 +425,25 @@ impl Database {
         workshop_id: i64,
         visibility: i16,
     ) -> Result<Vec<i32>> {
+        self.set_workshop_unavailable(workshop_id, visibility, false)
+            .await
+    }
+
+    pub async fn mark_workshop_inaccessible(
+        &self,
+        workshop_id: i64,
+        visibility: i16,
+    ) -> Result<Vec<i32>> {
+        self.set_workshop_unavailable(workshop_id, visibility, true)
+            .await
+    }
+
+    async fn set_workshop_unavailable(
+        &self,
+        workshop_id: i64,
+        visibility: i16,
+        include_adventure: bool,
+    ) -> Result<Vec<i32>> {
         let mut connection = self.connection().await?;
         connection
             .transaction::<Vec<i32>, anyhow::Error, _>(async move |connection| {
@@ -407,6 +458,7 @@ impl Database {
                     "../queries/workshop/soft_delete_workshop_level_items.sql"
                 ))
                 .bind::<BigInt, _>(workshop_id)
+                .bind::<Bool, _>(include_adventure)
                 .load::<ChangedLevel>(connection)
                 .await?;
                 let ids = unique_ids(changed);

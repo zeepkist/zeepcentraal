@@ -5,6 +5,8 @@ import type {
 } from '@zeepkist/graphql/generated'
 import type { CursorPage, WorkshopSummary } from '~/types/app'
 
+export { isWorkshopId } from '#shared/workshopId'
+
 export const WORKSHOP_SORTS = {
 	latest: 'CREATED_AT_DESC',
 	updated: 'UPDATED_AT_DESC',
@@ -21,10 +23,6 @@ export function normalizeWorkshopSort(value: unknown): WorkshopSort {
 
 export function workshopOrderBy(sort: WorkshopSort): WorkshopItemsOrderBy[] {
 	return [sort, 'WORKSHOP_ID_DESC']
-}
-
-export function isWorkshopId(value: string): boolean {
-	return /^[1-9]\d{0,18}$/.test(value) && BigInt(value) <= 9223372036854775807n
 }
 
 export function buildWorkshopFilter(input: {

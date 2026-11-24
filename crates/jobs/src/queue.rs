@@ -4,7 +4,7 @@ use diesel::{
     OptionalExtension, QueryableByName, sql_query,
     sql_types::{BigInt, Bool, Integer, Jsonb, Nullable, Text},
 };
-use diesel_async::{AsyncConnection, RunQueryDsl};
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 use tracing::Instrument;
@@ -244,31 +244,54 @@ impl Queue {
             let mut connection = self.partition.connection().await?;
             let mut jobs = Vec::with_capacity(requests.len());
             for request in requests {
-                ensure!(
-                    request.task.validate_payload(&request.payload),
-                    "Invalid queued task: {}",
-                    request.task.as_str()
-                );
-                let (derived_key, group) = queue_identity(
-                    request.task,
-                    &request.payload,
-                    request.lane,
-                    request.key.as_deref(),
-                );
-                let delay_ms = i64::try_from(request.delay.as_millis())?;
-                let job = sql_query(include_str!("queries/queue/enqueue_many.sql"))
-                    .bind::<Text, _>(request.lane.as_str())
-                    .bind::<Text, _>(request.task.as_str())
-                    .bind::<Jsonb, _>(request.payload)
-                    .bind::<Nullable<Text>, _>(derived_key)
-                    .bind::<Nullable<Text>, _>(group)
-                    .bind::<Integer, _>(request.task.max_attempts())
-                    .bind::<BigInt, _>(delay_ms)
-                    .get_result(&mut connection)
-                    .await?;
-                jobs.push(job);
+                jobs.push(enqueue_request(&mut connection, request).await?);
             }
             Ok(jobs)
+        })
+        .await
+    }
+
+    pub async fn enqueue_workshop_scan_request(
+        &self,
+        workshop_id: i64,
+        hash: Option<&str>,
+    ) -> Result<bool> {
+        trace_enqueue(async {
+            let mut connection = self.partition.connection().await?;
+            connection
+                .transaction::<_, anyhow::Error, _>(async |connection| {
+                    sql_query(LOCK_BULK_LANE).execute(connection).await?;
+                    let claimed =
+                        zc_database::services::workshop_queue::claim_workshop_scan_request(
+                            connection,
+                            workshop_id,
+                            hash,
+                        )
+                        .await?;
+                    if claimed {
+                        let mut payload =
+                            serde_json::json!({"workshopId": workshop_id.to_string()});
+                        let key = if hash.is_some() {
+                            format!("scan-workshop-item:{workshop_id}")
+                        } else {
+                            payload["checkForUpdates"] = true.into();
+                            format!("refresh-workshop-item:{workshop_id}")
+                        };
+                        enqueue_request(
+                            connection,
+                            EnqueueRequest {
+                                task: TaskIdentifier::ScanWorkshopItem,
+                                payload,
+                                lane: JobLane::Bulk,
+                                key: Some(key),
+                                delay: Duration::ZERO,
+                            },
+                        )
+                        .await?;
+                    }
+                    Ok(claimed)
+                })
+                .await
         })
         .await
     }
@@ -544,6 +567,34 @@ impl Queue {
         };
         Ok(result.ok)
     }
+}
+
+async fn enqueue_request(
+    connection: &mut AsyncPgConnection,
+    request: EnqueueRequest,
+) -> Result<EnqueuedJob> {
+    ensure!(
+        request.task.validate_payload(&request.payload),
+        "Invalid queued task: {}",
+        request.task.as_str()
+    );
+    let (derived_key, group) = queue_identity(
+        request.task,
+        &request.payload,
+        request.lane,
+        request.key.as_deref(),
+    );
+    let delay_ms = i64::try_from(request.delay.as_millis())?;
+    Ok(sql_query(include_str!("queries/queue/enqueue_many.sql"))
+        .bind::<Text, _>(request.lane.as_str())
+        .bind::<Text, _>(request.task.as_str())
+        .bind::<Jsonb, _>(request.payload)
+        .bind::<Nullable<Text>, _>(derived_key)
+        .bind::<Nullable<Text>, _>(group)
+        .bind::<Integer, _>(request.task.max_attempts())
+        .bind::<BigInt, _>(delay_ms)
+        .get_result(connection)
+        .await?)
 }
 
 fn queue_identity(

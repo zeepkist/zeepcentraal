@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const { t } = useAppI18n()
+const session = useSessionStore()
 
 usePageSeo('workshop')
 const { search, author, sort, result, workshops, page, pagination, authorSuggestions, applyFilters } = useWorkshops()
@@ -11,7 +12,10 @@ const { search, author, sort, result, workshops, page, pagination, authorSuggest
 			<PageHeader :eyebrow="t('pages.workshop.eyebrow')" :title="t('pages.workshop.title')" :description="t('pages.workshop.description')" />
 		</template>
 		<template #sidebar>
-			<WorkshopFilterPanel v-model:search="search" v-model:author="author" v-model:sort="sort" :result-count="result.data.value?.workshopItems?.totalCount ?? 0" :author-suggestions="authorSuggestions.suggestions.value" :author-suggestions-pending="authorSuggestions.pending.value" @apply="applyFilters" />
+			<div class="space-y-4">
+				<WorkshopFilterPanel v-model:search="search" v-model:author="author" v-model:sort="sort" :result-count="result.data.value?.workshopItems?.totalCount ?? 0" :author-suggestions="authorSuggestions.suggestions.value" :author-suggestions-pending="authorSuggestions.pending.value" @apply="applyFilters" />
+				<WorkshopScanRequest v-if="session.user" />
+			</div>
 		</template>
 		<div class="min-w-0 space-y-6">
 			<DataState :pending="pagination.isInitialPending(result.fetching.value, workshops.length)" :error="result.error.value?.message" :empty="workshops.length === 0" :loading-label="t('common.loading')" :error-title="t('common.error')" :empty-title="t('common.empty')">

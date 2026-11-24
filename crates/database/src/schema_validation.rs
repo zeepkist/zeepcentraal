@@ -42,3 +42,11 @@ diesel::table! {
   id_record -> Integer,
  }
 }
+diesel::table! {
+    zc_private.workshop_scan_request (workshop_id) {
+        workshop_id -> BigInt,
+        last_requested_at -> Timestamptz,
+        last_scanned_updated_at -> Nullable<Timestamptz>,
+        reconcile_pending -> Bool,
+    }
+}

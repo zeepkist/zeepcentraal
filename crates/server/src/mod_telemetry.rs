@@ -170,11 +170,7 @@ pub async fn track_request(request: Request, next: Next) -> Response {
             .is_some_and(|path| {
                 matches!(
                     path.as_str(),
-                    "/auth/login"
-                        | "/auth/refresh"
-                        | "/level/request"
-                        | "/record/submit"
-                        | "/user/updateSteamName"
+                    "/auth/login" | "/auth/refresh" | "/record/submit" | "/user/updateSteamName"
                 )
             });
     REQUEST_CONTEXT

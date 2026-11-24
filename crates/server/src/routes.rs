@@ -317,9 +317,22 @@ pub async fn submit_vote(
 
 #[derive(Deserialize, utoipa::ToSchema)]
 #[serde(rename_all = "PascalCase")]
-pub struct LevelRequestBody {
+pub struct GtrLevelRequest {
     workshop_id: String,
     hash: String,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct WebLevelRequest {
+    workshop_id: String,
+}
+
+#[derive(Deserialize, utoipa::ToSchema)]
+#[serde(untagged)]
+pub enum LevelRequestBody {
+    Gtr(GtrLevelRequest),
+    Web(WebLevelRequest),
 }
 
 #[utoipa::path(post, path = "/level/request", request_body = LevelRequestBody, responses((status = 200), (status = 400), (status = 401)))]
@@ -328,47 +341,45 @@ pub async fn request_level(
     headers: HeaderMap,
     Json(body): Json<LevelRequestBody>,
 ) -> ApiResult<StatusCode> {
-    auth::user(&headers, &state, true)?;
-    let workshop_id = positive_i64(&body.workshop_id)
-        .ok_or_else(|| Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST))?;
-    if !valid_xxh128(&body.hash) {
-        return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
-    }
-    if state
-        .database
-        .get_level_by_xx_hash(&body.hash)
-        .await
-        .map_err(Problem::internal)?
-        .is_some()
-    {
-        return Ok(StatusCode::OK);
-    }
-    if state
-        .database
-        .claim_level_request(workshop_id, &body.hash)
-        .await
-        .map_err(Problem::internal)?
-    {
-        let payload = serde_json::json!({"workshopId": workshop_id.to_string()});
-        let key = format!("scan-workshop-item:{workshop_id}");
-        if let Err(error) = state
-            .queue
-            .enqueue(
-                TaskIdentifier::ScanWorkshopItem,
-                payload,
-                JobLane::Bulk,
-                Some(&key),
-            )
-            .await
-        {
-            state
+    let (workshop_id, hash) = match &body {
+        LevelRequestBody::Gtr(body) => {
+            auth::user(&headers, &state, true)?;
+            let workshop_id = positive_i64(&body.workshop_id)
+                .ok_or_else(|| Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST))?;
+            if !valid_xxh128(&body.hash) {
+                return Err(Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST));
+            }
+            if state
                 .database
-                .release_level_request(workshop_id)
+                .get_level_by_xx_hash(&body.hash)
                 .await
-                .map_err(Problem::internal)?;
-            tracing::error!(workshop_id, error = %error, "Failed to enqueue workshop scan");
+                .map_err(Problem::internal)?
+                .is_some()
+            {
+                return Ok(StatusCode::OK);
+            }
+            (workshop_id, Some(body.hash.as_str()))
         }
-    }
+        LevelRequestBody::Web(body) => {
+            let claims = auth::user(&headers, &state, false).map_err(|mut error| {
+                error.status = StatusCode::UNAUTHORIZED;
+                error
+            })?;
+            if !matches!(claims.provider, Provider::Steam | Provider::Discord) {
+                return Err(Problem::code(StatusCode::UNAUTHORIZED, AUTH_INVALID_TOKEN));
+            }
+            let workshop_id = positive_i64(&body.workshop_id)
+                .filter(|_| body.workshop_id.bytes().all(|byte| byte.is_ascii_digit()))
+                .ok_or_else(|| Problem::code(StatusCode::BAD_REQUEST, INVALID_REQUEST))?;
+            active_account(&state, &claims.steamid).await?;
+            (workshop_id, None)
+        }
+    };
+    state
+        .queue
+        .enqueue_workshop_scan_request(workshop_id, hash)
+        .await
+        .map_err(Problem::internal)?;
     Ok(StatusCode::OK)
 }
 
@@ -1226,8 +1237,14 @@ async fn authenticated_user(
     gtr_only: bool,
 ) -> ApiResult<zc_database::services::UserAccount> {
     let claims = auth::user(headers, state, gtr_only)?;
-    let steam_id = claims
-        .steamid
+    active_account(state, &claims.steamid).await
+}
+
+async fn active_account(
+    state: &AppState,
+    steam_id: &str,
+) -> ApiResult<zc_database::services::UserAccount> {
+    let steam_id = steam_id
         .parse()
         .map_err(|_| Problem::code(StatusCode::UNAUTHORIZED, AUTH_USER_NOT_FOUND))?;
     state

@@ -68,6 +68,23 @@ export const adventureLeaderboardEntry = pgView('adventure_leaderboard_entry', {
 
 export const zcPrivate = pgSchema('zc_private')
 
+export const workshopScanRequest = zcPrivate.table(
+	'workshop_scan_request',
+	{
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).primaryKey(),
+		lastRequestedAt: timestamp('last_requested_at', {
+			withTimezone: true,
+			mode: 'string',
+		}).notNull(),
+		lastScannedUpdatedAt: timestamp('last_scanned_updated_at', {
+			withTimezone: true,
+			mode: 'string',
+		}),
+		reconcilePending: boolean('reconcile_pending').notNull().default(false),
+	},
+	(table) => [check('workshop_scan_request_workshop_id_check', sql`${table.workshopId} > 0`)],
+)
+
 export const userMedalCountDirty = zcPrivate.table('user_medal_count_dirty', {
 	idUser: integer('id_user')
 		.primaryKey()

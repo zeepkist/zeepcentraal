@@ -177,6 +177,9 @@ impl TaskIdentifier {
         if self == Self::BackfillRecordEligibility && payload.get("verify").is_some() {
             return false;
         }
+        if self == Self::ScanWorkshopItem && payload.get("checkForUpdates").is_some() {
+            return false;
+        }
         if self == Self::AuditRecordGhosts
             && payload.as_object().is_some_and(|object| {
                 object.keys().any(|key| {
@@ -389,10 +392,13 @@ impl TaskIdentifier {
                         })
                     })
             }
-            Self::ScanWorkshopItem => object
-                .get("workshopId")
-                .and_then(serde_json::Value::as_str)
-                .is_some_and(valid_positive_decimal),
+            Self::ScanWorkshopItem => {
+                object
+                    .get("workshopId")
+                    .and_then(serde_json::Value::as_str)
+                    .is_some_and(valid_positive_decimal)
+                    && optional_bool("checkForUpdates")
+            }
             Self::ScanWorkshopBatch => {
                 object
                     .get("workshopIds")

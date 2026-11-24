@@ -385,10 +385,27 @@ async fn workshop_upsert_and_reconciliation_preserve_adventure_aliases() -> anyh
             > 0,
         "surviving upload keeps level score eligible"
     );
-    database.mark_workshop_deleted(alias.workshop_id, 2).await?;
     client
         .execute(SET_ADVENTURE_LEVEL, &[&first.id_level])
         .await?;
+    database.mark_workshop_deleted(alias.workshop_id, 2).await?;
+    let alias_deleted =
+        include_str!("fixtures/workshop_services/select_deleted_level_item_by_workshop_id.sql");
+    assert!(
+        !client
+            .query_one(alias_deleted, &[&alias.workshop_id, &first.id_level])
+            .await?
+            .get::<_, bool>(0)
+    );
+    database
+        .mark_workshop_inaccessible(alias.workshop_id, 1)
+        .await?;
+    assert!(
+        client
+            .query_one(alias_deleted, &[&alias.workshop_id, &first.id_level])
+            .await?
+            .get::<_, bool>(0)
+    );
     database
         .update_level_scores(&[first.id_level], false)
         .await?;

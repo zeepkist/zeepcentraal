@@ -3,7 +3,8 @@
 	"private": true,
 	"type": "module",
 	"imports": {
-		"#shared/authCookies": "./shared/authCookies.ts"
+		"#shared/authCookies": "./shared/authCookies.ts",
+		"#shared/workshopId": "./shared/workshopId.ts"
 	},
 	"scripts": {
 		"build": "bun run prepare:nuxt && bun --bun nuxt build && bun scripts/build-telemetry-bootstrap.ts",

@@ -89,6 +89,13 @@ pub trait WorkshopPersistence: Send + Sync {
         excluded_uploader_id: u64,
     ) -> anyhow::Result<Option<u64>>;
     async fn mark_deleted(&self, workshop_id: u64, visibility: i32) -> anyhow::Result<Vec<i32>>;
+    async fn mark_inaccessible(
+        &self,
+        workshop_id: u64,
+        visibility: i32,
+    ) -> anyhow::Result<Vec<i32>> {
+        self.mark_deleted(workshop_id, visibility).await
+    }
     async fn mark_missing(
         &self,
         workshop_id: u64,

@@ -2,10 +2,27 @@
 use anyhow::{Result, ensure};
 use diesel::{
     OptionalExtension, QueryableByName, sql_query,
-    sql_types::{BigInt, Integer, Jsonb, Text},
+    sql_types::{BigInt, Integer, Jsonb, Nullable, Text},
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use std::collections::BTreeSet;
+
+/// Caller holds the bulk lane lock and enqueues before committing.
+pub async fn claim_workshop_scan_request(
+    connection: &mut AsyncPgConnection,
+    workshop_id: i64,
+    hash: Option<&str>,
+) -> Result<bool> {
+    ensure!(workshop_id > 0, "Workshop ID must be positive");
+    Ok(sql_query(include_str!(
+        "../queries/workshop_queue/claim_workshop_scan_request.sql"
+    ))
+    .bind::<BigInt, _>(workshop_id)
+    .bind::<Nullable<Text>, _>(hash)
+    .execute(connection)
+    .await?
+        != 0)
+}
 
 /// Caller owns transaction. Keep metadata and required audit work atomic.
 pub async fn enqueue_ghost_audit_levels(

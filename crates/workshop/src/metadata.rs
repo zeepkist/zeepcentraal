@@ -9,7 +9,6 @@ use zc_core::telemetry::TracedRequest;
 
 #[derive(Debug, Deserialize)]
 struct SteamEnvelope {
-    #[serde(default)]
     response: SteamResponse,
 }
 
@@ -110,9 +109,16 @@ impl WorkshopMetadataAdapter for SteamWebApiMetadata {
                 );
             }
         }
-        let parsed: Vec<_> = self
-            .get_json(url)
-            .await?
+        let response = self.get_json(url).await?;
+        ensure!(
+            response.result.is_none_or(|result| result == 1),
+            "Steam Workshop details request failed"
+        );
+        ensure!(
+            !response.publishedfiledetails.is_empty(),
+            "Steam Workshop details response is empty"
+        );
+        let parsed: Vec<_> = response
             .publishedfiledetails
             .into_iter()
             .map(parse_item)

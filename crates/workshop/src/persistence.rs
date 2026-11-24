@@ -100,6 +100,12 @@ impl WorkshopPersistence for DatabaseWorkshopPersistence {
             .await
     }
 
+    async fn mark_inaccessible(&self, workshop_id: u64, visibility: i32) -> Result<Vec<i32>> {
+        self.database
+            .mark_workshop_inaccessible(i64::try_from(workshop_id)?, i16::try_from(visibility)?)
+            .await
+    }
+
     async fn mark_missing(
         &self,
         workshop_id: u64,

@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { webAuthChannel } from '../../app/utils/authCoordination'
 import { test } from '../support/browser'
 
 const author = { steamId: '76561198000000001', steamName: 'Pack Author' }
@@ -198,7 +199,7 @@ async function mockGraphql(
 				contentType: 'application/json',
 				headers: {
 					'access-control-allow-credentials': 'true',
-					'access-control-allow-origin': 'http://127.0.0.1:4173',
+					'access-control-allow-origin': new URL(page.url()).origin,
 				},
 				body: JSON.stringify(
 					options.similar === 'error' && query.includes('query ZC_SimilarLevels(')
@@ -213,20 +214,94 @@ async function mockGraphql(
 	return requests
 }
 
-async function openExplorer(page: Page) {
-	await page.goto('/cosmetics')
+async function waitForHydration(page: Page) {
 	await page.waitForFunction(() => {
 		const root = document.querySelector('#__nuxt') as Element & {
 			__vue_app__?: { config: { globalProperties: { $nuxt?: { isHydrating: boolean } } } }
 		}
 		return root?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false
 	})
+}
+
+async function openExplorer(page: Page) {
+	await page.goto('/cosmetics')
+	await waitForHydration(page)
 	if ((page.viewportSize()?.width ?? 1280) < 1024) {
 		await page.getByRole('button', { name: 'Open menu', exact: true }).click()
 	}
 	await page.locator('a[href="/workshop"]:visible').first().click()
 	await expect(page).toHaveURL('/workshop')
 }
+
+test('Workshop scan is hidden for anonymous visitors', async ({ page }) => {
+	test.setTimeout(90_000)
+	await mockGraphql(page, { empty: true })
+	await page.goto('/workshop', { waitUntil: 'domcontentloaded' })
+	await waitForHydration(page)
+	await expect(page.getByRole('heading', { name: 'Workshop filters' })).toBeVisible()
+	await expect(page.getByRole('button', { name: 'Request Workshop Scan' })).toHaveCount(0)
+})
+
+test('signed-in Workshop scan validates, retries, and links to the requested item', async ({
+	page,
+}) => {
+	test.setTimeout(90_000)
+	await mockGraphql(page, { empty: true })
+	await page.route('**/api/session', (route) =>
+		route.fulfill({ json: { user: { id: 1, ...author }, isAdmin: false, refreshAt: null } }),
+	)
+	const requests: unknown[] = []
+	const response = Promise.withResolvers<void>()
+	await page.route('**/api/workshop/request-scan', async (route) => {
+		expect(route.request().method()).toBe('POST')
+		requests.push(route.request().postDataJSON())
+		if (requests.length === 1) {
+			await route.fulfill({ status: 503 })
+		} else {
+			await response.promise
+			await route.fulfill({ status: 204 })
+		}
+	})
+
+	await page.goto('/workshop', { waitUntil: 'domcontentloaded' })
+	await waitForHydration(page)
+	await page.evaluate((name) => {
+		const channel = new BroadcastChannel(name)
+		channel.postMessage('updated')
+		channel.close()
+	}, webAuthChannel)
+	await page.locator('aside').getByRole('button', { name: 'Request Workshop Scan' }).click()
+	const modal = page.getByRole('dialog', { name: 'Request Workshop Scan' })
+	const input = modal.getByRole('textbox', { name: 'Steam Workshop URL' })
+	const submit = modal.getByRole('button', { name: 'Submit' })
+	await input.fill('https://example.test/sharedfiles/filedetails/?id=3844288322')
+	await submit.click()
+	await expect(modal.getByText('Enter a valid Steam Workshop item URL.')).toBeVisible()
+	expect(requests).toHaveLength(0)
+
+	await input.fill(
+		'https://steamcommunity.com/sharedfiles/filedetails/?id=3844288322&searchtext=track',
+	)
+	await submit.click()
+	await expect(modal.getByRole('alert')).toHaveText('Could not request a scan. Please try again.')
+	await submit.click()
+	try {
+		await expect(submit).toBeDisabled()
+		await expect
+			.poll(() => requests)
+			.toEqual([{ workshopId: '3844288322' }, { workshopId: '3844288322' }])
+	} finally {
+		response.resolve()
+	}
+	await expect(modal.getByRole('status')).toHaveText(
+		'ZeepCentraal will scan this workshop item shortly. Please check back later',
+	)
+	await expect(modal.getByRole('link', { name: 'Open in ZeepCentraal' })).toHaveAttribute(
+		'href',
+		'/workshop/3844288322',
+	)
+	await expect(submit).toHaveCount(0)
+})
 
 test('explores all workshop pages, applies filters and sorts, and restores browser history', async ({
 	page,

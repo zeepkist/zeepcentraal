@@ -1860,6 +1860,15 @@
 		"fileSize": "File size",
 		"id": "Workshop ID",
 		"viewOnSteam": "View on Steam",
+		"scan": {
+			"title": "Request Workshop Scan",
+			"link": "Steam Workshop URL",
+			"submit": "Submit",
+			"invalid": "Enter a valid Steam Workshop item URL.",
+			"failed": "Could not request a scan. Please try again.",
+			"confirmation": "ZeepCentraal will scan this workshop item shortly. Please check back later",
+			"open": "Open in ZeepCentraal"
+		},
 		"filters": {
 			"title": "Workshop filters",
 			"search": "Search workshop titles",

@@ -14,6 +14,33 @@ import {
 	WORKSHOP_SORTS,
 	workshopOrderBy,
 } from '../../app/utils/workshop'
+import { workshopIdFromSteamUrl } from '../../shared/workshopId'
+
+describe('Workshop scan links', () => {
+	it('extracts a string ID and ignores Steam tracking parameters', () => {
+		expect(
+			workshopIdFromSteamUrl(
+				' https://steamcommunity.com/sharedfiles/filedetails/?id=3844288322&searchtext=track ',
+			),
+		).toBe('3844288322')
+		expect(
+			workshopIdFromSteamUrl(
+				'https://steamcommunity.com/workshop/filedetails?id=9223372036854775807',
+			),
+		).toBe('9223372036854775807')
+	})
+
+	it.each([
+		'https://example.com/sharedfiles/filedetails/?id=123',
+		'https://steamcommunity.com.evil.test/sharedfiles/filedetails/?id=123',
+		'https://steamcommunity.com/workshop/browse/?id=123',
+		'https://steamcommunity.com/sharedfiles/filedetails/?id=1&id=2',
+		'https://steamcommunity.com/sharedfiles/filedetails/?id=9223372036854775808',
+		'3844288322',
+	])('rejects %s', (link) => {
+		expect(workshopIdFromSteamUrl(link)).toBeNull()
+	})
+})
 
 describe('workshop filters and identifiers', () => {
 	it('defaults to publication date and adds unique cursor tie-breakers', () => {

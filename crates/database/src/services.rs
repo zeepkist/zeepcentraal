@@ -263,18 +263,6 @@ impl Database {
         Ok(())
     }
 
-    pub async fn claim_level_request(&self, workshop_id: i64, hash: &str) -> Result<bool> {
-        ensure!(workshop_id > 0, "Workshop ID must be positive");
-        let mut connection = self.connection().await?;
-        let result = sql_query(include_str!("queries/levels/claim_level_request.sql"))
-            .bind::<BigInt, _>(workshop_id)
-            .bind::<Text, _>(hash)
-            .get_result::<ReturnedId>(&mut connection)
-            .await
-            .optional()?;
-        Ok(result.is_some())
-    }
-
     pub async fn release_level_request(&self, workshop_id: i64) -> Result<()> {
         let mut connection = self.connection().await?;
         sql_query(include_str!("queries/levels/release_level_request.sql"))

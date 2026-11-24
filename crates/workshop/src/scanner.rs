@@ -62,7 +62,27 @@ impl<'a> WorkshopScanner<'a> {
     }
 
     pub async fn scan_workshop_item(&self, workshop_id: u64) -> Result<WorkshopScanResult> {
-        let mut batch = self.scan_workshop_items(&[workshop_id], 1).await?;
+        Self::single_result(
+            self.scan_workshop_items(&[workshop_id], 1).await?,
+            workshop_id,
+        )
+    }
+
+    pub async fn scan_workshop_item_with_metadata(
+        &self,
+        metadata: WorkshopItemMetadata,
+    ) -> Result<WorkshopScanResult> {
+        let workshop_id = metadata.workshop_id;
+        Self::single_result(
+            self.scan_with_metadata(vec![metadata], 1).await?,
+            workshop_id,
+        )
+    }
+
+    fn single_result(
+        mut batch: WorkshopBatchScanResult,
+        workshop_id: u64,
+    ) -> Result<WorkshopScanResult> {
         if let Some(failure) = batch.transient_failures.pop() {
             return Err(failure.error);
         }
@@ -79,10 +99,33 @@ impl<'a> WorkshopScanner<'a> {
     ) -> Result<WorkshopBatchScanResult> {
         ensure!(batch_size > 0, "Workshop batch size must be positive");
         let metadata_items = self.metadata.get_items(workshop_ids).await?;
+        self.scan_with_metadata(metadata_items, batch_size).await
+    }
+
+    async fn scan_with_metadata(
+        &self,
+        metadata_items: Vec<WorkshopItemMetadata>,
+        batch_size: usize,
+    ) -> Result<WorkshopBatchScanResult> {
         let mut results = Vec::new();
         let mut available = Vec::new();
         for metadata in metadata_items {
-            if !metadata.available {
+            if matches!(
+                metadata.visibility,
+                zc_core::steam::STEAM_VISIBILITY_FRIENDS_ONLY
+                    | zc_core::steam::STEAM_VISIBILITY_HIDDEN
+            ) {
+                let changed_level_ids = self
+                    .persistence
+                    .mark_inaccessible(metadata.workshop_id, metadata.visibility)
+                    .await?;
+                results.push(WorkshopScanResult {
+                    workshop_id: metadata.workshop_id,
+                    status: WorkshopScanStatus::Inaccessible,
+                    validation_level_ids: Vec::new(),
+                    changed_level_ids,
+                });
+            } else if !metadata.available {
                 let changed_level_ids = self
                     .persistence
                     .mark_deleted(
@@ -96,19 +139,10 @@ impl<'a> WorkshopScanner<'a> {
                     validation_level_ids: Vec::new(),
                     changed_level_ids,
                 });
-            } else if !zc_core::steam::can_download_workshop_item(metadata.visibility) {
-                let changed_level_ids = self
-                    .persistence
-                    .mark_deleted(metadata.workshop_id, metadata.visibility)
-                    .await?;
-                results.push(WorkshopScanResult {
-                    workshop_id: metadata.workshop_id,
-                    status: WorkshopScanStatus::Inaccessible,
-                    validation_level_ids: Vec::new(),
-                    changed_level_ids,
-                });
-            } else {
+            } else if zc_core::steam::can_download_workshop_item(metadata.visibility) {
                 available.push(metadata);
+            } else {
+                anyhow::bail!("Invalid Workshop visibility for {}", metadata.workshop_id);
             }
         }
 
@@ -402,13 +436,15 @@ mod tests {
         .join("\n");
         tokio::fs::write(root.join("Track.zeeplevel"), level).await?;
         tokio::fs::write(root.join("track_thumbnail.jpg"), b"jpg").await?;
-        let metadata = Metadata {
-            item: metadata(zc_core::steam::STEAM_VISIBILITY_PUBLIC),
+        let metadata_adapter = Metadata {
+            item: metadata(zc_core::steam::STEAM_VISIBILITY_HIDDEN),
         };
         let downloader = Downloader { root: root.clone() };
         let persistence = Persistence::default();
-        let scanner = WorkshopScanner::new(&metadata, &downloader, &persistence);
-        let result = scanner.scan_workshop_item(123).await?;
+        let scanner = WorkshopScanner::new(&metadata_adapter, &downloader, &persistence);
+        let result = scanner
+            .scan_workshop_item_with_metadata(metadata(zc_core::steam::STEAM_VISIBILITY_UNLISTED))
+            .await?;
         assert_eq!(result.status, WorkshopScanStatus::Scanned);
         assert_eq!(result.changed_level_ids, vec![6, 7]);
         assert_eq!(result.validation_level_ids, vec![6]);
@@ -423,18 +459,25 @@ mod tests {
 
     #[tokio::test]
     async fn inaccessible_item_is_deleted_without_download() -> Result<()> {
-        let metadata = Metadata {
-            item: metadata(zc_core::steam::STEAM_VISIBILITY_HIDDEN),
+        let metadata_adapter = Metadata {
+            item: metadata(zc_core::steam::STEAM_VISIBILITY_PUBLIC),
         };
         let downloader = Downloader {
             root: std::path::PathBuf::from("must-not-be-used"),
         };
         let persistence = Persistence::default();
-        let scanner = WorkshopScanner::new(&metadata, &downloader, &persistence);
-        let result = scanner.scan_workshop_item(123).await?;
-        assert_eq!(result.status, WorkshopScanStatus::Inaccessible);
-        assert_eq!(result.changed_level_ids, vec![9]);
-        assert!(result.validation_level_ids.is_empty());
+        let scanner = WorkshopScanner::new(&metadata_adapter, &downloader, &persistence);
+        for visibility in [
+            zc_core::steam::STEAM_VISIBILITY_HIDDEN,
+            zc_core::steam::STEAM_VISIBILITY_FRIENDS_ONLY,
+        ] {
+            let result = scanner
+                .scan_workshop_item_with_metadata(metadata(visibility))
+                .await?;
+            assert_eq!(result.status, WorkshopScanStatus::Inaccessible);
+            assert_eq!(result.changed_level_ids, vec![9]);
+            assert!(result.validation_level_ids.is_empty());
+        }
         assert!(persistence.upserts.lock().unwrap().is_empty());
         Ok(())
     }
