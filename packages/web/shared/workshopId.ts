@@ -6,9 +6,12 @@ export function isWorkshopId(value: unknown): value is string {
 	)
 }
 
-export function workshopIdFromSteamUrl(input: string): string | null {
+export function parseWorkshopId(input: string): string | null {
+	const value = input.trim()
+	if (isWorkshopId(value)) return value
+
 	try {
-		const url = new URL(input.trim())
+		const url = new URL(value)
 		if (
 			url.origin !== 'https://steamcommunity.com' ||
 			url.username ||

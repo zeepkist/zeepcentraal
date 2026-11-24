@@ -272,11 +272,11 @@ test('signed-in Workshop scan validates, retries, and links to the requested ite
 	}, webAuthChannel)
 	await page.locator('aside').getByRole('button', { name: 'Request Workshop Scan' }).click()
 	const modal = page.getByRole('dialog', { name: 'Request Workshop Scan' })
-	const input = modal.getByRole('textbox', { name: 'Steam Workshop URL' })
+	const input = modal.getByRole('textbox', { name: 'Steam Workshop URL or ID' })
 	const submit = modal.getByRole('button', { name: 'Submit' })
 	await input.fill('https://example.test/sharedfiles/filedetails/?id=3844288322')
 	await submit.click()
-	await expect(modal.getByText('Enter a valid Steam Workshop item URL.')).toBeVisible()
+	await expect(modal.getByText('Enter a valid Steam Workshop item URL or ID.')).toBeVisible()
 	expect(requests).toHaveLength(0)
 
 	await input.fill(
@@ -284,6 +284,7 @@ test('signed-in Workshop scan validates, retries, and links to the requested ite
 	)
 	await submit.click()
 	await expect(modal.getByRole('alert')).toHaveText('Could not request a scan. Please try again.')
+	await input.fill(' 3844288322 ')
 	await submit.click()
 	try {
 		await expect(submit).toBeDisabled()

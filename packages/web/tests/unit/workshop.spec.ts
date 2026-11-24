@@ -14,20 +14,25 @@ import {
 	WORKSHOP_SORTS,
 	workshopOrderBy,
 } from '../../app/utils/workshop'
-import { workshopIdFromSteamUrl } from '../../shared/workshopId'
+import { parseWorkshopId } from '../../shared/workshopId'
 
 describe('Workshop scan links', () => {
 	it('extracts a string ID and ignores Steam tracking parameters', () => {
 		expect(
-			workshopIdFromSteamUrl(
+			parseWorkshopId(
 				' https://steamcommunity.com/sharedfiles/filedetails/?id=3844288322&searchtext=track ',
 			),
 		).toBe('3844288322')
 		expect(
-			workshopIdFromSteamUrl(
+			parseWorkshopId(
 				'https://steamcommunity.com/workshop/filedetails?id=9223372036854775807',
 			),
 		).toBe('9223372036854775807')
+	})
+
+	it('accepts bare IDs without losing precision', () => {
+		expect(parseWorkshopId(' 3844288322 ')).toBe('3844288322')
+		expect(parseWorkshopId('9223372036854775807')).toBe('9223372036854775807')
 	})
 
 	it.each([
@@ -36,9 +41,10 @@ describe('Workshop scan links', () => {
 		'https://steamcommunity.com/workshop/browse/?id=123',
 		'https://steamcommunity.com/sharedfiles/filedetails/?id=1&id=2',
 		'https://steamcommunity.com/sharedfiles/filedetails/?id=9223372036854775808',
-		'3844288322',
+		'9223372036854775808',
+		'0',
 	])('rejects %s', (link) => {
-		expect(workshopIdFromSteamUrl(link)).toBeNull()
+		expect(parseWorkshopId(link)).toBeNull()
 	})
 })
 

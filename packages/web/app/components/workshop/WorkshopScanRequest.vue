@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { workshopIdFromSteamUrl } from '#shared/workshopId'
+import { parseWorkshopId } from '#shared/workshopId'
 
 const { t } = useAppI18n()
 const open = shallowRef(false)
-const link = shallowRef('')
+const input = shallowRef('')
 const submittedId = shallowRef<string>()
 const pending = shallowRef(false)
 const invalid = shallowRef(false)
@@ -12,7 +12,7 @@ const failed = shallowRef(false)
 function setOpen(value: boolean) {
 	if (pending.value) return
 	if (value) {
-		link.value = ''
+		input.value = ''
 		submittedId.value = undefined
 		invalid.value = false
 		failed.value = false
@@ -23,7 +23,7 @@ function setOpen(value: boolean) {
 async function submit() {
 	if (pending.value || submittedId.value) return
 	failed.value = false
-	const workshopId = workshopIdFromSteamUrl(link.value)
+	const workshopId = parseWorkshopId(input.value)
 	invalid.value = workshopId === null
 	if (!workshopId) return
 
@@ -53,7 +53,7 @@ async function submit() {
 			</div>
 			<form v-else class="space-y-4" novalidate @submit.prevent="submit">
 				<UFormField :label="t('workshop.scan.link')" :error="invalid ? t('workshop.scan.invalid') : undefined" required>
-					<UInput v-model="link" type="url" class="w-full" :disabled="pending" @update:model-value="invalid = false" />
+					<UInput v-model="input" type="text" class="w-full" :disabled="pending" @update:model-value="invalid = false" />
 				</UFormField>
 				<p v-if="failed" role="alert" class="text-sm text-error">{{ t('workshop.scan.failed') }}</p>
 				<UButton type="submit" :loading="pending">{{ t('workshop.scan.submit') }}</UButton>
