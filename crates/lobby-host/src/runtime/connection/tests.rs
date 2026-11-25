@@ -22,6 +22,7 @@ struct FakeConnection {
     stall_controls: AtomicBool,
     publication_ack: tokio::sync::Semaphore,
     delay_publication: AtomicBool,
+    clock: RemoteClock,
 }
 
 #[async_trait::async_trait]
@@ -60,7 +61,7 @@ impl RoomConnection for FakeConnection {
         Ok(())
     }
     fn remote_clock(&self) -> RemoteClock {
-        RemoteClock::default()
+        self.clock.clone()
     }
 }
 
@@ -187,6 +188,10 @@ struct Harness {
 
 impl Harness {
     fn new() -> Self {
+        Self::with_clock(RemoteClock::default())
+    }
+
+    fn with_clock(clock: RemoteClock) -> Self {
         let (input, inbox) = mpsc::unbounded_channel();
         let connection = Arc::new(FakeConnection {
             inbox: Mutex::new(inbox),
@@ -197,6 +202,7 @@ impl Harness {
             stall_controls: AtomicBool::new(false),
             publication_ack: tokio::sync::Semaphore::new(0),
             delay_publication: AtomicBool::new(false),
+            clock,
         });
         let stats = Arc::new(ProfileStats::default());
         let stopped = Arc::new(AtomicBool::new(false));

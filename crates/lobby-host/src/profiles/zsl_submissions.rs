@@ -330,26 +330,41 @@ struct ZslSubmissionsSession {
 
 impl ZslSubmissionsSession {
     async fn overlay(&self) -> Result<()> {
+        let interval = std::time::Duration::from_millis(self.config.message_refresh_ms);
+        let Some(key) = self.context.round_message_due(interval) else {
+            return Ok(());
+        };
         if self.stopped.load(Ordering::Acquire) || !self.context.is_host() {
             return Ok(());
         }
-        let (entries, position) = {
-            let state = self.state.lock().await;
-            (state.active.playlist.levels.len(), state.current_index + 1)
-        };
+        let (entries, position) =
+            {
+                let state = self.state.lock().await;
+                let Some(index) =
+                    state.active.playlist.levels.iter().position(|level| {
+                        level.uid == key.uid && level.workshop_id == key.workshop_id
+                    })
+                else {
+                    return Ok(());
+                };
+                (state.active.playlist.levels.len(), index + 1)
+            };
         if let Some(practice) = &self.practice {
             let schedule = practice
                 .schedule()
                 .context("Practice schedule unavailable")?;
             return self
                 .context
-                .chat()
-                .command(&schedule.overlay(
-                    entries,
-                    position,
-                    self.config.round_time_seconds,
-                    jiff::Timestamp::now(),
-                ))
+                .send_round_message(
+                    &key,
+                    interval,
+                    &schedule.overlay(
+                        entries,
+                        position,
+                        self.config.round_time_seconds,
+                        jiff::Timestamp::now(),
+                    ),
+                )
                 .await;
         }
         let message = if let Some((database, round_id)) = &self.schedule {
@@ -369,7 +384,9 @@ impl ZslSubmissionsSession {
             submission_message(entries, self.config.round_time_seconds)
         };
         let message = format!("{message}\nSubmission {position} of {entries}");
-        self.context.chat().command(&message).await
+        self.context
+            .send_round_message(&key, interval, &message)
+            .await
     }
 
     async fn announce_next(&self) -> Result<()> {
@@ -421,12 +438,6 @@ impl ZslSubmissionsSession {
             self.context.chat().target(0, &message, HOSTNAME).await?;
         }
         Ok(())
-    }
-
-    async fn refresh_overlay(&self) {
-        if let Err(error) = self.overlay().await {
-            tracing::warn!(%error, "Submission showcase message failed");
-        }
     }
 
     async fn apply_retained(
@@ -517,10 +528,6 @@ impl ZslSubmissionsSession {
                     "Submission playlist update deferred until round boundary"
                 );
             }
-            drop(state);
-            if applied {
-                self.refresh_overlay().await;
-            }
         } else {
             state.pending = None;
         }
@@ -575,10 +582,6 @@ impl ZslSubmissionsSession {
                 "Submission playlist update applied"
             );
         }
-        drop(state);
-        if changed {
-            self.refresh_overlay().await;
-        }
         Ok(())
     }
 
@@ -592,9 +595,7 @@ impl ZslSubmissionsSession {
         };
         let applied = self.apply_retained(&mut state, candidate).await?;
         drop(state);
-        if applied {
-            self.refresh_overlay().await;
-        } else {
+        if !applied {
             self.boundary.notify_one();
         }
         Ok(())
@@ -673,7 +674,6 @@ impl ZslSubmissionsSession {
             level: first,
         });
         drop(transition);
-        self.refresh_overlay().await;
         Ok(())
     }
 }
@@ -688,35 +688,32 @@ impl ProfileSession for ZslSubmissionsSession {
         if self.practice.is_some() {
             self.context.chat().command("/joinmessage off").await?;
         }
-        self.overlay().await?;
-        let mut announcement = tokio::time::interval(std::time::Duration::from_millis(250));
-        announcement.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-        let mut refresh =
-            tokio::time::interval(std::time::Duration::from_millis(self.config.asset_poll_ms));
-        let mut message = tokio::time::interval(std::time::Duration::from_millis(
-            if self.practice.is_some() {
-                60_000
-            } else {
-                self.config.message_refresh_ms
-            },
-        ));
-        refresh.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-        message.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-        refresh.tick().await;
-        message.tick().await;
-        loop {
-            if self.stopped.load(Ordering::Acquire) {
-                return Ok(());
+        let messages = self.context.run_round_messages(
+            std::time::Duration::from_millis(self.config.message_refresh_ms),
+            || self.overlay(),
+        );
+        let play = async {
+            let mut announcement = tokio::time::interval(std::time::Duration::from_millis(250));
+            announcement.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            let mut refresh =
+                tokio::time::interval(std::time::Duration::from_millis(self.config.asset_poll_ms));
+            refresh.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+            refresh.tick().await;
+            loop {
+                if self.stopped.load(Ordering::Acquire) {
+                    return Ok(());
+                }
+                tokio::select! {
+                    _ = announcement.tick() => self.announce_next().await?,
+                    _ = self.wake.notified() => return Ok(()),
+                    _ = refresh.tick() => self.refresh().await?,
+                    _ = self.boundary.notified() => self.activate_deferred().await?,
+                }
             }
-            tokio::select! {
-                _ = announcement.tick() => self.announce_next().await?,
-                _ = self.wake.notified() => return Ok(()),
-                _ = refresh.tick() => self.refresh().await?,
-                _ = self.boundary.notified() => self.activate_deferred().await?,
-                _ = message.tick() => {
-                    self.overlay().await?;
-                },
-            }
+        };
+        tokio::select! {
+            result = play => result,
+            result = messages => result,
         }
     }
 
@@ -808,9 +805,6 @@ impl ProfileSession for ZslSubmissionsSession {
                     if changed && has_pending {
                         self.apply_at_boundary().await?;
                     }
-                    if changed {
-                        self.refresh_overlay().await;
-                    }
                 }
             }
         }
@@ -848,9 +842,6 @@ impl ProfileSession for ZslSubmissionsSession {
         if changed && has_pending {
             self.apply_at_boundary().await?;
         }
-        if changed {
-            self.refresh_overlay().await;
-        }
         let asset = self.state.lock().await.active.clone();
         if asset.playlist.levels.iter().any(|level| {
             level.uid == event.level.level.uid && level.workshop_id == event.level.level.workshop_id
@@ -880,7 +871,7 @@ mod tests {
         transfer::TransferEventKind,
     };
     use std::{collections::VecDeque, sync::atomic::AtomicUsize};
-    use zc_core::zeepnet::{OnlineLevel, chat_message_packet, parse_game_host_packet};
+    use zc_core::zeepnet::{OnlineLevel, parse_game_host_packet};
 
     pub(super) struct TestSource {
         results: Mutex<VecDeque<Result<SubmissionPlaylist>>>,
@@ -1095,6 +1086,8 @@ mod tests {
         )
         .await?;
         session.context.test_remote_time(191.0);
+        confirm_countdown(&session, 100.0).await?;
+        session.overlay().await?;
         session.overlay().await?;
         let command = zc_core::zeepnet::parse_game_host_packet_for(&sent.lock().await[0], 0, None)?;
         assert!(
@@ -1209,6 +1202,46 @@ mod tests {
         Ok(())
     }
 
+    pub(super) async fn confirm_countdown(
+        session: &ZslSubmissionsSession,
+        loaded_at: f64,
+    ) -> Result<()> {
+        let level = {
+            let state = session.state.lock().await;
+            state.active.playlist.levels[state.current_index].clone()
+        };
+        session
+            .context
+            .receive_for_test(
+                session,
+                GameHostPacket::GameProperties {
+                    level_loaded_at: loaded_at,
+                    round_time: 100.0,
+                    uid: level.uid,
+                    workshop_id: level.workshop_id,
+                },
+                jiff::Timestamp::now(),
+            )
+            .await?;
+        session
+            .context
+            .receive_for_test(
+                session,
+                GameHostPacket::GameState(0),
+                jiff::Timestamp::now(),
+            )
+            .await?;
+        session
+            .context
+            .receive_for_test(
+                session,
+                GameHostPacket::Timer("0:09".into()),
+                jiff::Timestamp::now(),
+            )
+            .await?;
+        Ok(())
+    }
+
     #[test]
     fn submission_overlay_matches_bun_message() {
         assert_eq!(
@@ -1218,7 +1251,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn poll_applies_30_to_31_without_select_next_and_refreshes_overlay() -> Result<()> {
+    async fn poll_applies_30_to_31_without_sending_overlay_before_countdown() -> Result<()> {
         let original_ids = (1..=30).collect::<Vec<_>>();
         let updated_ids = (1..=31).collect::<Vec<_>>();
         let source = Arc::new(TestSource::new(vec![Ok(SubmissionPlaylist::Ready(asset(
@@ -1238,14 +1271,7 @@ mod tests {
 
         assert_eq!(selected_indices(&sent).await?, (5, 6, updated_ids));
         let packets = sent.lock().await;
-        assert_eq!(packets.len(), 2);
-        assert_eq!(
-            packets[1],
-            chat_message_packet(&format!(
-                "{}\nSubmission 6 of 31",
-                submission_message(31, session.config.round_time_seconds)
-            ))?
-        );
+        assert_eq!(packets.len(), 1);
         let state = session.state.lock().await;
         assert_eq!(state.active.digest, "published-31");
         assert_eq!(state.current_index, 5);
@@ -1625,6 +1651,8 @@ mod practice_session_tests {
             },
         )));
         session.context.test_remote_time(191.0);
+        super::tests::confirm_countdown(&session, 100.0).await?;
+        session.overlay().await?;
         session.overlay().await?;
         let command = zc_core::zeepnet::parse_game_host_packet_for(&sent.lock().await[0], 0, None)?;
         assert!(

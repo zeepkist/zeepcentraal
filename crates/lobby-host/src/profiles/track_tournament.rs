@@ -193,6 +193,10 @@ impl TrackTournamentSession {
     }
 
     async fn send_message(&self) -> Result<()> {
+        let interval = std::time::Duration::from_millis(self.config.message_refresh_ms);
+        let Some(key) = self.context.round_message_due(interval) else {
+            return Ok(());
+        };
         let message = {
             let state = self.state.lock().await;
             tournament_message(
@@ -203,7 +207,9 @@ impl TrackTournamentSession {
                 self.config.round_time_seconds,
             )?
         };
-        self.context.chat().command(&message).await
+        self.context
+            .send_round_message(&key, interval, &message)
+            .await
     }
 
     async fn refresh_asset(&self) -> Result<()> {
@@ -244,34 +250,38 @@ impl ProfileSession for TrackTournamentSession {
             state.notifications.set_ready(true);
             state.ready = true;
         }
-        self.refresh_leaderboard().await?;
-        self.send_message().await?;
-        let mut asset =
-            tokio::time::interval(std::time::Duration::from_millis(self.config.asset_poll_ms));
-        let mut leaderboard = tokio::time::interval(std::time::Duration::from_secs(2));
-        let mut message = tokio::time::interval(std::time::Duration::from_millis(
-            self.config.message_refresh_ms,
-        ));
-        asset.tick().await;
-        leaderboard.tick().await;
-        message.tick().await;
-        loop {
-            let deadline = self
-                .state
-                .lock()
-                .await
-                .notifications
-                .next_due()
-                .unwrap_or_else(|| {
-                    tokio::time::Instant::now() + std::time::Duration::from_secs(86_400)
-                });
-            tokio::select! {
-                _ = self.wake.notified() => return Ok(()),
-                _ = asset.tick() => self.refresh_asset().await?,
-                _ = leaderboard.tick() => self.refresh_leaderboard().await?,
-                _ = message.tick() => self.send_message().await?,
-                _ = tokio::time::sleep_until(deadline) => self.flush_notifications().await,
+        let messages = self.context.run_round_messages(
+            std::time::Duration::from_millis(self.config.message_refresh_ms),
+            || self.send_message(),
+        );
+        let refresh = async {
+            self.refresh_leaderboard().await?;
+            let mut asset =
+                tokio::time::interval(std::time::Duration::from_millis(self.config.asset_poll_ms));
+            let mut leaderboard = tokio::time::interval(std::time::Duration::from_secs(2));
+            asset.tick().await;
+            leaderboard.tick().await;
+            loop {
+                let deadline = self
+                    .state
+                    .lock()
+                    .await
+                    .notifications
+                    .next_due()
+                    .unwrap_or_else(|| {
+                        tokio::time::Instant::now() + std::time::Duration::from_secs(86_400)
+                    });
+                tokio::select! {
+                    _ = self.wake.notified() => return Ok(()),
+                    _ = asset.tick() => self.refresh_asset().await?,
+                    _ = leaderboard.tick() => self.refresh_leaderboard().await?,
+                    _ = tokio::time::sleep_until(deadline) => self.flush_notifications().await,
+                }
             }
+        };
+        tokio::select! {
+            result = refresh => result,
+            result = messages => result,
         }
     }
 

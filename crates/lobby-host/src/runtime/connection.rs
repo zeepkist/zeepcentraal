@@ -305,6 +305,12 @@ impl ConnectedRoom<'_> {
                 roster.lock().await.observe(&received.packet);
                 let active = ingress.read().unwrap().clone();
                 if let Some((context, profile, _)) = &active {
+                    if matches!(received.packet, GameHostPacket::Timer(_)) {
+                        if context.is_host() {
+                            context.observe_round(&received.packet, received.received_at);
+                        }
+                        continue;
+                    }
                     let lost = matches!(
                         &received.packet,
                         GameHostPacket::Initial { is_host: false, .. }
@@ -320,6 +326,9 @@ impl ConnectedRoom<'_> {
                     } else if context.is_host() {
                         received.capture(profile.as_ref(), context).await?;
                     }
+                }
+                if matches!(received.packet, GameHostPacket::Timer(_)) {
+                    continue;
                 }
                 budget.reserve(&mut received)?;
                 if let Some(work) = received.transfer.take()
@@ -494,6 +503,8 @@ impl ConnectedRoom<'_> {
             session_generation: NEXT_SESSION.fetch_add(1, Ordering::AcqRel),
             publisher: Some(publisher.clone()),
             remote_clock: self.connection.remote_clock(),
+            round_clock: Arc::default(),
+            round_changed: Arc::default(),
             local_steam_id: self.local_steam_id,
         };
         let profile = self.profile.create_session(context.clone()).await?;

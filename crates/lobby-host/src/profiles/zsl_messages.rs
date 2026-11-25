@@ -3,6 +3,9 @@ use zc_core::practice::PracticeBundle;
 use zc_database::services::zsl_tournament::ZslEvent;
 
 pub fn warmup_countdown(remaining_seconds: u64) -> String {
+    if remaining_seconds == 0 {
+        return "Zeepkist Super League starts after warmup. Stay in this room.".into();
+    }
     let minutes = remaining_seconds.div_ceil(60);
     format!(
         "Zeepkist Super League is starting in {minutes} minute{}. Stay in this room.",

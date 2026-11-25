@@ -89,6 +89,10 @@ async fn tournament_locks_ranks_publication_and_rollback() -> Result<()> {
     database
         .open_zsl_level(1, "host-a", 1, 0, Some(levels[0]), deadline)
         .await?;
+    let corrected_deadline = deadline * 1000 + 125;
+    database
+        .open_zsl_level_at_ms(1, "host-a", 1, 0, Some(levels[0]), corrected_deadline)
+        .await?;
     for (i, time) in [
         (1, 10_000_000),
         (2, 10_000_000),
@@ -131,7 +135,20 @@ async fn tournament_locks_ranks_publication_and_rollback() -> Result<()> {
                 levels[0],
                 user(1),
                 9_000_000,
-                deadline * 1000
+                corrected_deadline
+            )
+            .await?
+    );
+    assert!(
+        database
+            .submit_zsl_finish(
+                1,
+                "host-a",
+                1,
+                levels[0],
+                user(4),
+                11_999_999,
+                corrected_deadline - 1
             )
             .await?
     );

@@ -9,6 +9,113 @@ async fn flush() {
 }
 
 #[tokio::test(start_paused = true)]
+async fn native_selection_uploads_before_callbacks_and_countdown_restarts_message_interval()
+-> Result<()> {
+    use crate::assets::{FnLevelLoader, PreparedPlaylist};
+    use zc_core::zeepnet::{
+        CHANGE_LOBBY_PLAYLIST, LEVEL_DATA, SKIP_TO_LEVEL, parse_game_host_packet,
+    };
+
+    let mut h = Harness::with_clock(RemoteClock::from_sample(127.0, Duration::ZERO));
+    h.packet(initial(true));
+    flush().await;
+    advance(4).await;
+    let context = h.stats.contexts.lock().unwrap()[0].clone();
+    let levels = (0..15)
+        .map(|index| OnlineLevel {
+            uid: format!("tournament-{index}"),
+            workshop_id: 100 + index,
+            name: if index == 7 {
+                "Break".into()
+            } else {
+                format!("Track {index}")
+            },
+            author: "ZSL".into(),
+            collaborators: String::new(),
+            override_author_name: String::new(),
+        })
+        .collect::<Vec<_>>();
+    let first = PreparedLevel {
+        level: levels[0].clone(),
+        compressed_data: Arc::from([1, 2, 3]),
+        content_sha256: "sha".into(),
+    };
+    let loader = Arc::new(FnLevelLoader({
+        let first = first.clone();
+        move |_: &str, _: u64| {
+            let first = first.clone();
+            async move { Ok(Some(first)) }
+        }
+    }));
+    let playlist = PreparedPlaylist::new(levels, loader)?;
+    h.stats.stall_callback.store(true, Ordering::Release);
+    h.packet(GameHostPacket::GameState(2));
+    flush().await;
+    context.select_round(playlist, 14, 0, 420.0).await?;
+    h.packet(GameHostPacket::LevelRequest {
+        uid: first.level.uid.clone(),
+        workshop_id: first.level.workshop_id,
+        name: first.level.name.clone(),
+    });
+    h.packet(GameHostPacket::GameProperties {
+        uid: first.level.uid.clone(),
+        workshop_id: first.level.workshop_id,
+        level_loaded_at: 113.0,
+        round_time: 420.0,
+    });
+    h.packet(GameHostPacket::GameState(0));
+    h.packet(GameHostPacket::Timer("0:13".into()));
+    flush().await;
+    assert_eq!(h.count(LEVEL_DATA), 1);
+    assert_eq!(h.count(SKIP_TO_LEVEL), 0);
+    let sent = h
+        .connection
+        .sent
+        .lock()
+        .unwrap()
+        .iter()
+        .find(|packet| packet_type(packet) == CHANGE_LOBBY_PLAYLIST)
+        .unwrap()
+        .clone();
+    let GameHostPacket::Playlist(sent) = parse_game_host_packet(&sent)? else {
+        unreachable!()
+    };
+    assert_eq!(
+        (sent.current_index, sent.next_index, sent.round_time),
+        (14, 0, 420.0)
+    );
+    assert_eq!(sent.levels.len(), 15);
+    assert_eq!(sent.levels[7].level.name, "Break");
+    let interval = Duration::from_secs(60);
+    assert!(context.round_message_due(interval).is_none());
+    h.packet(GameHostPacket::Timer("6:46".into()));
+    flush().await;
+    let key = context
+        .round_message_due(interval)
+        .context("First countdown must make message due")?;
+    context
+        .send_round_message(&key, interval, "/servermessage white 420 Race")
+        .await?;
+    assert!(context.round_message_due(interval).is_none());
+    h.packet(GameHostPacket::GameState(2));
+    h.packet(GameHostPacket::GameProperties {
+        uid: first.level.uid,
+        workshop_id: first.level.workshop_id,
+        level_loaded_at: 126.0,
+        round_time: 420.0,
+    });
+    h.packet(GameHostPacket::GameState(0));
+    h.packet(GameHostPacket::Timer("6:59".into()));
+    flush().await;
+    let repeated = context
+        .round_message_due(interval)
+        .context("Same-track reload needs a new message")?;
+    assert_ne!(repeated, key);
+    h.shutdown().await?;
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
 async fn production_receive_loop_drains_over_128_packets_while_standings_acks_wait() -> Result<()> {
     let mut h = Harness::new();
     h.packet(initial(true));

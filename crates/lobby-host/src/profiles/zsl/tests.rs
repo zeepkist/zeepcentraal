@@ -218,7 +218,9 @@ async fn receipt_admission_needs_confirmed_playing_and_preserves_finishes_during
         identity: Some(("zsl-0".into(), 1)),
         generation: 1,
         ready: false,
-        deadline: state.deadline,
+        deadline: state.deadline * 1000,
+        index: None,
+        round: None,
         locked_players: HashSet::new(),
     });
     session.confirm_receipt(&TransferEvent {
@@ -255,7 +257,9 @@ async fn timeslot_two_rejects_locked_timeslot_one_finish_and_accepts_dnf_player(
         identity: Some(("zsl-0".into(), 1)),
         generation: 2,
         ready: true,
-        deadline: jiff::Timestamp::now().as_second() + 60,
+        deadline: jiff::Timestamp::now().as_millisecond() + 60_000,
+        index: None,
+        round: None,
         locked_players: HashSet::from([player().steam_id]),
     };
     *session.scoring.write().unwrap() = Some(scope.clone());
@@ -347,6 +351,7 @@ fn offline_session(sender: Arc<dyn crate::chat::PacketSender>) -> Result<Arc<Zsl
         shared: profile.shared,
         board: Mutex::new(context.leaderboard()),
         scoring: RwLock::new(None),
+        next_scoring: RwLock::new(None),
         context,
         live: Mutex::new(LiveState::default()),
         stopped: AtomicBool::new(false),
@@ -430,6 +435,8 @@ async fn run_transition(session: &ZslSession, transition: PreparedTransition) ->
     state.timeslot = transition.slot;
     state.deadline = transition.deadline;
     live.generation = transition.generation;
+    live.round = None;
+    live.next = None;
     live.ready = None;
     live.current_level_id = None;
     live.asset = None;
@@ -438,7 +445,7 @@ async fn run_transition(session: &ZslSession, transition: PreparedTransition) ->
     drop(live);
     drop(state);
     let outcome = session
-        .execute_and_commit(&mut saved, &mut current, transition)
+        .execute_and_commit(&mut saved, &mut current, transition, false)
         .await;
     if session.live.lock().await.generation == current.generation {
         *session.live.lock().await = current;
@@ -511,7 +518,7 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
             board.reconcile()?;
         }
         let transition = prepared_transition(&session, phase).await?;
-        let deadline = transition.deadline;
+        let seconds = transition.seconds;
         let level = transition.level.clone();
         let task = tokio::spawn({
             let session = session.clone();
@@ -529,6 +536,18 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
                         assert_eq!(overrides.points, "");
                         assert_eq!(overrides.points_won, "");
                         cleared = true;
+                    }
+                    zc_core::zeepnet::CHANGE_LOBBY_PLAYLIST => {
+                        let GameHostPacket::Playlist(playlist) =
+                            zc_core::zeepnet::parse_game_host_packet(&packet)?
+                        else {
+                            unreachable!()
+                        };
+                        assert_eq!(playlist.round_time, seconds);
+                        assert_eq!(
+                            playlist.levels.len(),
+                            if phase == Phase::Warmup { 4 } else { 15 }
+                        );
                     }
                     SKIP_TO_LEVEL => break,
                     _ => {}
@@ -608,6 +627,7 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
                     level_id: 7,
                     timeslot: 1,
                     microseconds: 1000000,
+                    index: None,
                     received_at_ms: 1,
                 });
             if !cached {
@@ -643,24 +663,6 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
         assert_eq!(session.live.lock().await.active, Some((phase, 0, 0)));
         assert_eq!(session.shared.saved.lock().await.pending.len(), 1);
         assert_eq!(session.context.players().await.len(), 1);
-        let mut timing = None;
-        while let Ok(packet) = packets.try_recv() {
-            if u16::from_le_bytes([packet[0], packet[1]]) == zc_core::zeepnet::CHANGE_LOBBY_PLAYLIST
-                && let GameHostPacket::Playlist(playlist) =
-                    zc_core::zeepnet::parse_game_host_packet(&packet)?
-            {
-                timing = Some(playlist.round_time);
-            }
-        }
-        let round_time = timing.context("Missing host playlist timing update")?;
-        if phase == Phase::Practice {
-            assert_eq!(round_time, 300.0);
-        } else {
-            // Load timestamp 10 and server clock 1000: 990 seconds already elapsed.
-            // Timer's end, not time since activation began, matches fixed deadline.
-            let expected = (deadline - jiff::Timestamp::now().as_second()) as f64 + 990.0;
-            assert!((round_time - expected).abs() < 2.0);
-        }
     }
     Ok(())
 }
@@ -889,12 +891,9 @@ async fn delayed_finish_finalisation_barrier(
     let finalising = tokio::spawn({
         let session = session.clone();
         async move {
-            let _lifecycle = session.shared.lifecycle.lock().await;
-            let mut state = session.shared.saved.lock().await.clone();
-            let event = session.shared.event()?;
-            // Advance scoring clock to first level deadline; gameplay schedule remains saved.
             session
-                .close_elapsed(&mut state, &event, 0, event.first + 420)
+                .context
+                .dispatch(session.as_ref(), &GameHostPacket::GameState(2))
                 .await
         }
     });
@@ -902,6 +901,11 @@ async fn delayed_finish_finalisation_barrier(
     assert!(session.shared.saved.try_lock().is_ok());
     assert!(session.live.try_lock().is_ok());
     assert!(session.board.try_lock().is_ok());
+    let late = session
+        .context
+        .receive_for_test(session.as_ref(), finish.clone(), jiff::Timestamp::now())
+        .await?;
+    assert!(late.captured.is_none());
     assert!(!finalising.is_finished());
     let rows: i64 = client
         .query_one(
@@ -961,12 +965,15 @@ async fn recover_phase(
         context: context.clone(),
         board: Mutex::new(context.leaderboard()),
         scoring: RwLock::new(None),
+        next_scoring: RwLock::new(None),
         live: Mutex::new(LiveState::default()),
         stopped: AtomicBool::new(false),
         wake: Notify::new(),
     });
     let previous = target.lock().await.replace(session.clone());
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
+    tokio::time::timeout(Duration::from_secs(5), session.tick())
+        .await
+        .context("ZSL test activation timed out")??;
     *target.lock().await = previous;
     let recovered = restarted.shared.saved.lock().await.clone();
     assert_eq!(
@@ -980,7 +987,8 @@ async fn recover_phase(
     assert_eq!(recovered.index, snapshot.index);
     assert_eq!(recovered.progress, snapshot.progress);
     if snapshot.phase != Phase::Retired {
-        assert_eq!(recovered.deadline, snapshot.deadline);
+        assert_eq!(recovered.loaded_at, snapshot.loaded_at);
+        assert_eq!(recovered.deadline_ms, snapshot.deadline_ms);
     }
     assert_eq!(context.players().await.len(), 1);
     assert_eq!(
@@ -1175,9 +1183,14 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     let target: DispatchTarget = Arc::new(Mutex::new(None));
     let driver_target = target.clone();
     let driver = tokio::spawn(async move {
+        let mut duration = 900.0;
         while let Some(packet) = packets.recv().await {
             let mut reader = BitReader::new(&packet);
-            if reader.read_u16()? != SKIP_TO_LEVEL {
+            let id = reader.read_u16()?;
+            if id == zc_core::zeepnet::CHANGE_LOBBY_PLAYLIST {
+                duration = reader.read_f64()?;
+            }
+            if id != SKIP_TO_LEVEL {
                 continue;
             }
             let uid = reader.read_string(4096)?;
@@ -1227,7 +1240,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                     uid,
                     workshop_id: workshop,
                     level_loaded_at: driver_context.remote_now().unwrap(),
-                    round_time: 420.0,
+                    round_time: duration,
                 },
                 GameHostPacket::GameState(0),
             ] {
@@ -1240,6 +1253,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         shared: shared.clone(),
         board: Mutex::new(context.leaderboard()),
         scoring: RwLock::new(None),
+        next_scoring: RwLock::new(None),
         context: context.clone(),
         live: Mutex::new(LiveState::default()),
         stopped: AtomicBool::new(false),
@@ -1255,7 +1269,9 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
             is_host: false,
             has_host_powers: false,
         });
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
+    tokio::time::timeout(Duration::from_secs(5), session.tick())
+        .await
+        .context("ZSL test activation timed out")??;
     assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
     {
         let live = session.live.lock().await;
@@ -1273,284 +1289,206 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         );
     }
     recover_phase(&profile, &context, &target).await?;
-    shared.event.write().unwrap().as_mut().unwrap().first = now + 1200;
-    let missing = {
-        let mut saved = shared.saved.lock().await;
-        (saved.pinned.take(), saved.warmup.take())
-    };
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
-    assert!(shared.saved.lock().await.announcements.contains("delay:0"));
-    assert_eq!(context.players().await.len(), 1);
     {
-        let mut saved = shared.saved.lock().await;
-        (saved.pinned, saved.warmup) = missing;
+        let mut state = shared.saved.lock().await;
+        state.warmup = None;
+        state.warmups[0] = None;
     }
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    assert_eq!(shared.saved.lock().await.phase, Phase::Warmup);
-    recover_phase(&profile, &context, &target).await?;
-    shared.event.write().unwrap().as_mut().unwrap().first = now + 1080;
-    session.tick().await?;
-    assert!(
-        shared
-            .saved
-            .lock()
-            .await
-            .announcements
-            .contains("countdown:0:1")
-    );
-    shared.event.write().unwrap().as_mut().unwrap().first = now + 300;
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    assert!(!shared.saved.lock().await.announcements.contains("staged:0"));
     shared.event.write().unwrap().as_mut().unwrap().first = now;
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    let finish = GameHostPacket::PlayerResult {
-        uid: 42,
-        has_result: true,
-        level_uid: "zsl-0".into(),
-        time: 25.123456,
-        checkpoints: 0,
-    };
-    session
-        .on_packet(&GameHostPacket::PlayerResult {
-            uid: 42,
-            has_result: true,
-            level_uid: "warmup-3".into(),
-            time: 1.0,
-            checkpoints: 0,
-        })
-        .await?;
-    assert!(database.zsl_finishes(7).await?.is_empty());
-    delayed_finish_finalisation_barrier(session.clone(), &client, &finish).await?;
-    session.on_packet(&finish).await?;
-    session
-        .on_packet(&GameHostPacket::PlayerResult {
-            uid: 42,
-            has_result: false,
-            level_uid: "zsl-0".into(),
-            time: 0.0,
-            checkpoints: 0,
-        })
-        .await?;
-    context
-        .observe_test_packet(&GameHostPacket::PlayerDisconnected(42))
-        .await;
-    session
-        .on_packet(&GameHostPacket::PlayerDisconnected(42))
-        .await?;
-    assert_eq!(database.zsl_finishes(7).await?.len(), 1);
-    context
-        .observe_test_packet(&GameHostPacket::PlayerConnected {
-            player: player(),
-            is_host: false,
-            has_host_powers: false,
-        })
-        .await;
-    session
-        .on_packet(&GameHostPacket::PlayerConnected {
-            player: player(),
-            is_host: false,
-            has_host_powers: false,
-        })
-        .await?;
     session.tick().await?;
-    assert_eq!(
-        session
-            .live
-            .lock()
-            .await
-            .records
-            .get(&player().steam_id)
-            .copied(),
-        normalized_time(25.123456)
-    );
-    recover_phase(&profile, &context, &target).await?;
-    shared.saved.lock().await.deadline = now + 40;
-    session.tick().await?;
-    assert!(
-        shared
-            .saved
-            .lock()
-            .await
-            .announcements
-            .contains("reset:0:0")
-    );
-    shared.saved.lock().await.deadline = now + 5;
-    session.tick().await?;
-    assert!(shared.saved.lock().await.announcements.contains("next:0:0"));
-    assert!(
-        sent.lock()
-            .await
-            .iter()
-            .any(|packet| u16::from_le_bytes([packet[0], packet[1]])
-                == zc_core::zeepnet::CUSTOM_LEADERBOARD)
-    );
-    shared.event.write().unwrap().as_mut().unwrap().first = now - 7 * 420;
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    assert!(session.live.lock().await.current_level_id.is_none());
-    assert_ne!(
-        shared
-            .last_playable
-            .lock()
-            .await
-            .as_ref()
-            .unwrap()
-            .level
-            .uid,
-        "zsl-7"
-    );
-    recover_phase(&profile, &context, &target).await?;
-    assert!(
-        shared
-            .saved
-            .lock()
-            .await
-            .announcements
-            .contains("break:0:7")
-    );
-    session
-        .on_packet(&GameHostPacket::PlayerResult {
-            uid: 42,
-            has_result: true,
-            level_uid: "zsl-7".into(),
-            time: 1.0,
-            checkpoints: 0,
-        })
-        .await?;
-    assert_eq!(database.zsl_finishes(7).await?.len(), 1);
-    let saved = shared.saved.lock().await;
-    assert!(zsl_messages::progress(saved.pinned.as_ref().unwrap(), 7).contains("[BREAK]"));
-    drop(saved);
-    shared.event.write().unwrap().as_mut().unwrap().first = now - 15 * 420;
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    assert!(shared.saved.lock().await.completed[0]);
     assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
-    assert!(profile.close_at().is_none());
-    // A previous standalone tournament controller retired Timeslot 1. Reloading
-    // a paired config must reopen practice without replaying that tournament.
+    let mut loaded_at = 1013.0;
+    let practice_seconds = shared.practice.as_ref().unwrap().round_time_seconds as f64;
+    native_advance(&session, &sent, loaded_at, "zsl", 1, 7, practice_seconds).await?;
+    assert_eq!(
+        session.live.lock().await.active,
+        Some((Phase::Practice, 0, 1))
+    );
+
+    let warmup_asset = pinned_asset(bundle(7, true), storage.clone())?;
+    let tournament_asset = pinned_asset(bundle(7, false), storage.clone())?;
     {
-        let mut saved = shared.saved.lock().await;
-        saved.retired[0] = true;
-        saved.phase = Phase::Retired;
+        let mut selections = shared.selections.lock().await;
+        selections.warmup = Some(warmup_asset);
+        selections.tournament = Some(tournament_asset);
     }
-    recover_phase(&profile, &context, &target).await?;
-    assert!(shared.saved.lock().await.completed[0]);
-    assert!(!shared.saved.lock().await.completed[1]);
-    assert_eq!(shared.saved.lock().await.phase, Phase::Practice);
-    assert_eq!(
-        database.managed_lobby_join_id("practice").await?.as_deref(),
-        Some("unchanged-join-id")
-    );
-    shared.event.write().unwrap().as_mut().unwrap().second = now + 1200;
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    shared.event.write().unwrap().as_mut().unwrap().second = now;
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    session
-        .on_packet(&GameHostPacket::PlayerResult {
-            uid: 42,
-            has_result: true,
-            level_uid: "zsl-0".into(),
-            time: 20.0,
-            checkpoints: 0,
-        })
+    for slot in 0..2 {
+        for index in 0..4 {
+            loaded_at += 0.01;
+            native_advance(&session, &sent, loaded_at, "warmup", index, 4, 300.0).await?;
+            assert_eq!(
+                session.live.lock().await.active,
+                Some((Phase::Warmup, slot, index))
+            );
+        }
+        for index in 0..15 {
+            loaded_at += 0.01;
+            native_advance(&session, &sent, loaded_at, "zsl", index, 15, 420.0).await?;
+            assert_eq!(
+                session.live.lock().await.active,
+                Some((Phase::Tournament, slot, index))
+            );
+            let state = shared.saved.lock().await.clone();
+            assert_eq!(state.progress[slot], index);
+            assert!(state.deadline_ms.unwrap() > jiff::Timestamp::now().as_millisecond() + 418_000);
+
+            if index == 0 {
+                let finish = GameHostPacket::PlayerResult {
+                    uid: 42,
+                    has_result: true,
+                    level_uid: "zsl-0".into(),
+                    time: if slot == 0 { 25.123456 } else { 12.0 },
+                    checkpoints: 0,
+                };
+                if slot == 0 {
+                    // Timeslot 2 becomes eligible while Timeslot 1 still has 14 rounds left.
+                    shared.event.write().unwrap().as_mut().unwrap().second = now;
+                    session.tick().await?;
+                    assert_eq!(shared.saved.lock().await.timeslot, 0);
+                    delayed_finish_finalisation_barrier(session.clone(), &client, &finish).await?;
+                } else {
+                    session.on_packet(&finish).await?;
+                    assert_eq!(database.zsl_finishes(7).await?[0].timeslot, 1);
+                }
+            }
+            if index == 7 {
+                assert!(session.live.lock().await.current_level_id.is_none());
+                assert_ne!(
+                    shared
+                        .last_playable
+                        .lock()
+                        .await
+                        .as_ref()
+                        .unwrap()
+                        .level
+                        .uid,
+                    "zsl-7"
+                );
+                recover_phase(&profile, &context, &target).await?;
+            }
+        }
+    }
+    context
+        .dispatch(session.as_ref(), &GameHostPacket::GameState(2))
         .await?;
-    assert_eq!(database.zsl_finishes(7).await?[0].timeslot, 1);
-    shared.event.write().unwrap().as_mut().unwrap().second = now - 15 * 420;
-    tokio::time::timeout(Duration::from_secs(5), session.tick()).await??;
-    assert!(shared.saved.lock().await.completed[1]);
+    assert_eq!(shared.saved.lock().await.completed, [true, true]);
     assert!(profile.close_at().is_some());
+    assert_eq!(database.zsl_finishes(7).await?.len(), 1);
+    let packets = sent.lock().await;
+    assert_eq!(
+        packets
+            .iter()
+            .filter(|packet| u16::from_le_bytes([packet[0], packet[1]]) == SKIP_TO_LEVEL)
+            .count(),
+        1
+    );
     assert!(
-        sent.lock()
-            .await
+        packets
             .iter()
             .all(|packet| u16::from_le_bytes([packet[0], packet[1]]) != KICK_PLAYER)
     );
+    drop(packets);
     assert_eq!(context.players().await.len(), 1);
     profile.scheduled_closed().await?;
     assert!(database.managed_lobby_join_id("practice").await?.is_none());
     profile.stop().await?;
-    let restarted = ZslProfile::new(
-        config(true)?,
-        Some(config(false)?),
-        database.clone(),
-        storage.clone(),
-    )?;
+    let restarted = ZslProfile::new(config(true)?, Some(config(false)?), database, storage)?;
     assert!(restarted.prepare().await?.is_none());
     restarted.stop().await?;
-    client
-        .batch_execute(include_str!(
-            "../../../tests/fixtures/zsl_profile/insert_zsl_round.sql"
-        ))
-        .await?;
-    let mut tournament_config = config(true)?;
-    let RoomProfile::Zsl { round_id, .. } = &mut tournament_config.profile else {
-        unreachable!()
-    };
-    *round_id = 8;
-    let failed_profile = ZslProfile::new(
-        tournament_config.clone(),
-        None,
-        database.clone(),
-        storage.clone(),
-    )?;
-    database
-        .claim_zsl_event(8, &failed_profile.shared.owner)
-        .await?
-        .context("claim failed")?;
-    *failed_profile.shared.event.write().unwrap() = Some(database.zsl_event(8).await?);
-    database
-        .set_managed_lobby_join_id("zsl", "fallback-join-id")
-        .await?;
-    failed_profile.shared.selections.lock().await.warmup =
-        Some(pinned_asset(bundle(8, true), storage.clone())?);
-    let failed_session = Arc::new(ZslSession {
-        shared: failed_profile.shared.clone(),
-        context: context.clone(),
-        board: Mutex::new(context.leaderboard()),
-        scoring: RwLock::new(None),
-        live: Mutex::new(LiveState::default()),
-        stopped: AtomicBool::new(false),
-        wake: Notify::new(),
-    });
-    *target.lock().await = Some(failed_session.clone());
-    failed_session.tick().await?;
-    assert!(failed_profile.shared.saved.lock().await.failed[0]);
-    assert!(failed_profile.close_at().is_none());
-    assert_eq!(context.players().await.len(), 1);
-    assert!(
-        failed_profile
-            .shared
-            .saved
-            .lock()
-            .await
-            .announcements
-            .contains("unscored:0")
-    );
-    assert_eq!(
-        failed_profile.shared.saved.lock().await.phase,
-        Phase::Waiting
-    );
-    failed_profile.shared.selections.lock().await.tournament =
-        Some(pinned_asset(bundle(8, false), storage.clone())?);
-    failed_profile
-        .shared
-        .event
-        .write()
-        .unwrap()
-        .as_mut()
-        .unwrap()
-        .second = jiff::Timestamp::now().as_second();
-    failed_session.tick().await?;
-    let recovered = failed_profile.shared.saved.lock().await;
-    assert!(recovered.failed[0]);
-    assert!(recovered.started[1]);
-    assert_eq!(recovered.phase, Phase::Tournament);
-    assert_eq!(
-        database.managed_lobby_join_id("zsl").await?.as_deref(),
-        Some("fallback-join-id")
-    );
-    drop(recovered);
-    failed_profile.stop().await?;
     driver.abort();
     Ok(())
+}
+
+async fn native_advance(
+    session: &ZslSession,
+    packets: &Mutex<Vec<Vec<u8>>>,
+    loaded_at: f64,
+    prefix: &str,
+    index: usize,
+    entries: usize,
+    seconds: f64,
+) -> Result<()> {
+    use zc_core::zeepnet::{CHANGE_LOBBY_PLAYLIST, LEVEL_DATA, parse_game_host_packet};
+    session
+        .context
+        .dispatch(session, &GameHostPacket::GameState(2))
+        .await?;
+    session
+        .context
+        .dispatch(
+            session,
+            &GameHostPacket::PlaylistIndex {
+                current_index: 0,
+                next_index: 0,
+                select_next: true,
+            },
+        )
+        .await?;
+    let selection = packets
+        .lock()
+        .await
+        .iter()
+        .rev()
+        .find(|packet| u16::from_le_bytes([packet[0], packet[1]]) == CHANGE_LOBBY_PLAYLIST)
+        .cloned()
+        .context("Missing native selection")?;
+    let GameHostPacket::Playlist(playlist) = parse_game_host_packet(&selection)? else {
+        unreachable!()
+    };
+    assert_eq!(playlist.round_time, seconds);
+    assert_eq!(playlist.next_index, index as i32);
+    let expected = (0..entries)
+        .map(|index| format!("{prefix}-{index}"))
+        .collect::<Vec<_>>();
+    let actual = playlist
+        .levels
+        .iter()
+        .take(entries)
+        .map(|entry| entry.level.uid.clone())
+        .collect::<Vec<_>>();
+    assert_eq!(actual, expected);
+    let level = &playlist.levels[index].level;
+    let uploads_before = packets
+        .lock()
+        .await
+        .iter()
+        .filter(|packet| u16::from_le_bytes([packet[0], packet[1]]) == LEVEL_DATA)
+        .count();
+    session
+        .context
+        .dispatch(
+            session,
+            &GameHostPacket::LevelRequest {
+                uid: level.uid.clone(),
+                workshop_id: level.workshop_id,
+                name: level.name.clone(),
+            },
+        )
+        .await?;
+    assert_eq!(
+        packets
+            .lock()
+            .await
+            .iter()
+            .filter(|packet| u16::from_le_bytes([packet[0], packet[1]]) == LEVEL_DATA)
+            .count(),
+        uploads_before + 1
+    );
+    session
+        .context
+        .dispatch(
+            session,
+            &GameHostPacket::GameProperties {
+                uid: level.uid.clone(),
+                workshop_id: level.workshop_id,
+                level_loaded_at: loaded_at,
+                round_time: seconds,
+            },
+        )
+        .await?;
+    session
+        .context
+        .dispatch(session, &GameHostPacket::GameState(0))
+        .await?;
+    session.tick().await
 }

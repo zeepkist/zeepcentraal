@@ -116,6 +116,19 @@ impl Database {
         level_id: Option<i32>,
         deadline: i64,
     ) -> Result<()> {
+        self.open_zsl_level_at_ms(round_id, owner, timeslot, index, level_id, deadline * 1000)
+            .await
+    }
+
+    pub async fn open_zsl_level_at_ms(
+        &self,
+        round_id: i32,
+        owner: &str,
+        timeslot: i32,
+        index: i32,
+        level_id: Option<i32>,
+        deadline_ms: i64,
+    ) -> Result<()> {
         let mut connection = self.connection().await?;
         let count = sql_query(include_str!("../queries/zsl_tournament/open_zsl_level.sql"))
             .bind::<Integer, _>(round_id)
@@ -123,7 +136,7 @@ impl Database {
             .bind::<Integer, _>(timeslot)
             .bind::<Integer, _>(index)
             .bind::<diesel::sql_types::Nullable<Integer>, _>(level_id)
-            .bind::<BigInt, _>(deadline)
+            .bind::<BigInt, _>(deadline_ms)
             .execute(&mut connection)
             .await?;
         ensure!(count == 1, "ZSL level closed or event ownership lost");

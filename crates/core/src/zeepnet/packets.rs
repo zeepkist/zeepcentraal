@@ -13,6 +13,8 @@ pub const JOIN_LOBBY_RESPONSE: u16 = 2_983;
 pub const INITIAL_STATE: u16 = 29_635;
 pub const CHANGE_LOBBY_GAME_PROPERTIES: u16 = 44_133;
 pub const CHANGE_LOBBY_GAME_STATE: u16 = 56_687;
+pub const CHANGE_LOBBY_TIMER: u16 = 56_437;
+pub const CHANGE_LOBBY_TIME: u16 = 61_549;
 pub const CHANGE_LOBBY_MASTER: u16 = 13_890;
 pub const CHANGE_LOBBY_PLAYLIST: u16 = 60_338;
 pub const CHANGE_LOBBY_PLAYLIST_INDEX: u16 = 18_192;
@@ -127,6 +129,11 @@ pub enum GameHostPacket {
         sender_uid: u32,
     },
     GameState(i32),
+    Timer(String),
+    Time {
+        round_time: f64,
+        level_loaded_at: f64,
+    },
     GameProperties {
         level_loaded_at: f64,
         round_time: f64,
@@ -459,6 +466,11 @@ pub fn parse_game_host_packet_for(
             select_next: reader.read_bool()?,
         }),
         CHANGE_LOBBY_GAME_STATE => Ok(GameHostPacket::GameState(reader.read_i32()?)),
+        CHANGE_LOBBY_TIMER => Ok(GameHostPacket::Timer(reader.read_string(64)?)),
+        CHANGE_LOBBY_TIME => Ok(GameHostPacket::Time {
+            round_time: reader.read_f64()?,
+            level_loaded_at: reader.read_f64()?,
+        }),
         CHANGE_LOBBY_GAME_PROPERTIES => Ok(GameHostPacket::GameProperties {
             round_time: reader.read_f64()?,
             level_loaded_at: reader.read_f64()?,
@@ -759,6 +771,34 @@ mod tests {
             uid: uid.to_owned(),
             workshop_id,
         }
+    }
+
+    #[test]
+    fn countdown_and_clock_correction_match_v18_wire_format() -> Result<()> {
+        assert_eq!(
+            packet_id("ZeepkistNetworking.ChangeLobbyTimerPacket"),
+            CHANGE_LOBBY_TIMER
+        );
+        assert_eq!(
+            packet_id("ZeepkistNetworking.ChangeLobbyTimePacket"),
+            CHANGE_LOBBY_TIME
+        );
+        let [lo, hi] = CHANGE_LOBBY_TIMER.to_le_bytes();
+        assert_eq!(
+            parse_game_host_packet(&[lo, hi, 4, b'6', b':', b'5', b'9'])?,
+            GameHostPacket::Timer("6:59".into())
+        );
+        let mut timing = CHANGE_LOBBY_TIME.to_le_bytes().to_vec();
+        timing.extend_from_slice(&420_f64.to_le_bytes());
+        timing.extend_from_slice(&113_f64.to_le_bytes());
+        assert_eq!(
+            parse_game_host_packet(&timing)?,
+            GameHostPacket::Time {
+                round_time: 420.0,
+                level_loaded_at: 113.0
+            }
+        );
+        Ok(())
     }
 
     #[test]

@@ -92,6 +92,7 @@ impl ReceivedPacket {
     ) -> Result<()> {
         ensure!(context.is_host(), "Room host authority unavailable");
         self.session_generation = context.session_generation;
+        context.observe_round(&self.packet, self.received_at);
         self.events = context.observe_received(&self.packet).await?;
         self.transfer = context.transfer.lock().await.prepare_work(&self.packet)?;
         for event in &self.events {

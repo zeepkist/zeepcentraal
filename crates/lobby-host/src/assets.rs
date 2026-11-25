@@ -21,11 +21,18 @@ pub trait LevelLoader: Send + Sync {
 }
 
 impl PreparedPlaylist {
-    pub(crate) fn only(&self, level: OnlineLevel) -> Self {
-        Self {
-            levels: vec![level].into(),
-            loader: self.loader.clone(),
+    pub(crate) fn with_current(&self, level: &OnlineLevel) -> Result<(Self, usize)> {
+        if let Some(index) = self
+            .levels
+            .iter()
+            .position(|entry| entry.uid == level.uid && entry.workshop_id == level.workshop_id)
+        {
+            return Ok((self.clone(), index));
         }
+        let mut levels = self.levels.to_vec();
+        let index = levels.len();
+        levels.push(level.clone());
+        Ok((Self::new(levels, self.loader.clone())?, index))
     }
 
     pub fn new(levels: Vec<OnlineLevel>, loader: Arc<dyn LevelLoader>) -> Result<Self> {

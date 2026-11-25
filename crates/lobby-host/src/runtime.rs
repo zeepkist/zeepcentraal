@@ -14,7 +14,6 @@ use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicU64, Ordering},
 };
-#[cfg(test)]
 use std::time::Duration;
 use tokio::sync::{Mutex, Notify};
 use zc_core::zeepnet::GameHostPacket;
@@ -23,7 +22,9 @@ mod connection;
 mod publication;
 mod receipt;
 mod retry;
+mod round;
 pub use receipt::ReceivedPacket;
+pub(crate) use round::{RoundKey, ServerRound};
 
 use connection::ConnectedRoom;
 use retry::RetryBackoff;
@@ -92,6 +93,8 @@ pub struct RoomContext {
     session_generation: u64,
     publisher: Option<Arc<publication::Publisher>>,
     remote_clock: zc_core::zeepnet::RemoteClock,
+    round_clock: Arc<std::sync::Mutex<round::RoundClock>>,
+    round_changed: Arc<Notify>,
     pub local_steam_id: u64,
 }
 
@@ -131,6 +134,8 @@ impl RoomContext {
             session_generation: 0,
             publisher: None,
             remote_clock: zc_core::zeepnet::RemoteClock::default(),
+            round_clock: Arc::default(),
+            round_changed: Arc::default(),
             local_steam_id,
         })
     }
@@ -172,11 +177,105 @@ impl RoomContext {
             })
             .await?;
         transfer.observe(&GameHostPacket::GameState(0)).await?;
+        self.observe_round(
+            &GameHostPacket::GameProperties {
+                uid: level.level.uid.clone(),
+                workshop_id: level.level.workshop_id,
+                level_loaded_at: self.remote_now().unwrap_or(1000.0),
+                round_time: transfer.round_time(),
+            },
+            jiff::Timestamp::now(),
+        );
+        self.observe_round(&GameHostPacket::GameState(0), jiff::Timestamp::now());
         Ok(())
     }
 
     pub fn remote_now(&self) -> Option<f64> {
         self.remote_clock.now()
+    }
+
+    pub(crate) fn server_round(&self) -> Option<ServerRound> {
+        self.round_clock.lock().unwrap().round.clone()
+    }
+
+    pub(crate) fn server_round_for(&self, key: &RoundKey) -> Option<ServerRound> {
+        let clock = self.round_clock.lock().unwrap();
+        [&clock.round, &clock.previous]
+            .into_iter()
+            .find_map(|round| round.as_ref().filter(|round| round.key == *key))
+            .cloned()
+    }
+
+    fn observe_round(&self, packet: &GameHostPacket, received_at: jiff::Timestamp) {
+        if self
+            .round_clock
+            .lock()
+            .unwrap()
+            .observe(packet, received_at, self.remote_now())
+        {
+            self.round_changed.notify_one();
+        }
+    }
+
+    pub(crate) fn round_message_due(&self, interval: Duration) -> Option<RoundKey> {
+        if !self.is_host() {
+            return None;
+        }
+        let clock = self.round_clock.lock().unwrap();
+        clock
+            .message_deadline(interval)
+            .filter(|deadline| *deadline <= tokio::time::Instant::now())?;
+        Some(clock.round.as_ref()?.key.clone())
+    }
+
+    pub(crate) async fn wait_for_round_message(&self, interval: Duration) {
+        loop {
+            let deadline = self.round_clock.lock().unwrap().message_deadline(interval);
+            if let Some(deadline) = deadline {
+                tokio::select! {
+                    _ = tokio::time::sleep_until(deadline) => return,
+                    _ = self.round_changed.notified() => {},
+                }
+            } else {
+                self.round_changed.notified().await;
+            }
+        }
+    }
+
+    pub(crate) async fn run_round_messages<F: std::future::Future<Output = Result<()>>>(
+        &self,
+        interval: Duration,
+        send: impl Fn() -> F,
+    ) -> Result<()> {
+        loop {
+            self.wait_for_round_message(interval).await;
+            send().await?;
+            if self.round_message_due(interval).is_some() {
+                // The profile may still be reconciling the new playlist position.
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        }
+    }
+
+    pub(crate) async fn send_round_message(
+        &self,
+        key: &RoundKey,
+        interval: Duration,
+        message: &str,
+    ) -> Result<()> {
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
+        {
+            let mut clock = self.round_clock.lock().unwrap();
+            if !clock.round.as_ref().is_some_and(|round| round.key == *key)
+                || !clock
+                    .message_deadline(interval)
+                    .is_some_and(|deadline| deadline <= tokio::time::Instant::now())
+            {
+                return Ok(());
+            }
+            clock.last_message = Some(tokio::time::Instant::now());
+        }
+        self.chat().command(message).await
     }
 
     pub fn chat(&self) -> RoomChat {
@@ -386,6 +485,32 @@ impl RoomContext {
         Ok(())
     }
 
+    pub(crate) async fn adopt_level(&self, level: PreparedLevel) {
+        self.transfer.lock().await.active = Some(level);
+    }
+
+    pub(crate) async fn select_round(
+        &self,
+        playlist: PreparedPlaylist,
+        current: usize,
+        next: usize,
+        seconds: f64,
+    ) -> Result<()> {
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
+        let packet = {
+            let mut transfer = self.transfer.lock().await;
+            transfer.set_round_time(seconds)?;
+            let (revision, packet) = transfer.prepare_playlist(
+                &playlist,
+                i32::try_from(current)?,
+                i32::try_from(next)?,
+            )?;
+            transfer.commit_playlist(revision, playlist);
+            packet
+        };
+        self.send(packet).await
+    }
+
     pub fn leaderboard(&self) -> PlayerLeaderboard {
         PlayerLeaderboard::new(self.local_steam_id)
     }
@@ -397,23 +522,6 @@ impl RoomContext {
     pub(crate) async fn set_visibility(&self, public: bool) -> Result<()> {
         self.send(zc_core::zeepnet::change_lobby_visibility_packet(public)?)
             .await
-    }
-
-    pub(crate) async fn set_level_deadline(
-        &self,
-        level: &PreparedLevel,
-        deadline: i64,
-    ) -> Result<()> {
-        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
-        let mut transfer = self.transfer.lock().await;
-        let elapsed = self
-            .remote_now()
-            .zip(transfer.level_loaded_at(level))
-            .map_or(0.0, |(now, loaded_at)| (now - loaded_at).max(0.0));
-        let remaining = (deadline - jiff::Timestamp::now().as_second()).max(1) as f64;
-        // Playlist NewTime is total round duration, measured from the confirmed
-        // server load timestamp. Never send a server game-properties broadcast.
-        transfer.set_round_time(remaining + elapsed)
     }
 }
 

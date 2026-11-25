@@ -143,14 +143,11 @@ impl LevelTransfer {
         self.timeout
     }
 
-    pub(crate) fn level_loaded_at(&self, level: &PreparedLevel) -> Option<f64> {
-        self.timing
-            .as_ref()
-            .filter(|(uid, workshop_id, _)| {
-                *uid == level.level.uid && *workshop_id == level.level.workshop_id
-            })
-            .map(|(_, _, loaded_at)| *loaded_at)
+    #[cfg(test)]
+    pub(crate) fn round_time(&self) -> f64 {
+        self.round_time
     }
+
     pub fn set_round_time(&mut self, seconds: f64) -> Result<()> {
         ensure!(seconds.is_finite() && seconds > 0.0, "Invalid round time");
         self.round_time = seconds;
@@ -291,7 +288,14 @@ impl LevelTransfer {
                 workshop_id,
                 level_loaded_at,
                 round_time,
-            } if level_loaded_at.is_finite() && round_time.is_finite() && *round_time > 0.0 => {
+            } if level_loaded_at.is_finite()
+                && round_time.is_finite()
+                && *round_time > 0.0
+                && self.timing.as_ref().is_none_or(|(current, id, loaded)| {
+                    level_loaded_at > loaded
+                        || (level_loaded_at == loaded && current == uid && id == workshop_id)
+                }) =>
+            {
                 self.timing = Some((uid.clone(), *workshop_id, *level_loaded_at));
                 if let Some(activation) = &mut self.activation {
                     activation.properties_confirmed = uid == &activation.level.level.uid
@@ -321,10 +325,16 @@ impl LevelTransfer {
                 name,
             } => (uid, *workshop_id, Some(name.clone())),
             GameHostPacket::GameProperties {
-                uid, workshop_id, ..
+                uid,
+                workshop_id,
+                level_loaded_at,
+                ..
             } if self.activation.is_none()
                 && self.pending.is_none()
                 && self.playlist.is_some()
+                && self.timing.as_ref().is_some_and(|(current, id, loaded)| {
+                    current == uid && id == workshop_id && loaded == level_loaded_at
+                })
                 && self.active.as_ref().is_none_or(|active| {
                     active.level.uid != *uid || active.level.workshop_id != *workshop_id
                 }) =>

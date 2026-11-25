@@ -9,7 +9,7 @@ use super::{
 use crate::{
     config::{ManagedRoomConfig, RoomProfile},
     leaderboard::{DesiredPlayerStanding, PlayerLeaderboard},
-    runtime::{LobbyProfile, ProfileSession, ReceivedPacket, RoomContext},
+    runtime::{LobbyProfile, ProfileSession, ReceivedPacket, RoomContext, RoundKey, ServerRound},
     transfer::{TransferEvent, TransferEventKind},
 };
 use anyhow::{Context, Result, ensure};
@@ -33,6 +33,8 @@ use zc_database::{
     services::zsl_tournament::{ZslEvent, ZslFinish},
 };
 
+mod native;
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 enum Phase {
@@ -54,6 +56,8 @@ struct PendingFinish {
     timeslot: i32,
     microseconds: i64,
     received_at_ms: i64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    index: Option<usize>,
 }
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
@@ -71,6 +75,9 @@ struct SavedState {
     timeslot: usize,
     index: usize,
     deadline: i64,
+    deadline_ms: Option<i64>,
+    loaded_at: Option<f64>,
+    next: Option<ActivationTarget>,
     starts: [Option<i64>; 2],
     announcements: HashSet<String>,
     pending: Vec<PendingFinish>,
@@ -580,7 +587,7 @@ impl LobbyProfile for ZslProfile {
         }
         shared.save(&saved).await?;
         let now = jiff::Timestamp::now().as_second();
-        let slot = if now >= event.second - 1200 { 1 } else { 0 };
+        let slot = ZslSession::eligible_slot(&saved, &event, now);
         if saved.room_retired(slot, shared.practice.is_some()) {
             return Ok(None);
         }
@@ -592,7 +599,7 @@ impl LobbyProfile for ZslProfile {
             && now >= event_start(&event, slot)
             && !(saved.completed[slot] || saved.failed[slot])
         {
-            let index = scheduled_index(now, event_start(&event, slot), bundle.levels.len());
+            let index = saved.progress[slot].min(bundle.levels.len() - 1);
             let asset = shared.pinned(bundle, false).await?;
             let level = &asset.playlist.levels[index];
             return asset.load(&level.uid, level.workshop_id).await;
@@ -630,6 +637,7 @@ impl LobbyProfile for ZslProfile {
             shared: self.shared.clone(),
             live: Mutex::new(LiveState::default()),
             scoring: RwLock::new(None),
+            next_scoring: RwLock::new(None),
             stopped: AtomicBool::new(false),
             wake: Notify::new(),
         }))
@@ -664,7 +672,8 @@ struct LiveState {
     finishes: Vec<ZslFinish>,
     last_save: Option<Instant>,
     last_board: Option<Instant>,
-    last_overlay: Option<Instant>,
+    round: Option<RoundKey>,
+    next: Option<native::NativeTarget>,
     generation: u64,
 }
 
@@ -713,6 +722,7 @@ struct ZslSession {
     live: Mutex<LiveState>,
     board: Mutex<PlayerLeaderboard>,
     scoring: RwLock<Option<ScoringScope>>,
+    next_scoring: RwLock<Option<ScoringScope>>,
     stopped: AtomicBool,
     wake: Notify,
 }
@@ -726,6 +736,8 @@ struct ScoringScope {
     ready: bool,
     deadline: i64,
     locked_players: HashSet<u64>,
+    index: Option<usize>,
+    round: Option<RoundKey>,
 }
 impl ZslSession {
     fn scoring_scope(&self, state: &SavedState, live: &LiveState) {
@@ -736,7 +748,9 @@ impl ZslSession {
             identity: live.ready.clone(),
             generation: live.generation,
             ready: live.ready.is_some(),
-            deadline: state.deadline,
+            index: Some(state.index),
+            round: live.round.clone(),
+            deadline: state.deadline_ms.unwrap_or(state.deadline * 1000),
             locked_players: live
                 .finishes
                 .iter()
@@ -749,6 +763,41 @@ impl ZslSession {
                 .collect(),
         });
     }
+    fn receipt_scope(&self) -> Option<ScoringScope> {
+        let current = self.scoring.read().unwrap().clone();
+        let Some(round) = self.context.server_round() else {
+            return current;
+        };
+        let matches = |scope: &ScoringScope| {
+            scope.identity.as_ref().is_some_and(|(uid, workshop)| {
+                *uid == round.key.uid && *workshop == round.key.workshop_id
+            })
+        };
+        if round.state != 0 {
+            return current.map(|mut scope| {
+                scope.ready = false;
+                scope
+            });
+        }
+        let mut scope = if current.as_ref().is_some_and(|scope| {
+            matches(scope) && scope.round.as_ref().is_none_or(|key| *key == round.key)
+        }) {
+            current?
+        } else {
+            self.next_scoring.read().unwrap().clone().filter(|scope| {
+                matches(scope)
+                    && scope
+                        .round
+                        .as_ref()
+                        .is_some_and(|key| key.loaded_at < round.key.loaded_at)
+            })?
+        };
+        if scope.phase == Phase::Tournament {
+            scope.deadline = round.deadline_ms?;
+        }
+        Some(scope)
+    }
+
     async fn announce(&self, message: &str) -> Result<()> {
         self.context.chat().target(0, message, HOSTNAME).await
     }
@@ -765,9 +814,19 @@ impl ZslSession {
             self.shared.merge_incoming(state, true);
             // Retain admitted finishes before any DB await, including cancellation.
             self.shared.retain(state).await;
-            let Some(finish) = state.pending.first().cloned() else {
+            let Some(position) = state.pending.iter().position(|finish| {
+                finish.index.is_none_or(|index| {
+                    state
+                        .scored_through
+                        .get((finish.timeslot - 1) as usize)
+                        .copied()
+                        .flatten()
+                        .is_some_and(|open| index <= open)
+                })
+            }) else {
                 break;
             };
+            let finish = state.pending[position].clone();
             let users = self
                 .shared
                 .database
@@ -788,7 +847,7 @@ impl ZslSession {
                     finish.received_at_ms,
                 )
                 .await?;
-            state.pending.remove(0);
+            state.pending.remove(position);
             self.shared.save(state).await?;
         }
         Ok(())
@@ -821,56 +880,6 @@ impl ZslSession {
                 .await?
                 .id,
         ))
-    }
-    async fn close_elapsed(
-        &self,
-        state: &mut SavedState,
-        event: &ZslEvent,
-        slot: usize,
-        now: i64,
-    ) -> Result<()> {
-        let bundle = state.pinned.clone().context("ZSL playlist unavailable")?;
-        self.shared.merge_incoming(state, true);
-        if let Err(error) = self.flush(state).await {
-            tracing::warn!(%error, "ZSL finalisation waiting for accepted finishes");
-            return Ok(());
-        }
-        let end = if state.failed[slot] {
-            state.scored_through[slot].map_or(0, |index| index + 1)
-        } else {
-            bundle.levels.len()
-        };
-        while state.progress[slot] < end {
-            let index = state.progress[slot];
-            let deadline = event_start(event, slot) + (index as i64 + 1) * 420;
-            if now < deadline {
-                break;
-            }
-            let level_id = self.scoring_level(&bundle, index).await?;
-            self.shared
-                .database
-                .open_zsl_level(
-                    self.shared.round_id,
-                    &self.shared.owner,
-                    slot as i32 + 1,
-                    index as i32,
-                    level_id,
-                    deadline,
-                )
-                .await?;
-            self.shared
-                .database
-                .close_zsl_level(
-                    self.shared.round_id,
-                    &self.shared.owner,
-                    slot as i32 + 1,
-                    index as i32,
-                )
-                .await?;
-            state.progress[slot] += 1;
-            self.shared.save(state).await?;
-        }
-        Ok(())
     }
     async fn finish(&self, state: &mut SavedState, event: &ZslEvent, slot: usize) -> Result<()> {
         if slot == 1 {
@@ -928,21 +937,14 @@ impl ZslSession {
         }
         // Single transition owner; no retired profile tasks can send after generation changes.
         live.generation += 1;
+        live.round = None;
+        live.next = None;
         live.ready = None;
         live.records.clear();
         live.current_level_id = None;
         *self.scoring.write().unwrap() = None;
         *self.live.lock().await = live.clone();
-        let seconds = if phase == Phase::Practice {
-            self.shared
-                .practice
-                .as_ref()
-                .context("Practice config unavailable")?
-                .round_time_seconds as f64
-        } else {
-            (deadline - jiff::Timestamp::now().as_second()).max(1) as f64
-        };
-        self.context.set_round_time(seconds).await?;
+        let seconds = self.phase_seconds(phase);
         let level = &asset.playlist.levels[index];
         let prepared = asset
             .load(&level.uid, level.workshop_id)
@@ -952,17 +954,6 @@ impl ZslSession {
         if phase == Phase::Tournament {
             let bundle = asset.bundle.as_ref().context("ZSL playlist unavailable")?;
             scoring_level = self.scoring_level(bundle, index).await?;
-            self.shared
-                .database
-                .open_zsl_level(
-                    self.shared.round_id,
-                    &self.shared.owner,
-                    slot as i32 + 1,
-                    index as i32,
-                    scoring_level,
-                    deadline,
-                )
-                .await?;
             live.finishes = self
                 .shared
                 .database
@@ -1000,7 +991,9 @@ impl ZslSession {
             )),
             generation: transition.generation,
             ready: false,
-            deadline,
+            index: Some(index),
+            round: None,
+            deadline: deadline * 1000,
             locked_players: live
                 .finishes
                 .iter()
@@ -1012,7 +1005,8 @@ impl ZslSession {
                 .map(|finish| finish.steam_id as u64)
                 .collect(),
         });
-        self.execute_and_commit(state, live, transition).await?;
+        self.execute_and_commit(state, live, transition, true)
+            .await?;
         self.shared.save(state).await
     }
 
@@ -1021,6 +1015,7 @@ impl ZslSession {
         state: &mut SavedState,
         live: &mut LiveState,
         transition: PreparedTransition,
+        open_scoring: bool,
     ) -> Result<()> {
         let PreparedTransition {
             phase,
@@ -1060,10 +1055,37 @@ impl ZslSession {
             phase == Phase::Practice || jiff::Timestamp::now().as_second() < deadline,
             TransitionExpired
         );
+        let server_round = self.context.server_round().filter(|round| {
+            round.key.uid == transition.level.level.uid
+                && round.key.workshop_id == transition.level.level.workshop_id
+                && round.state == 0
+        });
+        let server_deadline_ms = server_round.as_ref().and_then(|round| round.deadline_ms);
+        if phase == Phase::Tournament && open_scoring {
+            self.shared
+                .database
+                .open_zsl_level_at_ms(
+                    self.shared.round_id,
+                    &self.shared.owner,
+                    slot as i32 + 1,
+                    index as i32,
+                    transition.scoring_level,
+                    server_deadline_ms
+                        .context("ZSL server round deadline unavailable")
+                        .context(TransitionFailed)?,
+                )
+                .await?;
+        }
+        let deadline_ms = server_deadline_ms.unwrap_or(deadline * 1000);
+        state.loaded_at = server_round.as_ref().map(|round| round.key.loaded_at);
+        live.round = server_round.map(|round| round.key);
+        live.next = None;
+        state.next = None;
+        state.deadline_ms = Some(deadline_ms);
         state.phase = phase;
         state.timeslot = slot;
         state.index = index;
-        state.deadline = deadline;
+        state.deadline = deadline_ms.div_euclid(1000);
         if phase == Phase::Tournament {
             if state.pinned.is_none() {
                 let bundle = transition
@@ -1087,7 +1109,6 @@ impl ZslSession {
         live.current_level_id = transition.scoring_level;
         live.asset = Some(transition.asset);
         *self.shared.recovery.lock().await = None;
-        live.last_overlay = None;
         live.last_board = None;
         self.scoring_scope(state, live);
         tracing::info!(generation = transition.generation, phase = ?phase, slot, index, "ZSL transition committed");
@@ -1122,24 +1143,33 @@ impl ZslSession {
         if let Err(error) = self.context.publish(packets).await {
             tracing::warn!(%error, "ZSL standings reset failed");
         }
-        let rotation = (*phase == Phase::Practice).then(|| asset.playlist.clone());
-        self.context
-            .activate_current_generation(level.clone(), rotation)
-            .await?;
-        ensure!(
-            *phase == Phase::Practice || jiff::Timestamp::now().as_second() < *deadline,
-            TransitionExpired
-        );
-        if *phase == Phase::Practice {
-            self.context.set_round_time(*seconds).await?;
-            let next = (index + 1) % asset.playlist.levels.len();
+        let adopted = self.context.server_round().is_some_and(|round| {
+            round.state == 0
+                && round.key.uid == level.level.uid
+                && round.key.workshop_id == level.level.workshop_id
+                && self
+                    .context
+                    .remote_now()
+                    .is_some_and(|now| round.remaining(now) > 0.0)
+        });
+        if adopted {
+            self.context.adopt_level(level.clone()).await;
+            let round = self
+                .context
+                .server_round()
+                .context("ZSL server round unavailable")?;
             self.context
-                .update_playlist(asset.playlist.clone(), *index as i32, next as i32)
+                .select_round(
+                    asset.playlist.clone(),
+                    transition.index,
+                    (transition.index + 1).min(asset.playlist.levels.len() - 1),
+                    round.seconds,
+                )
                 .await?;
         } else {
-            self.context.set_level_deadline(level, *deadline).await?;
+            self.context.set_round_time(*seconds).await?;
             self.context
-                .update_playlist(asset.playlist.only(level.level.clone()), 0, 0)
+                .activate_current_generation(level.clone(), Some(asset.playlist.clone()))
                 .await?;
         }
         // Presentation can fail independently after the GameServer has started play.
@@ -1167,11 +1197,8 @@ impl ZslSession {
         let mut live = self.live.lock().await.clone();
         let outcome = self.tick_state(&mut state, &mut live).await;
         self.shared.retain(&state).await;
-        let mut current = self.live.lock().await;
-        if current.generation == live.generation {
-            *current = live;
-            self.scoring_scope(&state, &current);
-        }
+        self.scoring_scope(&state, &live);
+        *self.live.lock().await = live;
         outcome
     }
     async fn tick_state(&self, state: &mut SavedState, live: &mut LiveState) -> Result<()> {
@@ -1183,11 +1210,17 @@ impl ZslSession {
         }
         let event = self.shared.event()?;
         let now = jiff::Timestamp::now().as_second();
-        let slot = usize::from(now >= event.second - 1200);
+        self.drive_round(state, live, &event, false).await?;
+        if self.shared.retire.load(Ordering::Acquire) {
+            return Ok(());
+        }
+        let slot = Self::eligible_slot(state, &event, now);
         let start = event_start(&event, slot);
         if now >= start - 1200 && state.starts[slot].is_none() {
             state.starts[slot] = Some(start);
-            if let Some(asset) = self.shared.selections.lock().await.warmup.as_ref() {
+            if state.warmups[slot].is_none()
+                && let Some(asset) = self.shared.selections.lock().await.warmup.as_ref()
+            {
                 state.warmups[slot] = asset.bundle.as_deref().cloned();
             }
             self.shared.save(state).await?;
@@ -1202,190 +1235,7 @@ impl ZslSession {
         if let Err(error) = self.flush(state).await {
             tracing::warn!(%error, "ZSL accepted finishes waiting for persistence");
         }
-        for previous in 0..=slot {
-            if state.started[previous] && !state.completed[previous] {
-                self.close_elapsed(state, &event, previous, now).await?;
-                if state.progress[previous] == 15 && !state.failed[previous] {
-                    self.finish(state, &event, previous).await?;
-                    if self.shared.retire.load(Ordering::Acquire) {
-                        return Ok(());
-                    }
-                }
-            }
-        }
-        if now >= start && !state.completed[slot] && !state.failed[slot] {
-            let index = scheduled_index(now, start, 15);
-            let missed = self.shared.recovery.lock().await.as_ref().is_some_and(
-                |((phase, attempted_slot, attempted_index), _)| {
-                    *phase == Phase::Tournament
-                        && *attempted_slot == slot
-                        && *attempted_index < index
-                },
-            );
-            let asset = match &state.pinned {
-                Some(bundle) => Some(self.shared.pinned(bundle, false).await?),
-                None => self.shared.tournament_candidate(start).await?,
-            };
-            if let Some(asset) = asset.filter(|_| !missed && (state.started[slot] || index == 0)) {
-                let deadline = start + (index as i64 + 1) * 420;
-                match self
-                    .activate(state, live, Phase::Tournament, slot, index, asset, deadline)
-                    .await
-                {
-                    Ok(()) => {
-                        self.once(state, format!("started:{slot}"), &format!(
-                            "Zeepkist Super League Season {}: {} has started! Good luck and have fun!",
-                            event.season, escape_text(&event.name)
-                        )).await?;
-                        if index == 7 {
-                            self.once(state, format!("break:{slot}:{index}"), &zsl_messages::gradient(
-                                "Break Time! Refill your drink, stay hydrated, stretch your legs and get ready for the next ZSL level!",
-                                ["#00aaff", "#88ffff"]
-                            )).await?;
-                        }
-                        let bundle = state
-                            .pinned
-                            .as_ref()
-                            .expect("tournament activation pinned bundle");
-                        let remaining = state.deadline - jiff::Timestamp::now().as_second();
-                        let reset = bundle.levels[index].author_time.is_some_and(|author| {
-                            live.current_level_id.is_some()
-                                && remaining > 5
-                                && remaining as f64 <= author + 10.0
-                        });
-                        let next = (remaining <= 5)
-                            .then(|| bundle.levels.get(index + 1))
-                            .flatten()
-                            .map(|next| {
-                                format!(
-                                    "Up next is {}",
-                                    escape_text(
-                                        next.level
-                                            .name
-                                            .strip_prefix("ZSL - ")
-                                            .unwrap_or(&next.level.name)
-                                    )
-                                )
-                            });
-                        if reset {
-                            self.once(
-                                state,
-                                format!("reset:{slot}:{index}"),
-                                "Last chance to reset to improve your time",
-                            )
-                            .await?;
-                        }
-                        if let Some(next) = next {
-                            self.once(state, format!("next:{slot}:{index}"), &next)
-                                .await?;
-                        }
-                    }
-                    Err(error)
-                        if error.is::<TransitionUnavailable>()
-                            || error.is::<TransitionExpired>() =>
-                    {
-                        self.fail_slot(state, live, slot).await?;
-                    }
-                    Err(error) => return Err(error),
-                }
-            } else {
-                self.fail_slot(state, live, slot).await?;
-            }
-        } else if (start - 1200..start).contains(&now)
-            && !state.failed[slot]
-            && !state.completed[slot]
-        {
-            if state.warmups[slot].is_none() {
-                state.warmups[slot] = self
-                    .shared
-                    .selections
-                    .lock()
-                    .await
-                    .warmup
-                    .as_ref()
-                    .and_then(|asset| asset.bundle.as_deref().cloned())
-                    .or_else(|| state.warmup.clone());
-                if state.warmups[slot].is_some() {
-                    self.shared.save(state).await?;
-                }
-            }
-            if let Some(warmup) = state.warmups[slot].as_ref() {
-                let index = ((now - (start - 1200)) / 300) as usize;
-                let asset = self.shared.pinned(warmup, true).await?;
-                let deadline = start - 1200 + (index as i64 + 1) * 300;
-                let target = (Phase::Warmup, slot, index);
-                let exhausted = self
-                    .shared
-                    .recovery
-                    .lock()
-                    .await
-                    .as_ref()
-                    .is_some_and(|(failed, attempts)| *failed == target && *attempts >= 3);
-                if exhausted {
-                    self.restore_playable(state, live, slot).await?;
-                } else {
-                    match self
-                        .activate(state, live, Phase::Warmup, slot, index, asset, deadline)
-                        .await
-                    {
-                        Ok(()) => {
-                            self.once(
-                                state,
-                                format!("warmup:{slot}"),
-                                &zsl_messages::warmup_countdown(
-                                    (start - jiff::Timestamp::now().as_second()).max(0) as u64,
-                                ),
-                            )
-                            .await?;
-                        }
-                        Err(error) if error.is::<TransitionUnavailable>() => {
-                            self.restore_playable(state, live, slot).await?
-                        }
-                        Err(error) => return Err(error),
-                    }
-                }
-            } else {
-                self.practice_or_restore(state, live, slot, now).await?;
-                self.once(
-                    state,
-                    format!("delay:{slot}"),
-                    "Warmup levels are still preparing. Please stay in this room.",
-                )
-                .await?;
-            }
-            let elapsed = (now - (start - 1200)) / 120;
-            if (1..10).contains(&elapsed) {
-                self.once(
-                    state,
-                    format!("countdown:{slot}:{elapsed}"),
-                    &format!(
-                        "Zeepkist Super League Season {}: {} is starting in {} minutes",
-                        event.season,
-                        escape_text(&event.name),
-                        (start - now + 59) / 60,
-                    ),
-                )
-                .await?;
-            }
-        } else {
-            let upcoming = if slot == 0 && state.completed[0] {
-                1
-            } else {
-                slot
-            };
-            self.practice_or_restore(state, live, upcoming, now).await?;
-        }
-        if live.last_overlay.is_none_or(|last| {
-            last.elapsed()
-                >= Duration::from_millis(if state.phase == Phase::Practice {
-                    60_000
-                } else {
-                    self.shared.tournament.message_refresh_ms
-                })
-        }) {
-            self.overlay(state, live, &event, now).await?;
-            live.last_overlay = Some(Instant::now());
-        }
+        self.round_announcements(state, live, &event).await?;
         if state.phase == Phase::Tournament
             && live
                 .last_board
@@ -1408,66 +1258,21 @@ impl ZslSession {
         live: &mut LiveState,
         slot: usize,
     ) -> Result<()> {
-        state.failed[slot] = true;
         live.ready = None;
         *self.scoring.write().unwrap() = None;
+        self.mark_slot_failed(state, slot).await?;
+        self.restore_playable(state, live, slot).await
+    }
+
+    async fn mark_slot_failed(&self, state: &mut SavedState, slot: usize) -> Result<()> {
+        state.failed[slot] = true;
         self.shared.save(state).await?;
         self.once(
             state,
             format!("unscored:{slot}"),
             "Tournament levels are unavailable. This timeslot is unscored. You can stay and play.",
         )
-        .await?;
-        self.restore_playable(state, live, slot).await
-    }
-
-    async fn practice_or_restore(
-        &self,
-        state: &mut SavedState,
-        live: &mut LiveState,
-        slot: usize,
-        now: i64,
-    ) -> Result<()> {
-        let practice = self.shared.practice_asset.lock().await.clone();
-        if let Some(asset) = practice {
-            let config = self
-                .shared
-                .practice
-                .as_ref()
-                .context("Practice config unavailable")?;
-            let index = if live
-                .active
-                .is_some_and(|(phase, _, _)| phase == Phase::Practice)
-            {
-                live.asset
-                    .as_ref()
-                    .and_then(|current| current.playlist.levels.get(state.index))
-                    .and_then(|level| {
-                        asset.playlist.levels.iter().position(|candidate| {
-                            candidate.uid == level.uid && candidate.workshop_id == level.workshop_id
-                        })
-                    })
-                    .unwrap_or(0)
-            } else {
-                0
-            };
-            let deadline = if state.phase == Phase::Practice && state.deadline > now {
-                state.deadline
-            } else {
-                now + config.round_time_seconds as i64
-            };
-            match self
-                .activate(state, live, Phase::Practice, slot, index, asset, deadline)
-                .await
-            {
-                Err(error) if error.is::<TransitionUnavailable>() => {
-                    self.restore_playable(state, live, slot).await
-                }
-                outcome => outcome,
-            }
-        } else {
-            self.restore_playable(state, live, slot).await
-        }
+        .await
     }
 
     async fn restore_playable(
@@ -1508,6 +1313,18 @@ impl ZslSession {
         self.shared.save(state).await
     }
 
+    fn overlay_interval(&self, phase: Phase) -> Duration {
+        let config = if phase == Phase::Practice {
+            self.shared
+                .practice
+                .as_ref()
+                .unwrap_or(&self.shared.tournament)
+        } else {
+            &self.shared.tournament
+        };
+        Duration::from_millis(config.message_refresh_ms)
+    }
+
     async fn overlay(
         &self,
         state: &SavedState,
@@ -1515,6 +1332,13 @@ impl ZslSession {
         event: &ZslEvent,
         now: i64,
     ) -> Result<()> {
+        let interval = self.overlay_interval(state.phase);
+        let Some(key) = self.context.round_message_due(interval) else {
+            return Ok(());
+        };
+        if live.round.as_ref() != Some(&key) {
+            return Ok(());
+        }
         if state.phase == Phase::Practice {
             let remaining = (event_start(event, state.timeslot) - 1200 - now).max(0);
             let entries = live
@@ -1530,14 +1354,21 @@ impl ZslSession {
                 remaining % 3600 / 60
             );
             self.context
-                .chat()
-                .command(&server_message(
-                    "yellow",
-                    self.shared.practice.as_ref().unwrap().round_time_seconds + 120,
-                    &body,
-                ))
+                .send_round_message(
+                    &key,
+                    interval,
+                    &server_message(
+                        "yellow",
+                        self.shared.practice.as_ref().unwrap().round_time_seconds + 120,
+                        &body,
+                    ),
+                )
                 .await
-        } else if let Some(bundle) = &state.pinned {
+        } else if let Some(bundle) = state
+            .pinned
+            .as_ref()
+            .or_else(|| live.asset.as_ref()?.bundle.as_deref())
+        {
             let status = if state.phase == Phase::Warmup {
                 zsl_messages::warmup_countdown(
                     (event_start(event, state.timeslot) - now).max(0) as u64
@@ -1548,18 +1379,21 @@ impl ZslSession {
                 "Running".into()
             };
             self.context
-                .chat()
-                .command(&zsl_messages::overlay(
-                    event,
-                    bundle,
-                    if state.phase == Phase::Warmup {
-                        0
-                    } else {
-                        state.index
-                    },
-                    &status,
-                    420,
-                ))
+                .send_round_message(
+                    &key,
+                    interval,
+                    &zsl_messages::overlay(
+                        event,
+                        bundle,
+                        if state.phase == Phase::Warmup {
+                            0
+                        } else {
+                            state.index
+                        },
+                        &status,
+                        self.phase_seconds(state.phase) as u64,
+                    ),
+                )
                 .await
         } else {
             Ok(())
@@ -1670,12 +1504,17 @@ impl ZslSession {
         // Name updates must not replace a fresh native finish with stale DB standings.
         let packets = self.board.lock().await.reconcile_names()?;
         self.context.publish(packets).await?;
-        // Informational packets never need lifecycle locks. These broadcasts precede
-        // LevelRequest during skips and must not block the connection receive loop.
+        // Receipt and upload stay independent of lifecycle callbacks.
         if !matches!(
             packet,
-            GameHostPacket::PlayerConnected { .. } | GameHostPacket::PlaylistIndex { .. }
+            GameHostPacket::PlayerConnected { .. }
+                | GameHostPacket::PlaylistIndex { .. }
+                | GameHostPacket::GameState(2)
         ) && !admitted
+        {
+            return Ok(());
+        }
+        if matches!(packet, GameHostPacket::GameState(2)) && self.live.lock().await.round.is_none()
         {
             return Ok(());
         }
@@ -1746,25 +1585,18 @@ impl ZslSession {
                 .await?;
             live.last_board = None;
         }
-        if let GameHostPacket::PlaylistIndex {
-            current_index,
-            select_next,
-            ..
-        } = packet
-            && state.phase == Phase::Practice
-            && let Some(asset) = live.asset.as_ref()
+        if live.round.is_some()
+            && matches!(
+                packet,
+                GameHostPacket::PlaylistIndex {
+                    select_next: true,
+                    ..
+                } | GameHostPacket::GameState(2)
+            )
         {
-            if *select_next {
-                let next = (state.index + 1) % asset.playlist.levels.len();
-                self.context
-                    .update_playlist(asset.playlist.clone(), state.index as i32, next as i32)
-                    .await?;
-            } else if *current_index >= 0 && (*current_index as usize) < asset.playlist.levels.len()
-            {
-                state.index = *current_index as usize;
-                live.active = Some((Phase::Practice, state.timeslot, state.index));
-                live.last_overlay = None;
-            }
+            let select_requested = matches!(packet, GameHostPacket::PlaylistIndex { .. });
+            self.drive_round(state, live, &self.shared.event()?, select_requested)
+                .await?;
         }
         if matches!(packet, GameHostPacket::PlayerResult { .. }) {
             self.shared.merge_incoming(state, true);
@@ -1786,6 +1618,10 @@ impl ZslSession {
                 tracing::warn!(%error, "ZSL pending finish remains in memory");
                 return Ok(());
             }
+            if let Err(error) = self.sync_scoring_clock(state, live).await {
+                tracing::warn!(%error, "ZSL finish queued until scoring clock correction persists");
+                return Ok(());
+            }
             if let Err(error) = self.flush(state).await {
                 tracing::warn!(%error, "ZSL finish queued for retry");
             }
@@ -1802,17 +1638,21 @@ impl ProfileSession for ZslSession {
         steam_id: u64,
         received_at: jiff::Timestamp,
     ) -> bool {
-        let scope = self.scoring.read().unwrap();
-        if let Some(scope) = scope.as_ref()
-            && scope.phase == Phase::Tournament
-            && (!scope.ready
-                || received_at.as_second() >= scope.deadline
-                || !matches!(packet,GameHostPacket::PlayerResult {level_uid,..} if scope.identity.as_ref().is_some_and(|(uid,_)|uid==level_uid)))
-        {
-            return false;
-        }
-        !scope.as_ref().is_some_and(|scope| scope.timeslot == 1 && scope.locked_players.contains(&steam_id)
-            && matches!(packet, GameHostPacket::PlayerResult {level_uid,..} if scope.identity.as_ref().is_some_and(|(uid,_)| uid == level_uid)))
+        let tournament = self
+            .scoring
+            .read()
+            .unwrap()
+            .as_ref()
+            .is_some_and(|scope| scope.phase == Phase::Tournament);
+        let Some(scope) = self.receipt_scope() else {
+            return !tournament;
+        };
+        scope.phase != Phase::Tournament
+            || (scope.ready
+                && received_at.as_millisecond() < scope.deadline
+                && (scope.timeslot == 0 || !scope.locked_players.contains(&steam_id))
+                && matches!(packet, GameHostPacket::PlayerResult { level_uid, .. }
+                if scope.identity.as_ref().is_some_and(|(uid, _)| uid == level_uid)))
     }
     fn confirm_receipt(&self, event: &TransferEvent) {
         if event.kind != TransferEventKind::Ready || !self.context.is_host() {
@@ -1856,7 +1696,28 @@ impl ProfileSession for ZslSession {
                 }
             }
         };
-        tokio::select! { _ = refresh => Ok(()), result = run => result }
+        let messages = async {
+            loop {
+                let phase = self.shared.saved.lock().await.phase;
+                self.context
+                    .wait_for_round_message(self.overlay_interval(phase))
+                    .await;
+                let state = self.shared.saved.lock().await.clone();
+                let live = self.live.lock().await.clone();
+                let now = jiff::Timestamp::now().as_second();
+                self.overlay(&state, &live, &self.shared.event()?, now)
+                    .await?;
+                // While the next round commits, its clock can already be running.
+                if self
+                    .context
+                    .round_message_due(self.overlay_interval(state.phase))
+                    .is_some()
+                {
+                    tokio::time::sleep(Duration::from_millis(20)).await;
+                }
+            }
+        };
+        tokio::select! { _ = refresh => Ok(()), result = run => result, result = messages => result }
     }
     fn capture_receipt(
         &self,
@@ -1864,7 +1725,7 @@ impl ProfileSession for ZslSession {
         received_at: jiff::Timestamp,
         players: &[zc_core::zeepnet::GameHostPlayer],
     ) -> Option<Arc<dyn std::any::Any + Send + Sync>> {
-        let scope = self.scoring.read().unwrap().clone()?;
+        let scope = self.receipt_scope()?;
         let GameHostPacket::PlayerResult {
             uid,
             has_result: true,
@@ -1880,7 +1741,7 @@ impl ProfileSession for ZslSession {
             || self.shared.retire.load(Ordering::Acquire)
             || scope.phase != Phase::Tournament
             || !scope.ready
-            || received_at.as_second() >= scope.deadline
+            || received_at.as_millisecond() >= scope.deadline
             || scope
                 .identity
                 .as_ref()
@@ -1907,6 +1768,7 @@ impl ProfileSession for ZslSession {
             timeslot: scope.timeslot as i32 + 1,
             microseconds,
             received_at_ms: received_at.as_millisecond(),
+            index: scope.index,
         };
         self.shared.incoming.lock().unwrap().push(finish);
         tracing::debug!(
@@ -1940,26 +1802,8 @@ impl ProfileSession for ZslSession {
         )
         .await
     }
-    async fn on_transfer(&self, event: &TransferEvent) -> Result<()> {
-        if event.kind == TransferEventKind::Ready && !self.shared.retire.load(Ordering::Acquire) {
-            let state = self.shared.saved.lock().await;
-            let mut live = self.live.lock().await;
-            if live
-                .asset
-                .as_ref()
-                .and_then(|asset| asset.playlist.levels.get(state.index))
-                .is_some_and(|level| {
-                    level.uid == event.level.level.uid
-                        && level.workshop_id == event.level.level.workshop_id
-                })
-            {
-                live.ready = Some((event.level.level.uid.clone(), event.level.level.workshop_id));
-                self.shared
-                    .remember_playable(state.phase, state.index, &event.level)
-                    .await;
-                self.scoring_scope(&state, &live);
-            }
-        }
+    async fn on_transfer(&self, _: &TransferEvent) -> Result<()> {
+        // Round identity is committed from the receipt clock, including same-track repeats.
         Ok(())
     }
     async fn stop(&self) {
@@ -1990,9 +1834,6 @@ fn apply_saved_starts(event: &mut ZslEvent, state: &SavedState) {
     if let Some(start) = state.starts[1] {
         event.second = start;
     }
-}
-fn scheduled_index(now: i64, start: i64, len: usize) -> usize {
-    (((now - start).max(0) / 420) as usize).min(len.saturating_sub(1))
 }
 fn normalized_time(time: f32) -> Option<i64> {
     if !time.is_finite() || time <= 0.0 || time > 36_000.0 {
@@ -2031,12 +1872,7 @@ mod tests {
         assert_eq!(normalized_time(0.0000001), None);
         assert_eq!(normalized_time(1.234567_f32), Some(1234567));
     }
-    #[test]
-    fn recovery_uses_wall_clock_and_does_not_wrap() {
-        assert_eq!(scheduled_index(1000, 1000, 15), 0);
-        assert_eq!(scheduled_index(1840, 1000, 15), 2);
-        assert_eq!(scheduled_index(99999, 1000, 15), 14);
-    }
+
     #[test]
     fn default_state_keeps_dnf_eligible() {
         let state = SavedState::default();
