@@ -1,6 +1,7 @@
 import IconActivity from '@tabler/icons-vue/dist/esm/icons/IconActivity.mjs'
 import IconAdjustments from '@tabler/icons-vue/dist/esm/icons/IconAdjustments.mjs'
 import IconAlertTriangle from '@tabler/icons-vue/dist/esm/icons/IconAlertTriangle.mjs'
+import IconAngle from '@tabler/icons-vue/dist/esm/icons/IconAngle.mjs'
 import IconArrowDownFromArc from '@tabler/icons-vue/dist/esm/icons/IconArrowDownFromArc.mjs'
 import IconArrowLeft from '@tabler/icons-vue/dist/esm/icons/IconArrowLeft.mjs'
 import IconArrowNarrowDownDashed from '@tabler/icons-vue/dist/esm/icons/IconArrowNarrowDownDashed.mjs'
@@ -43,6 +44,7 @@ import IconDashboard from '@tabler/icons-vue/dist/esm/icons/IconDashboard.mjs'
 import IconDatabaseOff from '@tabler/icons-vue/dist/esm/icons/IconDatabaseOff.mjs'
 import IconDatabaseSearch from '@tabler/icons-vue/dist/esm/icons/IconDatabaseSearch.mjs'
 import IconDiamond from '@tabler/icons-vue/dist/esm/icons/IconDiamond.mjs'
+import IconDivide from '@tabler/icons-vue/dist/esm/icons/IconDivide.mjs'
 import IconDownload from '@tabler/icons-vue/dist/esm/icons/IconDownload.mjs'
 import IconEdit from '@tabler/icons-vue/dist/esm/icons/IconEdit.mjs'
 import IconExclamationCircle from '@tabler/icons-vue/dist/esm/icons/IconExclamationCircle.mjs'
@@ -67,9 +69,11 @@ import IconLayoutSidebarLeftExpand from '@tabler/icons-vue/dist/esm/icons/IconLa
 import IconLink from '@tabler/icons-vue/dist/esm/icons/IconLink.mjs'
 import IconLoader2 from '@tabler/icons-vue/dist/esm/icons/IconLoader2.mjs'
 import IconLock from '@tabler/icons-vue/dist/esm/icons/IconLock.mjs'
+import IconLogicAnd from '@tabler/icons-vue/dist/esm/icons/IconLogicAnd.mjs'
 import IconLogin2 from '@tabler/icons-vue/dist/esm/icons/IconLogin2.mjs'
 import IconLogout2 from '@tabler/icons-vue/dist/esm/icons/IconLogout2.mjs'
 import IconMap from '@tabler/icons-vue/dist/esm/icons/IconMap.mjs'
+import IconMathSin from '@tabler/icons-vue/dist/esm/icons/IconMathSin.mjs'
 import IconMicroscope from '@tabler/icons-vue/dist/esm/icons/IconMicroscope.mjs'
 import IconMinus from '@tabler/icons-vue/dist/esm/icons/IconMinus.mjs'
 import IconNotes from '@tabler/icons-vue/dist/esm/icons/IconNotes.mjs'
@@ -116,8 +120,11 @@ import IconUsersGroup from '@tabler/icons-vue/dist/esm/icons/IconUsersGroup.mjs'
 import IconVolume from '@tabler/icons-vue/dist/esm/icons/IconVolume.mjs'
 import IconVolumeOff from '@tabler/icons-vue/dist/esm/icons/IconVolumeOff.mjs'
 import IconWheel from '@tabler/icons-vue/dist/esm/icons/IconWheel.mjs'
+import IconWifi from '@tabler/icons-vue/dist/esm/icons/IconWifi.mjs'
 import IconWind from '@tabler/icons-vue/dist/esm/icons/IconWind.mjs'
 import IconWorld from '@tabler/icons-vue/dist/esm/icons/IconWorld.mjs'
+import IconX from '@tabler/icons-vue/dist/esm/icons/IconX.mjs'
+import { IconLogicPort } from '../icons/v18LogicIcons'
 
 export const tablerIcons = {
 	notes: IconNotes,
@@ -241,6 +248,13 @@ export const tablerIcons = {
 	wheel: IconWheel,
 	wind: IconWind,
 	world: IconWorld,
+	'logic-and': IconLogicAnd,
+	wifi: IconWifi,
+	'logic-port': IconLogicPort,
+	x: IconX,
+	divide: IconDivide,
+	angle: IconAngle,
+	'math-sin': IconMathSin,
 }
 
 export type TablerIconName = keyof typeof tablerIcons
