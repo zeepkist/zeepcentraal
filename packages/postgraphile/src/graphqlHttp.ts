@@ -1,5 +1,11 @@
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
-import { setActiveSpanAttributes, updateActiveSpanName } from '@zeepkist/telemetry'
+import {
+	bindTelemetryContext,
+	getActiveSpan,
+	recordSpanFailure,
+	setActiveSpanAttributes,
+	updateActiveSpanName,
+} from '@zeepkist/telemetry'
 import { getOperationAST, parse } from 'postgraphile/graphql'
 import type { AdmissionController } from './admissionController'
 import type { ElysiaGrafserv } from './elysiaGrafserv'
@@ -15,7 +21,6 @@ import {
 type GraphqlHttpConfig = {
 	maxQueryCost: number
 	defaultCollectionSize: number
-	queryTraceDetail: boolean
 	cacheMaxEntries: number
 	maxQueryBytes: number
 }
@@ -38,7 +43,7 @@ function enrichGraphqlSpan(body: unknown) {
 	try {
 		const operation = getOperationAST(parse(query, { noLocation: true }), requestedName)
 		if (!operation) return
-		const name = operation.name?.value ?? 'anonymous'
+		const name = operation.name?.value.slice(0, 96) ?? 'anonymous'
 		setActiveSpanAttributes({
 			'graphql.operation.name': name,
 			'graphql.operation.type': operation.operation,
@@ -87,13 +92,12 @@ export function createGraphqlHttpHandler(
 		createQueryCostEvaluator({
 			maxCost: config.maxQueryCost,
 			defaultCollectionSize: config.defaultCollectionSize,
-			includeTraceDetail: config.queryTraceDetail,
 			cacheSize: config.cacheMaxEntries,
 			maxQueryBytes: config.maxQueryBytes,
 		})
 
 	return async ({ request, body }: { request: Request; body: unknown }) => {
-		const admitted = admission?.admit(() => handleRequest(request, body))
+		const admitted = admission?.admit(bindTelemetryContext(() => handleRequest(request, body)))
 		if (admission) {
 			if (admitted) return admitted
 			return Response.json(
@@ -119,6 +123,12 @@ export function createGraphqlHttpHandler(
 					)
 				: { kind: 'empty' as const }
 
+		setActiveSpanAttributes({
+			'graphql.queryCost.cost': queryCost.cost,
+			'graphql.queryCost.rejection_reason': queryCost.reason,
+		})
+		const span = getActiveSpan()
+		if (span && queryCost.kind === 'rejected') recordSpanFailure(span, 'graphql.query_rejected')
 		const queryCostResponse = createQueryCostResponse(queryCost)
 		if (queryCostResponse) {
 			return queryCostResponse

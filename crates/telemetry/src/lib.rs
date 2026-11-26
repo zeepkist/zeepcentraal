@@ -22,6 +22,7 @@ use std::{
 };
 use tonic::transport::ClientTlsConfig;
 use tracing::Instrument;
+use tracing_opentelemetry::OpenTelemetrySpanExt;
 use tracing_subscriber::{
     EnvFilter,
     filter::filter_fn,
@@ -52,10 +53,23 @@ pub async fn observe_operation<T, E>(
     );
     let started = Instant::now();
     let result = operation.instrument(span.clone()).await;
-    let outcome = if result.is_ok() { "ok" } else { "error" };
     if result.is_err() {
-        span.record("otel.status_code", "ERROR");
+        record_span_failure(&span, "operation.failed");
     }
+    record_operation(
+        name,
+        started.elapsed(),
+        if result.is_ok() { "ok" } else { "error" },
+    );
+    result
+}
+
+pub fn record_span_failure(span: &tracing::Span, category: &'static str) {
+    span.record("otel.status_code", "ERROR");
+    span.add_event("error", vec![KeyValue::new("error.type", category)]);
+}
+
+pub fn record_operation(name: &'static str, duration: Duration, outcome: &'static str) {
     let metrics = OPERATION_METRICS.get_or_init(|| {
         let meter = global::meter("zeepcentraal-service-operations");
         OperationMetrics {
@@ -71,10 +85,7 @@ pub async fn observe_operation<T, E>(
         KeyValue::new("outcome", outcome),
     ];
     metrics.count.add(1, &attributes);
-    metrics
-        .duration
-        .record(started.elapsed().as_secs_f64(), &attributes);
-    result
+    metrics.duration.record(duration.as_secs_f64(), &attributes);
 }
 
 pub struct TelemetryGuard {
@@ -221,7 +232,7 @@ pub fn initialize(package: &str) -> Result<TelemetryGuard> {
         .build()
         .context("Failed to build OTLP metric exporter")?;
     let reader = PeriodicReader::builder(metric_exporter)
-        .with_interval(Duration::from_secs(10))
+        .with_interval(Duration::from_secs(30))
         .build();
     let meter_provider = SdkMeterProvider::builder()
         .with_resource(resource.clone())
@@ -246,7 +257,8 @@ pub fn initialize(package: &str) -> Result<TelemetryGuard> {
         .build();
     let log_bridge =
         OpenTelemetryTracingBridge::new(&logger_provider).with_filter(filter_fn(|metadata| {
-            metadata.level() <= &tracing::Level::INFO
+            (metadata.level() <= &tracing::Level::WARN
+                || metadata.target() == "zc_telemetry::canary")
                 && !metadata.target().starts_with("opentelemetry")
                 && metadata.target() != "zc_telemetry::export"
         }));
@@ -254,7 +266,14 @@ pub fn initialize(package: &str) -> Result<TelemetryGuard> {
     tracing_subscriber::registry()
         .with(filter)
         .with(tracing_subscriber::fmt::layer().json())
-        .with(tracing_opentelemetry::layer().with_tracer(tracer))
+        .with(
+            tracing_opentelemetry::layer()
+                .with_tracer(tracer)
+                .with_threads(false)
+                .with_location(false)
+                .with_tracked_inactivity(false)
+                .with_filter(filter_fn(|metadata| metadata.is_span())),
+        )
         .with(log_bridge)
         .try_init()
         .context("Tracing subscriber is already initialized")?;
@@ -270,7 +289,7 @@ pub fn initialize(package: &str) -> Result<TelemetryGuard> {
         "OpenTelemetry initialized"
     );
     tracing::info_span!("telemetry.startup", service.name = name).in_scope(|| {
-        tracing::info!("OpenTelemetry startup canary");
+        tracing::info!(target: "zc_telemetry::canary", "OpenTelemetry startup canary");
     });
     global::meter("zeepcentraal-telemetry")
         .u64_counter("zc.service.startups")

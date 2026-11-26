@@ -137,6 +137,7 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
     })
     .await?;
     http.abort();
+    tracing::info!(target: "zc_telemetry::test", "Local routine log");
     tracing::error!("OTLP receiver test error event");
     telemetry.force_flush().await?;
 
@@ -222,7 +223,19 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
             .flat_map(|scope| &scope.log_records)
             .map(|log| log.severity_text.as_str())
             .collect::<Vec<_>>();
-        assert!(severities.contains(&"INFO"), "{severities:?}");
+        assert_eq!(
+            severities.iter().filter(|level| **level == "INFO").count(),
+            1
+        );
+        for span in &spans {
+            assert!(!span.attributes.iter().any(|attribute| {
+                let key = attribute.key.as_str();
+                key.starts_with("code.")
+                    || key.starts_with("thread.")
+                    || matches!(key, "busy_ns" | "idle_ns" | "url.path")
+            }));
+            assert!(span.events.len() <= 1);
+        }
         assert!(severities.contains(&"ERROR"), "{severities:?}");
     }
 

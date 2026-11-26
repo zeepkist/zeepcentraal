@@ -1,5 +1,5 @@
 import { SpanKind } from '@opentelemetry/api'
-import { getMeter, injectTraceHeaders, withActiveSpan } from './span'
+import { getMeter, injectTraceHeaders, recordSpanFailure, withActiveSpan } from './span'
 
 let httpDuration: ReturnType<ReturnType<typeof getMeter>['createHistogram']> | undefined
 
@@ -31,14 +31,14 @@ export async function tracedFetch(
 	options: TracedFetchOptions = {},
 ): Promise<Response> {
 	const request = input instanceof Request ? input : undefined
-	const url = sanitizeUrl(input)
+	const url = new URL(request?.url ?? (input as string | URL))
 	const method = (init.method ?? request?.method ?? 'GET').toUpperCase()
 	const started = performance.now()
 	let responseStatus: number | undefined
 
 	try {
 		return await withActiveSpan(
-			options.operationName ?? `${method} ${url.host}`,
+			options.operationName ?? `${method} ${url.hostname}`,
 			{
 				kind: SpanKind.CLIENT,
 				shouldRecordError: options.shouldRecordError,
@@ -46,8 +46,7 @@ export async function tracedFetch(
 					'http.request.method': method,
 					'server.address': url.hostname,
 					...(url.port ? { 'server.port': Number(url.port) } : {}),
-					'url.full': url.toString(),
-					'url.scheme': url.protocol.slice(0, -1),
+					'http.request.retry_count': 0,
 					...options.attributes,
 				},
 			},
@@ -56,16 +55,8 @@ export async function tracedFetch(
 				const response = await (options.fetch ?? fetch)(input, { ...init, headers })
 				responseStatus = response.status
 				span.setAttribute('http.response.status_code', response.status)
-				span.addEvent('http.response', {
-					'http.response.status_code': response.status,
-					'http.response.body.size': Number(response.headers.get('content-length') ?? 0),
-				})
 				if (options.isErrorResponse?.(response) ?? !response.ok) {
-					span.addEvent('error', {
-						'error.type': 'http.response',
-						'http.response.status_code': response.status,
-					})
-					span.setErrorStatus(`HTTP ${response.status}`)
+					recordSpanFailure(span, 'http.response')
 				}
 				return response
 			},

@@ -497,12 +497,8 @@ impl PoolPartition {
                             .into());
                     }
                 }
-                // Install after setup so propagation SQL never becomes a database call span.
-                connection.set_instrumentation(crate::telemetry::DatabaseInstrumentation::new(
-                    self.endpoint.host.clone(),
-                    self.endpoint.port,
-                    self.endpoint.database.clone(),
-                ));
+                // Exclude pool session setup from application query metrics.
+                connection.set_instrumentation(crate::telemetry::DatabaseInstrumentation::new());
                 Ok(PoolConnection {
                     connection,
                     _permit: permit,

@@ -8,7 +8,6 @@ use opentelemetry::{
     KeyValue, global,
     metrics::{Counter, Histogram, UpDownCounter},
     propagation::Extractor,
-    trace::Status,
 };
 use std::{sync::OnceLock, time::Instant};
 use tracing::{Instrument, Level};
@@ -32,15 +31,17 @@ pub fn mod_trace_attributes(headers: &HeaderMap) -> Vec<KeyValue> {
     .into_iter()
     .filter_map(|(header, attribute)| {
         let value = headers.get(header)?.to_str().ok()?;
-        (!value.trim().is_empty() && value.bytes().all(|byte| (0x20..=0x7e).contains(&byte)))
-            .then(|| KeyValue::new(attribute, value.to_owned()))
+        (!value.trim().is_empty()
+            && value.len() <= 64
+            && value.bytes().all(|byte| (0x20..=0x7e).contains(&byte)))
+        .then(|| KeyValue::new(attribute, value.to_owned()))
     })
     .collect()
 }
 
 pub async fn track_request(request: Request, next: Next) -> Response {
     let method = request.method().to_string();
-    let path = request.uri().path().to_owned();
+    let probe = matches!(request.uri().path(), "/healthz" | "/readyz");
     let route = request
         .extensions()
         .get::<MatchedPath>()
@@ -48,43 +49,41 @@ pub async fn track_request(request: Request, next: Next) -> Response {
         .unwrap_or("unmatched")
         .to_owned();
     let protocol = protocol_version(request.version());
-    let parent = global::get_text_map_propagator(|propagator| {
-        propagator.extract(&HeaderExtractor(request.headers()))
-    });
-    let span = tracing::span!(
-        Level::INFO,
-        "http.server.request",
-        otel.kind = "server",
-        otel.name = tracing::field::Empty,
-        otel.status_code = tracing::field::Empty,
-        http.request.method = method,
-        http.route = route,
-        url.path = path,
-        network.protocol.version = protocol,
-        http.response.status_code = tracing::field::Empty,
-        server.duration_ms = tracing::field::Empty,
-        mod.outdated = tracing::field::Empty,
-        mod.errorCode = tracing::field::Empty,
-        record.Level = tracing::field::Empty,
-        record.Hash = tracing::field::Empty,
-        record.WorkshopId = tracing::field::Empty,
-        record.Time = tracing::field::Empty,
-        record.Splits = tracing::field::Empty,
-        record.Speeds = tracing::field::Empty,
-        record.GhostData = tracing::field::Empty,
-        record.GameVersion = tracing::field::Empty,
-        record.ModVersion = tracing::field::Empty,
-        record.GhostDataLength = tracing::field::Empty,
-        record.unsetFields = tracing::field::Empty,
-        record.truncatedFields = tracing::field::Empty,
-        record.originalLengths = tracing::field::Empty,
-        record.validationErrors = tracing::field::Empty,
-    );
-    let _ = span.set_parent(parent);
-    for attribute in mod_trace_attributes(request.headers()) {
-        span.set_attribute(attribute.key, attribute.value);
-    }
-    span.record("otel.name", format_args!("{method} {route}"));
+    let span = if probe {
+        tracing::Span::none()
+    } else {
+        let parent = global::get_text_map_propagator(|propagator| {
+            propagator.extract(&HeaderExtractor(request.headers()))
+        });
+        let span = tracing::span!(
+            Level::INFO,
+            "http.server.request",
+            otel.kind = "server",
+            otel.name = tracing::field::Empty,
+            otel.status_code = tracing::field::Empty,
+            http.request.method = method,
+            http.route = route,
+            network.protocol.version = protocol,
+            http.response.status_code = tracing::field::Empty,
+            mod.outdated = tracing::field::Empty,
+            mod.errorCode = tracing::field::Empty,
+            record.Level = tracing::field::Empty,
+            record.Hash = tracing::field::Empty,
+            record.WorkshopId = tracing::field::Empty,
+            record.GameVersion = tracing::field::Empty,
+            record.ModVersion = tracing::field::Empty,
+            record.GhostDataLength = tracing::field::Empty,
+            record.SplitCount = tracing::field::Empty,
+            record.SpeedCount = tracing::field::Empty,
+            record.validationErrors = tracing::field::Empty,
+        );
+        let _ = span.set_parent(parent);
+        for attribute in mod_trace_attributes(request.headers()) {
+            span.set_attribute(attribute.key, attribute.value);
+        }
+        span.record("otel.name", format_args!("{method} {route}"));
+        span
+    };
 
     let metrics = metrics();
     let active_attributes = [
@@ -100,7 +99,7 @@ pub async fn track_request(request: Request, next: Next) -> Response {
     let status = response.status();
     let completed_attributes = [
         KeyValue::new("http.request.method", method),
-        KeyValue::new("http.route", route),
+        KeyValue::new("http.route", route.clone()),
         KeyValue::new(
             "http.response.status_class",
             format!("{}xx", status.as_u16() / 100),
@@ -111,14 +110,12 @@ pub async fn track_request(request: Request, next: Next) -> Response {
         .record(duration.as_secs_f64(), &completed_attributes);
     metrics.count.add(1, &completed_attributes);
     span.record("http.response.status_code", status.as_u16());
-    span.record("server.duration_ms", duration.as_secs_f64() * 1_000.0);
     if status.is_server_error() {
-        span.set_status(Status::error(status.to_string()));
-        span.record("otel.status_code", "ERROR");
+        super::record_span_failure(&span, "http.response");
         span.in_scope(|| {
             tracing::error!(
+                http.route = route,
                 http.response.status_code = status.as_u16(),
-                server.duration_ms = duration.as_secs_f64() * 1_000.0,
                 "HTTP request failed"
             );
         });
@@ -173,7 +170,7 @@ mod tests {
     use axum::{Router, body::Body, http::Request as HttpRequest, middleware, routing::get};
     use opentelemetry::{
         global,
-        trace::{SpanId, TracerProvider as _},
+        trace::{SpanId, Status, TracerProvider as _},
     };
     use opentelemetry_sdk::{
         metrics::{InMemoryMetricExporter, PeriodicReader, SdkMeterProvider},
@@ -293,8 +290,8 @@ mod tests {
             SpanId::from_hex("00f067aa0ba902b7").unwrap()
         );
         let success_attributes = format!("{:?}", success.attributes);
-        assert!(success_attributes.contains("url.path"));
-        assert!(success_attributes.contains("/ok/42"));
+        assert!(!success_attributes.contains("url.path"));
+        assert!(!success_attributes.contains("/ok/42"));
         assert!(!success_attributes.contains("super-secret"));
         assert!(!success_attributes.contains("private"));
         assert!(

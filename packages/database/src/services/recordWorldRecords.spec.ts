@@ -28,13 +28,7 @@ mock.module('@zeepkist/telemetry', () => ({
 	createCounter: () => ({ add: () => {} }),
 	recordSpanError: () => {},
 	setActiveSpanErrorStatus: () => {},
-	startActiveSpan: (_name: string, callback: (span: Record<string, () => void>) => unknown) =>
-		callback({
-			recordException: () => {},
-			setAttribute: () => {},
-			setErrorStatus: () => {},
-			end: () => {},
-		}),
+	getMeter: () => ({ createHistogram: () => ({ record: () => {} }) }),
 }))
 // Tournament behavior is outside this fixture; submission, score persistence, and locks are real.
 mock.module('./trackTournament', () => ({ recordTrackTournamentResults: async () => false }))

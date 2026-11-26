@@ -1,9 +1,4 @@
-import {
-	createCounter,
-	recordSpanError,
-	setActiveSpanErrorStatus,
-	startActiveSpan,
-} from '@zeepkist/telemetry'
+import { createCounter, getMeter, recordSpanError } from '@zeepkist/telemetry'
 import { and, asc, eq, inArray, lte, sql } from 'drizzle-orm'
 import { type DatabaseExecutor, db } from '../client'
 import { GHOST_FOLDER } from '../config'
@@ -41,20 +36,29 @@ function postgresErrorCode(error: unknown): string | undefined {
 	return undefined
 }
 
-async function traceRecordPhase<T>(name: string, task: () => Promise<T>): Promise<T> {
-	return startActiveSpan(name, async (span) => {
-		try {
-			return await task()
-		} catch (error) {
-			const code = postgresErrorCode(error)
-			if (code) span.setAttribute('db.response.status_code', code)
-			span.recordException(error)
-			span.setErrorStatus(error instanceof Error ? error.message : String(error))
-			throw error
-		} finally {
-			span.end()
-		}
-	})
+let phaseDuration: ReturnType<ReturnType<typeof getMeter>['createHistogram']> | undefined
+
+async function recordPhase<T>(phase: string, task: () => Promise<T>): Promise<T> {
+	const started = performance.now()
+	let outcome = 'ok'
+	try {
+		return await task()
+	} catch (error) {
+		outcome = 'error'
+		const code = postgresErrorCode(error)
+		console.error(
+			'Record submission phase failed',
+			phase,
+			code && /^[A-Z0-9]{5}$/.test(code) ? code : 'unknown',
+		)
+		throw error
+	} finally {
+		phaseDuration ??= getMeter('zeepcentraal-database').createHistogram(
+			'record.submit.phase.duration',
+			{ unit: 's' },
+		)
+		phaseDuration.record((performance.now() - started) / 1_000, { phase, outcome })
+	}
 }
 
 function recordGhostUploadError(
@@ -68,20 +72,20 @@ export async function submitRecord(
 	input: RecordInput,
 	statistic?: Omit<RecordStatisticInput, 'idRecord'>,
 ) {
-	return traceRecordPhase('record.submit.transaction', () =>
+	return recordPhase('record.submit.transaction', () =>
 		db.transaction(async (tx) => {
-			const [clock] = await traceRecordPhase('record.submit.user_level_lock_wait', () =>
+			const [clock] = await recordPhase('record.submit.user_level_lock_wait', () =>
 				tx.execute<{ accepted_at: string }>(sql`
 					SELECT
 						pg_advisory_xact_lock(${input.idUser}, ${input.idLevel}),
 						clock_timestamp()::text AS accepted_at
 				`),
 			)
-			await traceRecordPhase('record.submit.tournament_level_lock_wait', () =>
+			await recordPhase('record.submit.tournament_level_lock_wait', () =>
 				tx.execute(sql`SELECT pg_advisory_xact_lock_shared(0, ${input.idLevel})`),
 			)
 
-			const [created] = await traceRecordPhase('record.submit.insert_and_projection', () =>
+			const [created] = await recordPhase('record.submit.insert_and_projection', () =>
 				tx.insert(record).values(input).returning(),
 			)
 			if (!created) {
@@ -90,7 +94,7 @@ export async function submitRecord(
 			if (!clock) throw new Error('Failed to capture record acceptance time')
 
 			if (statistic) {
-				await traceRecordPhase('record.submit.statistics', () =>
+				await recordPhase('record.submit.statistics', () =>
 					tx
 						.insert(recordStatistic)
 						.values(buildRecordStatisticValues(created.id, statistic)),
@@ -98,7 +102,7 @@ export async function submitRecord(
 			}
 
 			const now = new Date().toISOString()
-			const personalBestRows = await traceRecordPhase('record.submit.personal_best', () =>
+			const personalBestRows = await recordPhase('record.submit.personal_best', () =>
 				tx
 					.insert(personalBestGlobal)
 					.values({
@@ -121,7 +125,7 @@ export async function submitRecord(
 			)
 			const personalBestChanged = personalBestRows.length > 0
 
-			const [observedWorldRecord] = await traceRecordPhase(
+			const [observedWorldRecord] = await recordPhase(
 				'record.submit.world_record_precheck',
 				() =>
 					tx
@@ -131,7 +135,7 @@ export async function submitRecord(
 						.where(eq(worldRecordGlobal.idLevel, input.idLevel)),
 			)
 
-			const tournamentResultChanged = await traceRecordPhase('record.submit.tournament', () =>
+			const tournamentResultChanged = await recordPhase('record.submit.tournament', () =>
 				recordTrackTournamentResults(tx, {
 					acceptedAt: clock.accepted_at,
 					idLevel: created.idLevel,
@@ -142,7 +146,7 @@ export async function submitRecord(
 			)
 
 			if (!observedWorldRecord || observedWorldRecord.time > created.time) {
-				await traceRecordPhase('record.submit.world_record_lock_wait', () =>
+				await recordPhase('record.submit.world_record_lock_wait', () =>
 					tx.execute(
 						sql`SELECT pg_advisory_xact_lock(${WORLD_RECORD_LOCK_NAMESPACE}, ${input.idLevel})`,
 					),
@@ -158,40 +162,38 @@ export async function submitRecord(
 						input.idUser,
 						...(previousWorldRecord ? [previousWorldRecord.idUser] : []),
 					])
-					await traceRecordPhase('record.submit.world_record_count_lock_wait', () =>
+					await recordPhase('record.submit.world_record_count_lock_wait', () =>
 						lockWorldRecordCounts(tx, worldRecordUserIds),
 					)
 
-					const worldRecordRows = await traceRecordPhase(
-						'record.submit.world_record',
-						() =>
-							tx
-								.insert(worldRecordGlobal)
-								.values({
+					const worldRecordRows = await recordPhase('record.submit.world_record', () =>
+						tx
+							.insert(worldRecordGlobal)
+							.values({
+								idUser: input.idUser,
+								idLevel: input.idLevel,
+								idRecord: created.id,
+								dateCreated: now,
+								dateUpdated: now,
+							})
+							.onConflictDoUpdate({
+								target: worldRecordGlobal.idLevel,
+								set: {
 									idUser: input.idUser,
-									idLevel: input.idLevel,
 									idRecord: created.id,
-									dateCreated: now,
 									dateUpdated: now,
-								})
-								.onConflictDoUpdate({
-									target: worldRecordGlobal.idLevel,
-									set: {
-										idUser: input.idUser,
-										idRecord: created.id,
-										dateUpdated: now,
-									},
-									where: sql`(
+								},
+								where: sql`(
 									SELECT current_record.time
 									FROM ${record} AS current_record
 									WHERE current_record.id = ${worldRecordGlobal.idRecord}
 								) > ${created.time}`,
-								})
-								.returning({ id: worldRecordGlobal.id }),
+							})
+							.returning({ id: worldRecordGlobal.id }),
 					)
 
 					if (worldRecordRows.length > 0) {
-						await traceRecordPhase('record.submit.world_record_counts', () =>
+						await recordPhase('record.submit.world_record_counts', () =>
 							refreshUserWorldRecordCounts(tx, worldRecordUserIds),
 						)
 					}
@@ -218,9 +220,6 @@ export async function uploadRecordMedia(idRecord: number, ghostData: Uint8Array)
 		await deleteFile(ghostUrl).catch((deleteError) => {
 			console.error('[ghost] Failed cleanup after media upload failure:', deleteError)
 		})
-		setActiveSpanErrorStatus(
-			error instanceof Error ? error.message : 'Ghost media upload failed',
-		)
 		recordGhostUploadError(error, {
 			'record.id': idRecord,
 			'record.ghost_upload.failed': true,

@@ -16,6 +16,7 @@ export function getModTraceAttributes(headers: TelemetryHttpServerSpanInput['hea
 			attribute &&
 			typeof value === 'string' &&
 			value.trim() &&
+			value.length <= 64 &&
 			/^[\x20-\x7e]+$/.test(value)
 		) {
 			attributes[attribute] = value

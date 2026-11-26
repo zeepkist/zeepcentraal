@@ -1,10 +1,9 @@
 import { URL } from 'node:url'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
-import { recordSpanWarning } from '@zeepkist/telemetry'
+import { setActiveSpanAttributes } from '@zeepkist/telemetry'
 import { wrapPlans } from 'postgraphile/utils'
 
 const FIELDS = new Set(['ghostUrl', 'imageUrl'])
-let isCdnBaseUrlInvalid = false
 
 function getCdnBaseUrl() {
 	if (!postgraphileConfig.cdnBaseUrl) {
@@ -14,31 +13,20 @@ function getCdnBaseUrl() {
 	try {
 		return new URL(postgraphileConfig.cdnBaseUrl)
 	} catch {
-		isCdnBaseUrlInvalid = true
+		console.warn('Invalid PostGraphile CDN base URL')
 		return undefined
 	}
 }
 
 const CDN_BASE_URL = getCdnBaseUrl()
 
-function toCdnUrl(value: unknown, fieldName: string) {
-	if (typeof value !== 'string' || !CDN_BASE_URL) {
-		if (value && isCdnBaseUrlInvalid) {
-			recordSpanWarning('CDN URL base invalid', {
-				'graphql.field.name': fieldName,
-			})
-		}
-
-		return value
-	}
+function toCdnUrl(value: unknown) {
+	if (typeof value !== 'string' || !CDN_BASE_URL) return value
 
 	try {
 		return new URL(value, CDN_BASE_URL).toString()
-	} catch (error) {
-		recordSpanWarning('CDN URL conversion failed', {
-			'graphql.field.name': fieldName,
-			'graphql.cdn.error': error instanceof Error ? error.message : String(error),
-		})
+	} catch {
+		setActiveSpanAttributes({ 'graphql.cdn.invalid_url': true })
 		return value
 	}
 }
@@ -49,15 +37,14 @@ export const AddCdnToUrlsPlugin = wrapPlans(
 
 		return fieldName && FIELDS.has(fieldName)
 			? {
-					fieldName,
 					lambda: build.grafast.lambda,
 				}
 			: null
 	},
-	({ fieldName, lambda }) =>
+	({ lambda }) =>
 		(plan, $source, fieldArgs, info) => {
 			const $value = plan($source, fieldArgs, info)
-			return lambda($value, (value: unknown) => toCdnUrl(value, fieldName))
+			return lambda($value, (value: unknown) => toCdnUrl(value))
 		},
 	{
 		name: 'AddCdnToUrlsPlugin',

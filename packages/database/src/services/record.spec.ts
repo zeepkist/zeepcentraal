@@ -14,13 +14,7 @@ mock.module('@zeepkist/telemetry', () => ({
 	createCounter: () => ({ add: () => {} }),
 	recordSpanError: () => {},
 	setActiveSpanErrorStatus: () => {},
-	startActiveSpan: (_name: string, callback: (span: Record<string, () => void>) => unknown) =>
-		callback({
-			recordException: () => {},
-			setAttribute: () => {},
-			setErrorStatus: () => {},
-			end: () => {},
-		}),
+	getMeter: () => ({ createHistogram: () => ({ record: () => {} }) }),
 }))
 
 const { buildPersonalBestsWithRecordByLevelIdsQuery, buildV2ScorePersonalBestsByLevelIdsQuery } =

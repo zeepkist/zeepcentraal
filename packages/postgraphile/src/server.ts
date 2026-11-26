@@ -1,5 +1,14 @@
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
-import { createElysiaRequestLoggingPlugin, createElysiaTelemetryPlugin } from '@zeepkist/telemetry'
+import {
+	createElysiaRequestLoggingPlugin,
+	emitTelemetryLog,
+	getHttpErrorStatus,
+	getMeter,
+	recordSpanFailure,
+	SpanKind,
+	withActiveSpan,
+	withExtractedTraceContext,
+} from '@zeepkist/telemetry'
 import { Elysia } from 'elysia'
 import { websocket } from 'elysia/websocket'
 import { createPostGraphileCors } from './middleware/cors'
@@ -20,18 +29,90 @@ function redirectToRoot(request: Request) {
 	return Response.redirect(new URL('/', request.url).toString(), 302)
 }
 
-function createWithTelemetry() {
-	if (process.env.ZEEPCENTRAAL_TEST === '1') {
-		return new Elysia()
-	}
+let requestDuration: ReturnType<ReturnType<typeof getMeter>['createHistogram']> | undefined
 
-	return createElysiaTelemetryPlugin({
-		packageName: 'postgraphile',
-		collectorUrl: postgraphileConfig.otel.collectorUrl,
-		nodeEnv: postgraphileConfig.nodeEnv,
-		serviceName: postgraphileConfig.otel.serviceName,
-		serviceVersion: postgraphileConfig.otel.serviceVersion,
-	})
+function telemetryRoute(path: string) {
+	if (path.startsWith('/ruru-static/')) return '/ruru-static/*'
+	switch (path) {
+		case '/':
+		case '/graphql':
+		case '/graphiql':
+		case '/healthz':
+		case '/readyz':
+			return path
+		default:
+			return 'unmatched'
+	}
+}
+
+function trackRequest<Args extends unknown[]>(
+	next: (request: Request, ...args: Args) => Response | Promise<Response>,
+) {
+	return async (request: Request, ...args: Args) => {
+		const url = new URL(request.url)
+		const route = telemetryRoute(url.pathname)
+		const method = request.method
+		const attributes = { 'http.request.method': method, 'http.route': route }
+		const started = performance.now()
+		let status: number | undefined
+		function recordFailure() {
+			if (status !== undefined && status >= 500) {
+				emitTelemetryLog('error', 'HTTP request failed', {
+					...attributes,
+					'http.response.status_code': status,
+				})
+			}
+		}
+		try {
+			if (route === '/healthz' || route === '/readyz') {
+				const response = await next(request, ...args)
+				status = response.status
+				recordFailure()
+				return response
+			}
+
+			return await withExtractedTraceContext(request.headers, () =>
+				withActiveSpan(
+					`${method} ${route}`,
+					{ kind: SpanKind.SERVER, attributes },
+					async (span) => {
+						try {
+							const response = await next(request, ...args)
+							status = response?.status ?? 101
+							span.setAttribute('http.response.status_code', status)
+							if (status >= 500) recordSpanFailure(span, 'http.response')
+							recordFailure()
+							return response
+						} catch (error) {
+							status = getHttpErrorStatus(error) ?? 500
+							span.setAttribute('http.response.status_code', status)
+							recordFailure()
+							throw error
+						}
+					},
+				),
+			)
+		} finally {
+			requestDuration ??= getMeter('zeepcentraal-http-server').createHistogram(
+				'http.server.request.duration',
+				{
+					unit: 's',
+					advice: {
+						explicitBucketBoundaries: [
+							0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5,
+							10, 30, 60, 120, 300, 600, 900, 1800,
+						],
+					},
+				},
+			)
+			requestDuration.record((performance.now() - started) / 1_000, {
+				...attributes,
+				'url.scheme': url.protocol.slice(0, -1),
+				'http.response.status_code': status,
+				...(status !== undefined && status >= 500 ? { 'error.type': String(status) } : {}),
+			})
+		}
+	}
 }
 
 async function readinessResponse(readiness: ReadinessService, head = false) {
@@ -46,7 +127,7 @@ async function readinessResponse(readiness: ReadinessService, head = false) {
 }
 
 const withLogging = createElysiaRequestLoggingPlugin({
-	enabled: postgraphileConfig.requestLogging,
+	enabled: () => postgraphileConfig.requestLogging,
 })
 
 export function buildPostGraphileServer(
@@ -70,7 +151,7 @@ export function buildPostGraphileServer(
 		.use(withLogging)
 		.use(createPostGraphileCors(postgraphileConfig.corsCredentialOrigins))
 		.use(websocket())
-		.use(createWithTelemetry())
+		.wrap(trackRequest)
 		.get('/healthz', () => 'OK')
 		.head('/healthz', () => 'OK')
 		.get('/readyz', () => readinessResponse(readiness))

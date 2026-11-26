@@ -1,4 +1,11 @@
-import { SpanKind, withActiveSpan, withExtractedTraceContext } from '@zeepkist/telemetry'
+import {
+	emitTelemetryLog,
+	getHttpErrorStatus,
+	recordSpanFailure,
+	SpanKind,
+	withActiveSpan,
+	withExtractedTraceContext,
+} from '@zeepkist/telemetry'
 import { getRequestHeaders, getRequestURL } from 'h3'
 import { defineNitroPlugin } from 'nitropack/runtime'
 import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
@@ -11,42 +18,54 @@ export default defineNitroPlugin((nitroApp) => {
 	const handler = nitroApp.h3App.handler
 	nitroApp.h3App.handler = async (event) => {
 		const url = getRequestURL(event)
-		if (url.pathname === '/healthz' || STATIC_PATH.test(url.pathname)) return handler(event)
+		if (url.pathname === '/healthz' || url.pathname === '/readyz') {
+			const result = await handler(event)
+			if (event.node.res.statusCode >= 500) {
+				emitTelemetryLog('error', 'HTTP probe failed', {
+					'http.route': url.pathname,
+					'http.response.status_code': event.node.res.statusCode,
+				})
+			}
+			return result
+		}
+		if (STATIC_PATH.test(url.pathname)) return handler(event)
 		const method = event.method
 		return withExtractedTraceContext(getRequestHeaders(event), () =>
 			withActiveSpan(
-				`${method} ${url.pathname}`,
+				`${method} unmatched`,
 				{
 					kind: SpanKind.SERVER,
 					shouldRecordError: shouldRecordWebError,
 					attributes: {
 						'http.request.method': method,
-						'url.path': url.pathname,
 						'server.address': url.hostname,
 						'web.render.type': url.pathname.startsWith('/api/') ? 'api' : 'ssr',
 					},
 				},
 				async (span) => {
-					const result = await handler(event)
-					const status = event.node.res.statusCode
-					const route = resolveTelemetryRoute(event.context.matchedRoute, url.pathname)
-					span.updateName(`${method} ${route}`)
-					span.setAttributes({
-						'http.response.status_code': status,
-						'http.route': route,
-					})
-					span.addEvent('web.request.completed', {
-						'http.response.status_code': status,
-						'web.render.type': url.pathname.startsWith('/api/') ? 'api' : 'ssr',
-					})
-					if (status >= 500) {
-						span.addEvent('error', {
-							'error.type': 'http.response',
-							'http.response.status_code': status,
-						})
-						span.setErrorStatus(`HTTP ${status}`)
+					let status: number | undefined
+					try {
+						const result = await handler(event)
+						status = event.node.res.statusCode
+						span.setAttribute('http.response.status_code', status)
+						if (status >= 500) recordSpanFailure(span, 'http.response')
+						return result
+					} catch (error) {
+						status = getHttpErrorStatus(error) ?? 500
+						span.setAttribute('http.response.status_code', status)
+						throw error
+					} finally {
+						const route = resolveTelemetryRoute(event.context.matchedRoute)
+						span.updateName(`${method} ${route}`)
+						span.setAttribute('http.route', route)
+						if (status !== undefined && status >= 500) {
+							emitTelemetryLog('error', 'HTTP request failed', {
+								'http.request.method': method,
+								'http.route': route,
+								'http.response.status_code': status,
+							})
+						}
 					}
-					return result
 				},
 			),
 		)

@@ -63,8 +63,10 @@ function toError(error: unknown) {
 		: new Error(typeof error === 'string' ? error : 'Telemetry error')
 }
 
+const failedSpans = new WeakSet<Span>()
+const reportedFailures = new WeakSet<Span>()
+
 function wrapSpan(span: Span): TelemetrySpan {
-	let errorStatus = false
 	return {
 		setAttribute(name, value) {
 			span.setAttribute(name, value)
@@ -73,20 +75,24 @@ function wrapSpan(span: Span): TelemetrySpan {
 			span.setAttributes(attributes)
 		},
 		addEvent(name, attributes) {
+			if (name === 'error') {
+				if (reportedFailures.has(span)) return
+				reportedFailures.add(span)
+			}
 			span.addEvent(name, attributes)
 		},
 		recordException(error) {
 			span.recordException(toError(error))
 		},
 		hasErrorStatus() {
-			return errorStatus
+			return failedSpans.has(span)
 		},
 		setErrorStatus(message) {
-			errorStatus = true
+			failedSpans.add(span)
 			span.setStatus({ code: SpanStatusCode.ERROR, message })
 		},
 		setOkStatus() {
-			errorStatus = false
+			failedSpans.delete(span)
 			span.setStatus({ code: SpanStatusCode.OK })
 		},
 		updateName(name) {
@@ -187,9 +193,11 @@ export async function withActiveSpan<T>(
 			if (!span.hasErrorStatus()) span.setOkStatus()
 			return value
 		} catch (error) {
+			const status = getHttpErrorStatus(error)
+			if (status !== undefined && !span.hasErrorStatus()) {
+				span.setAttribute('http.response.status_code', status)
+			}
 			if (options.shouldRecordError?.(error) === false) {
-				const status = getHttpErrorStatus(error)
-				if (status !== undefined) span.setAttribute('http.response.status_code', status)
 				if (!span.hasErrorStatus()) span.setOkStatus()
 			} else recordSpanError(error, undefined, span)
 			throw error
@@ -207,6 +215,10 @@ export function injectTraceHeaders(headers?: TelemetryHeadersInit): Headers {
 		},
 	})
 	return nextHeaders
+}
+
+export function bindTelemetryContext<T>(callback: () => T): () => T {
+	return context.bind(context.active(), callback)
 }
 
 export function withExtractedTraceContext<T>(
@@ -238,13 +250,12 @@ export function startHttpServerSpan<T>(
 ): T {
 	return withExtractedTraceContext(input.headers, () =>
 		trace.getTracer('zeepcentraal').startActiveSpan(
-			`${input.method} ${input.route ?? new URL(input.url).pathname}`,
+			`${input.method} ${input.route ?? 'unmatched'}`,
 			{
 				kind: SpanKind.SERVER,
 				attributes: {
 					'http.request.method': input.method,
-					'url.full': input.url,
-					'url.path': new URL(input.url).pathname,
+					'http.route': input.route ?? 'unmatched',
 					...input.attributes,
 					...getModTraceAttributes(input.headers),
 				},
@@ -308,14 +319,17 @@ export function recordSpanError(
 		return
 	}
 
-	const message = error instanceof Error ? error.message : String(error)
+	const category = getHttpErrorStatus(error) === undefined ? 'exception' : 'http.response'
+	recordSpanFailure(span, category, attributes)
+}
 
-	span.recordException(error)
-	span.addEvent('error', {
-		'error.message': message,
-		...attributes,
-	})
-	span.setErrorStatus(message)
+export function recordSpanFailure(
+	span: TelemetrySpan,
+	category: string,
+	attributes?: TelemetryAttributes,
+) {
+	span.addEvent('error', { ...attributes, 'error.type': category })
+	span.setErrorStatus()
 }
 
 export function setActiveSpanErrorStatus(message?: string): boolean {

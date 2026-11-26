@@ -165,11 +165,17 @@ async fn gtr_errors_and_headers_preserve_http_contracts() -> Result<()> {
         )));
         if path == "/record/submit" && code == 19 {
             assert!(span.attributes.contains(&KeyValue::new("record.Level", "")));
-            assert!(span.attributes.contains(&KeyValue::new("record.Time", 0.0)));
-            assert!(
-                span.attributes
-                    .contains(&KeyValue::new("record.GhostData", "[redacted]"))
-            );
+            assert!(span.attributes.contains(&KeyValue::new("record.Hash", "")));
+            for key in [
+                "record.GhostDataLength",
+                "record.SplitCount",
+                "record.SpeedCount",
+            ] {
+                assert!(span.attributes.contains(&KeyValue::new(key, 0_i64)));
+            }
+            assert!(!span.attributes.iter().any(|attribute| {
+                matches!(attribute.key.as_str(), "record.Time" | "record.GhostData")
+            }));
             let reasons = span
                 .attributes
                 .iter()
@@ -200,6 +206,7 @@ async fn gtr_errors_and_headers_preserve_http_contracts() -> Result<()> {
         }
     }
     for path in ["/healthz", "/missing"] {
+        let previous = exporter.get_finished_spans()?.len();
         let response = app
             .clone()
             .oneshot(
@@ -220,10 +227,13 @@ async fn gtr_errors_and_headers_preserve_http_contracts() -> Result<()> {
         );
         provider.force_flush()?;
         let spans = exporter.get_finished_spans()?;
-        let span = spans
+        if path == "/healthz" {
+            assert_eq!(spans.len(), previous);
+            continue;
+        }
+        let span = spans[previous..]
             .iter()
-            .rev()
-            .find(|span| span.name.starts_with("GET "))
+            .find(|span| span.name == "GET unmatched")
             .unwrap();
         assert!(
             span.attributes

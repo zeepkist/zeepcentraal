@@ -1,11 +1,5 @@
 import { Buffer } from 'node:buffer'
 import {
-	getTracer,
-	recordSpanWarning,
-	setSpanErrorStatus,
-	setSpanOkStatus,
-} from '@zeepkist/telemetry'
-import {
 	type ArgumentNode,
 	type DocumentNode,
 	type FragmentDefinitionNode,
@@ -35,7 +29,6 @@ const FLATTENED_FIELDS_NO_DEPTH = new Set([
 type GraphQlBody = {
 	query?: unknown
 	operationName?: unknown
-	variables?: unknown
 }
 
 export type QueryCostResult = {
@@ -51,7 +44,6 @@ export type QueryCostEvaluator = (body: GraphQlBody | undefined) => Promise<Quer
 type QueryCostEvaluatorOptions = {
 	maxCost?: number
 	defaultCollectionSize?: number
-	includeTraceDetail?: boolean
 	cacheSize?: number
 	maxQueryBytes?: number
 	onCacheMiss?: () => void
@@ -371,7 +363,6 @@ export function estimateQueryCost(
 export function createQueryCostEvaluator({
 	maxCost = 5000,
 	defaultCollectionSize = 100,
-	includeTraceDetail = false,
 	cacheSize = 500,
 	maxQueryBytes = 64 * 1024,
 	onCacheMiss,
@@ -393,148 +384,92 @@ export function createQueryCostEvaluator({
 			}
 		}
 
-		const startTime = performance.now()
-		const tracer = getTracer()
 		const operationName =
 			typeof body.operationName === 'string' ? body.operationName : undefined
-		const { query, variables } = body
+		const { query } = body
 		const cacheKey = queryCostCacheKey(query, operationName, defaultCollectionSize)
 
-		return tracer.startActiveSpan('GraphQL Query Cost Estimation', async (span) => {
-			let cached = true
-			let parseElapsedMs = 0
-			let costElapsedMs = 0
-			let result = getCachedQueryCostResult(cache, cacheKey)
+		let result = getCachedQueryCostResult(cache, cacheKey)
 
-			if (!result) {
-				cached = false
-				onCacheMiss?.()
+		if (!result) {
+			onCacheMiss?.()
 
-				let document: DocumentNode | undefined
+			let document: DocumentNode | undefined
 
-				try {
-					const parseStartTime = performance.now()
-					document = parse(query, { noLocation: true })
-					parseElapsedMs = performance.now() - parseStartTime
-				} catch (error) {
-					const message = error instanceof Error ? error.message : String(error)
-					result = { kind: 'syntax-error', message }
-					setCachedQueryCostResult(cache, cacheKey, result, cacheSize)
-				}
+			try {
+				document = parse(query, { noLocation: true })
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error)
+				result = { kind: 'syntax-error', message }
+				setCachedQueryCostResult(cache, cacheKey, result, cacheSize)
+			}
 
-				if (!result && document) {
-					const fragments: Record<string, FragmentDefinitionNode> = Object.create(null)
-					for (const definition of document.definitions) {
-						if (definition.kind === 'FragmentDefinition') {
-							fragments[definition.name.value] = definition
-						}
+			if (!result && document) {
+				const fragments: Record<string, FragmentDefinitionNode> = Object.create(null)
+				for (const definition of document.definitions) {
+					if (definition.kind === 'FragmentDefinition') {
+						fragments[definition.name.value] = definition
 					}
-					const bounded = withinTraversalBudget(document)
-					const operations = document.definitions.filter(
-						(definition) =>
-							definition.kind === 'OperationDefinition' &&
-							(!operationName || definition.name?.value === operationName),
-					)
-					const operation = operations.length === 1 ? operations[0] : undefined
-					const classification =
-						bounded && operation?.kind === 'OperationDefinition'
-							? classifyIntrospectionSelections(
-									operation.selectionSet.selections,
-									fragments,
-									operation.operation === 'subscription',
-								)
-							: undefined
-					const isIntrospection = classification?.pure && classification.hasIntrospection
+				}
+				const bounded = withinTraversalBudget(document)
+				const operations = document.definitions.filter(
+					(definition) =>
+						definition.kind === 'OperationDefinition' &&
+						(!operationName || definition.name?.value === operationName),
+				)
+				const operation = operations.length === 1 ? operations[0] : undefined
+				const classification =
+					bounded && operation?.kind === 'OperationDefinition'
+						? classifyIntrospectionSelections(
+								operation.selectionSet.selections,
+								fragments,
+								operation.operation === 'subscription',
+							)
+						: undefined
+				const isIntrospection = classification?.pure && classification.hasIntrospection
 
-					if (isIntrospection) {
-						result = { kind: 'introspection' }
-					} else {
-						const costStartTime = performance.now()
-						result = {
-							kind: 'cost',
-							cost: estimateQueryCost(document, operationName, defaultCollectionSize),
-						}
-						costElapsedMs = performance.now() - costStartTime
+				if (isIntrospection) {
+					result = { kind: 'introspection' }
+				} else {
+					result = {
+						kind: 'cost',
+						cost: estimateQueryCost(document, operationName, defaultCollectionSize),
 					}
-
-					setCachedQueryCostResult(cache, cacheKey, result, cacheSize)
 				}
+
+				setCachedQueryCostResult(cache, cacheKey, result, cacheSize)
 			}
+		}
 
-			if (!result) {
-				span.end()
-				return { kind: 'empty' }
+		if (!result) {
+			return { kind: 'empty' }
+		}
+
+		if (result.kind === 'syntax-error') {
+			return {
+				kind: 'rejected',
+				reason: 'syntax',
+				message: 'Invalid GraphQL Syntax',
+				details: result.message,
 			}
+		}
 
-			if (result.kind === 'syntax-error') {
-				recordSpanWarning('Invalid GraphQL Syntax', {
-					'graphql.operation.name': operationName || 'default',
-					'graphql.error.kind': 'syntax',
-					'graphql.error.message': result.message,
-					'graphql.queryCost.cached': cached,
-				})
-				span.end()
-				return {
-					kind: 'rejected',
-					reason: 'syntax',
-					message: 'Invalid GraphQL Syntax',
-					details: result.message,
-				}
+		if (result.kind === 'introspection') {
+			return { kind: 'introspection' }
+		}
+
+		const totalCost = result.cost
+		if (totalCost > maxCost) {
+			return {
+				kind: 'rejected',
+				reason: 'cost',
+				cost: totalCost,
+				message: 'Query Cost Exceeded',
+				details: `Estimated cost: ${totalCost} > ${maxCost}. Optimsise your query by using pagination, reducing field depth and limiting requested fields per selection to fetch only the data you need.`,
 			}
+		}
 
-			if (result.kind === 'introspection') {
-				span.end()
-				return { kind: 'introspection' }
-			}
-
-			const totalCost = result.cost
-			const elapsedMs = performance.now() - startTime
-
-			span.setAttribute('graphql.queryCost.cost', totalCost)
-			span.setAttribute('graphql.queryCost.operationName', operationName || 'default')
-			span.setAttribute('graphql.queryCost.elapsedMs', elapsedMs)
-			span.setAttribute('graphql.queryCost.parseElapsedMs', parseElapsedMs)
-			span.setAttribute('graphql.queryCost.costElapsedMs', costElapsedMs)
-			span.setAttribute('graphql.queryCost.exceeded', totalCost > maxCost)
-			span.setAttribute('graphql.queryCost.cached', cached)
-
-			if (includeTraceDetail) {
-				span.setAttribute('graphql.queryCost.query', query)
-
-				if (variables && typeof variables === 'object') {
-					span.setAttributes(
-						Object.entries(variables).reduce<Record<string, string>>(
-							(acc, [key, value]) => {
-								acc[`graphql.queryCost.variables.${key}`] = JSON.stringify(value)
-								return acc
-							},
-							{},
-						),
-					)
-				}
-			}
-
-			if (totalCost > maxCost) {
-				recordSpanWarning('Query Cost Exceeded', {
-					'graphql.operation.name': operationName || 'default',
-					'graphql.queryCost.cost': totalCost,
-					'graphql.queryCost.maxCost': maxCost,
-				})
-				setSpanErrorStatus(span, `Query cost exceeded: ${totalCost} > ${maxCost}`)
-				span.end()
-				return {
-					kind: 'rejected',
-					reason: 'cost',
-					cost: totalCost,
-					message: 'Query Cost Exceeded',
-					details: `Estimated cost: ${totalCost} > ${maxCost}. Optimsise your query by using pagination, reducing field depth and limiting requested fields per selection to fetch only the data you need.`,
-				}
-			}
-
-			setSpanOkStatus(span)
-			span.end()
-			return { kind: 'accepted', cost: totalCost }
-		})
+		return { kind: 'accepted', cost: totalCost }
 	}
 }
 
@@ -559,11 +494,9 @@ export async function evaluateQueryCost(
 	body: GraphQlBody | undefined,
 	maxCost = 5000,
 	defaultCollectionSize = 100,
-	includeQueryTraceDetail = false,
 ): Promise<QueryCostResult> {
 	return createQueryCostEvaluator({
 		maxCost,
 		defaultCollectionSize,
-		includeTraceDetail: includeQueryTraceDetail,
 	})(body)
 }

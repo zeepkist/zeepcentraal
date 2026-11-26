@@ -23,8 +23,7 @@ export async function uploadFile(
 	contentType = 'application/octet-stream',
 ): Promise<void> {
 	return withActiveSpan('s3.upload', { kind: SpanKind.CLIENT }, async (span) => {
-		span.addEvent('s3.upload.request', {
-			's3.content_type': contentType,
+		span.setAttributes({
 			...(file instanceof Uint8Array
 				? { 's3.body.size': file.byteLength }
 				: file instanceof Blob
@@ -74,7 +73,7 @@ export async function downloadFile(
 	return withActiveSpan('s3.download', { kind: SpanKind.CLIENT }, async (span) => {
 		const file = client.file(fileName)
 		const metadata = await file.stat()
-		span.addEvent('s3.object.metadata', { 's3.object.size': metadata.size })
+		span.setAttribute('s3.object.size', metadata.size)
 		if (!Number.isSafeInteger(metadata.size) || metadata.size > maxBytes || metadata.size < 0) {
 			throw new Error(`S3 object exceeds ${maxBytes} bytes`)
 		}

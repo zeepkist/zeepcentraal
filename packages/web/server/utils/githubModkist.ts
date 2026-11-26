@@ -1,4 +1,3 @@
-import { withActiveSpan } from '@zeepkist/telemetry'
 import { createError, useRuntimeConfig } from 'nuxt/server'
 import type {
 	ModkistRelease,
@@ -8,7 +7,6 @@ import type {
 	ModkistReleases,
 } from '../../app/types/modkist'
 import { MODKIST_RELEASES_URL, MODKIST_SOURCE_URL } from '../../app/types/modkist'
-import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 import { getSharedCached } from './sharedCache'
 import { tracedWebFetch } from './tracedFetch'
 
@@ -157,48 +155,47 @@ export function resolveModkistDownloadUrl(
 }
 
 async function requestModkistReleases(): Promise<ModkistReleases> {
-	return withActiveSpan(
-		'query ZeepCentraal_ModkistReleases',
+	const token = String(useRuntimeConfig().githubToken || '').trim()
+	if (!token) {
+		throw createError({
+			status: 503,
+			statusText: 'GitHub releases are not configured',
+		})
+	}
+
+	const response = await tracedWebFetch<GitHubGraphqlResponse>(
+		GITHUB_GRAPHQL_URL,
 		{
-			shouldRecordError: shouldRecordWebError,
-			attributes: {
-				'graphql.operation.name': 'ZeepCentraal_ModkistReleases',
-				'graphql.operation.type': 'query',
+			method: 'POST',
+			headers: {
+				accept: 'application/vnd.github+json',
+				authorization: `Bearer ${token}`,
+				'user-agent': 'ZeepCentraal',
+			},
+			body: {
+				query: MODKIST_RELEASE_QUERY,
+				operationName: 'ZeepCentraal_ModkistReleases',
+				variables: { owner: 'Thundernerd', name: 'ModkistMKII' },
+			},
+			timeout: 5_000,
+			telemetry: {
+				name: 'query ZeepCentraal_ModkistReleases',
+				attributes: {
+					'graphql.operation.name': 'ZeepCentraal_ModkistReleases',
+					'graphql.operation.type': 'query',
+				},
 			},
 		},
-		async () => {
-			const token = String(useRuntimeConfig().githubToken || '').trim()
-			if (!token) {
-				throw createError({
-					status: 503,
-					statusText: 'GitHub releases are not configured',
-				})
-			}
-
-			const response = await tracedWebFetch<GitHubGraphqlResponse>(GITHUB_GRAPHQL_URL, {
-				method: 'POST',
-				headers: {
-					accept: 'application/vnd.github+json',
-					authorization: `Bearer ${token}`,
-					'user-agent': 'ZeepCentraal',
-				},
-				body: {
-					query: MODKIST_RELEASE_QUERY,
-					operationName: 'ZeepCentraal_ModkistReleases',
-					variables: { owner: 'Thundernerd', name: 'ModkistMKII' },
-				},
-				timeout: 5_000,
-			})
-
+		(response) => {
 			if (response.errors?.length || !response.data?.repository) {
 				throw createError({
 					status: 502,
 					statusText: 'GitHub releases request failed',
 				})
 			}
-			return mapGitHubModkistReleases(response.data)
 		},
 	)
+	return mapGitHubModkistReleases(response.data as GitHubModkistReleaseQueryResult)
 }
 
 export function getModkistReleases(): Promise<ModkistReleases> {

@@ -6,7 +6,7 @@ const lightweight = process.argv.some(
 
 if (!lightweight) {
 	startNodeTelemetryFromEnvironment('postgraphile', {
-		autoInstrumentations: ['http', 'graphql'],
+		autoInstrumentations: [],
 	})
 }
 

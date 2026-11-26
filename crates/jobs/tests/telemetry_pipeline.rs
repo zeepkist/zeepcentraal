@@ -10,6 +10,7 @@ use opentelemetry_proto::tonic::{
         trace::v1::trace_service_server::TraceServiceServer,
     },
     common::v1::any_value::Value,
+    metrics::v1::metric::Data,
 };
 use std::{
     io::{BufRead, BufReader, Read},
@@ -113,7 +114,7 @@ async fn request(State(state): State<Api>) -> &'static str {
         .execute(&mut state.pool.application().connection().await.unwrap())
         .await
         .unwrap();
-    // Failure and cancellation must end spans without exporting SQL literals or diagnostics.
+    // Failure and cancellation must contribute to metrics without emitting SQL spans.
     {
         let mut connection = state.pool.application().connection().await.unwrap();
         assert!(
@@ -416,30 +417,23 @@ async fn distributed_pipeline() -> Result<()> {
         .collect();
     assert_eq!(roots.len(), 2);
     assert!(roots.iter().all(|(_, s)| s.trace_id != producer.trace_id));
-    for service in [
-        "zc-telemetry-web",
-        "zc-telemetry-api",
-        "zc-telemetry-worker",
-    ] {
-        assert!(spans.iter().any(|(s, span)| *s == service
-            && span.kind == 3
-            && span.trace_id == web_client.trace_id
-            && span.attributes.iter().any(|a| a.key == "db.system")));
-    }
     assert!(spans.iter().all(|(_, span)| {
         span.attributes
             .iter()
-            .all(|a| !matches!(a.key.as_str(), "db.statement" | "db.query.text"))
+            .all(|attribute| !attribute.key.starts_with("db."))
+            && span.events.iter().all(|event| event.name != "db.response")
     }));
     for name in ["parallel.one", "parallel.two"] {
-        let parent = spans.iter().find(|(_, s)| s.name == name).unwrap().1;
-        assert!(spans.iter().any(|(_, s)| s.kind == 3
-            && s.parent_span_id == parent.span_id
-            && s.trace_id == parent.trace_id));
+        assert_eq!(
+            spans.iter().filter(|(_, span)| span.name == name).count(),
+            1
+        );
     }
-    for category in ["cancelled", "database.error"] {
-        assert!(spans.iter().any(|(_,s)| s.attributes.iter().any(|a|a.key == "error.type" && matches!(a.value.as_ref().and_then(|v|v.value.as_ref()),Some(Value::StringValue(value)) if value == category))));
-    }
+    assert!(
+        spans
+            .iter()
+            .all(|(_, span)| { span.name != "refreshGlobalMetrics" || span.kind == 5 })
+    );
     assert!(!format!("{spans:?}").contains("private-sql-literal"));
     assert!(!format!("{spans:?}").contains("private-bun-sql-literal"));
     let metrics: Vec<_> = captured
@@ -448,10 +442,35 @@ async fn distributed_pipeline() -> Result<()> {
         .flat_map(|r| &r.resource_metrics)
         .flat_map(|r| &r.scope_metrics)
         .flat_map(|s| &s.metrics)
-        .map(|m| m.name.as_str())
         .collect();
-    assert!(metrics.contains(&"db.client.operation.duration"));
-    assert!(metrics.contains(&"http.client.request.duration"));
+    assert!(
+        metrics
+            .iter()
+            .any(|metric| metric.name == "http.client.request.duration")
+    );
+    let outcomes: Vec<_> = metrics
+        .iter()
+        .filter(|metric| metric.name == "db.client.operation.duration")
+        .filter_map(|metric| match &metric.data {
+            Some(Data::Histogram(histogram)) => Some(&histogram.data_points),
+            _ => None,
+        })
+        .flatten()
+        .flat_map(|point| &point.attributes)
+        .filter(|attribute| attribute.key == "outcome")
+        .filter_map(
+            |attribute| match attribute.value.as_ref()?.value.as_ref()? {
+                Value::StringValue(outcome) => Some(outcome.as_str()),
+                _ => None,
+            },
+        )
+        .collect();
+    for expected in ["ok", "database.error", "cancelled"] {
+        assert!(
+            outcomes.contains(&expected),
+            "missing SQL outcome {expected}"
+        );
+    }
     drop(captured);
     server.abort();
     Ok(())

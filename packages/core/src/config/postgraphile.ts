@@ -85,7 +85,6 @@ const postgraphileEnvSchema = z.object({
 		.nonnegative()
 		.default(READINESS_CACHE_DEFAULT),
 	GRAPHQL_FIELD_TRACING: z.stringbool().default(false),
-	GRAPHQL_QUERY_TRACE_DETAIL: z.stringbool().default(false),
 	GRAPHQL_MAX_QUERY_COST: z.coerce.number().int().positive().default(5000),
 	GRAPHQL_DEFAULT_COLLECTION_SIZE: z.coerce.number().int().positive().default(100),
 	POSTGRAPHILE_LIVE_QUERIES: z.stringbool().default(true),
@@ -195,7 +194,6 @@ export function parsePostgraphileConfig(env: EnvSource) {
 			cacheMs: parsedEnv.POSTGRAPHILE_READINESS_CACHE_MS,
 		},
 		fieldTracing: parsedEnv.GRAPHQL_FIELD_TRACING,
-		queryTraceDetail: parsedEnv.GRAPHQL_QUERY_TRACE_DETAIL,
 		maxQueryCost: parsedEnv.GRAPHQL_MAX_QUERY_COST,
 		defaultCollectionSize: parsedEnv.GRAPHQL_DEFAULT_COLLECTION_SIZE,
 		liveQueries: {

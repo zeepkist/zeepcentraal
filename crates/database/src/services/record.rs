@@ -5,8 +5,8 @@ use diesel::{
     sql_types::{Array, BigInt, Bool, Float, Integer, Jsonb, Text, Varchar},
 };
 use diesel_async::{AsyncConnection, RunQueryDsl};
-use std::{fmt::Display, future::Future};
-use tracing::Instrument;
+use opentelemetry::{KeyValue, global, metrics::Histogram};
+use std::{future::Future, sync::OnceLock, time::Instant};
 use zc_core::ghosts::GhostStatistics;
 
 const LOCK_RECORD_LEVEL: &str = include_str!("../queries/records/lock_record_level.sql");
@@ -65,17 +65,30 @@ struct WorldRecordRow {
 
 async fn record_phase<T, E, F>(phase: &'static str, future: F) -> Result<T, E>
 where
-    E: Display,
     F: Future<Output = Result<T, E>>,
 {
-    let span = tracing::info_span!("record.submit.phase", phase);
-    match future.instrument(span.clone()).await {
-        Ok(value) => Ok(value),
-        Err(error) => {
-            tracing::error!(parent: &span, phase, error = %error, "Record submission phase failed");
-            Err(error)
-        }
+    static DURATION: OnceLock<Histogram<f64>> = OnceLock::new();
+    let started = Instant::now();
+    let result = future.await;
+    let outcome = if result.is_ok() { "ok" } else { "error" };
+    DURATION
+        .get_or_init(|| {
+            global::meter("zeepcentraal-database")
+                .f64_histogram("record.submit.phase.duration")
+                .with_unit("s")
+                .build()
+        })
+        .record(
+            started.elapsed().as_secs_f64(),
+            &[
+                KeyValue::new("phase", phase),
+                KeyValue::new("outcome", outcome),
+            ],
+        );
+    if result.is_err() {
+        tracing::error!(phase, "Record submission phase failed");
     }
+    result
 }
 
 async fn record_optional_phase<T, F>(

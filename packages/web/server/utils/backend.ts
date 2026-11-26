@@ -1,9 +1,7 @@
-import { withActiveSpan } from '@zeepkist/telemetry'
 import { createError, getRequestHeader, type RequestEvent, useRuntimeConfig } from 'nuxt/server'
 import { webAuthCookieNames } from '#shared/authCookies'
 import { authRefreshUrl } from '../../app/utils/auth'
 import { mergeRequestCookies } from '../../app/utils/requestCookies'
-import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 import { readWebResponse, tracedWebFetchRaw } from './tracedFetch'
 
 export type RefreshableSessionCookies = {
@@ -99,22 +97,17 @@ export function forwardBackendCookies(event: RequestEvent, headers: Headers) {
 }
 
 export async function refreshWebAuth(event: RequestEvent) {
-	return withActiveSpan(
-		'web.backend.refresh-auth',
-		{ shouldRecordError: shouldRecordWebError },
-		async () => {
-			const response = await tracedWebFetchRaw(authRefreshUrl(getBackendBaseUrl()), {
-				method: 'POST',
-				headers: {
-					...getForwardedCookieHeaders(event),
-				},
-				credentials: 'include',
-			})
-			const cookies = forwardBackendCookies(event, response.headers)
-			await response.body?.cancel().catch(() => {})
-			return { cookies, refreshAt: accessTokenRefreshAt(cookieHeaderFromSetCookies(cookies)) }
+	const response = await tracedWebFetchRaw(authRefreshUrl(getBackendBaseUrl()), {
+		method: 'POST',
+		telemetry: { name: 'web.backend.refresh-auth' },
+		headers: {
+			...getForwardedCookieHeaders(event),
 		},
-	)
+		credentials: 'include',
+	})
+	const cookies = forwardBackendCookies(event, response.headers)
+	await response.body?.cancel().catch(() => {})
+	return { cookies, refreshAt: accessTokenRefreshAt(cookieHeaderFromSetCookies(cookies)) }
 }
 
 export async function fetchAuthenticatedBackend<T>(
@@ -126,48 +119,42 @@ export async function fetchAuthenticatedBackend<T>(
 		query?: Record<string, string>
 	},
 ) {
-	return withActiveSpan(
-		`web.backend ${options.method}`,
-		{ shouldRecordError: shouldRecordWebError },
-		async () => {
-			let cookie = getRequestHeader(event, 'cookie')
-			let response = await tracedWebFetchRaw(new URL(path, getBackendBaseUrl()).toString(), {
-				...options,
-				headers: {
-					...(cookie ? { cookie } : {}),
-					...(getRequestHeader(event, 'origin')
-						? { origin: getRequestHeader(event, 'origin') }
-						: {}),
-				},
-				credentials: 'include',
-				ignoreResponseError: true,
-			})
-			if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
-				await response.body?.cancel().catch(() => {})
-				const refreshed = await refreshWebAuth(event)
-				cookie = mergeRequestCookies(cookie, refreshed.cookies)
-				response = await tracedWebFetchRaw(new URL(path, getBackendBaseUrl()).toString(), {
-					...options,
-					headers: {
-						...(cookie ? { cookie } : {}),
-						...(getRequestHeader(event, 'origin')
-							? { origin: getRequestHeader(event, 'origin') }
-							: {}),
-					},
-					credentials: 'include',
-					ignoreResponseError: true,
-				})
-			}
-			forwardBackendCookies(event, response.headers)
-			const data = await readWebResponse<T>(response)
-			if (response.status >= 400) {
-				throw createError({
-					status: response.status,
-					statusText: 'Authenticated backend request failed',
-					data,
-				})
-			}
-			return data
+	let cookie = getRequestHeader(event, 'cookie')
+	let response = await tracedWebFetchRaw(new URL(path, getBackendBaseUrl()).toString(), {
+		...options,
+		headers: {
+			...(cookie ? { cookie } : {}),
+			...(getRequestHeader(event, 'origin')
+				? { origin: getRequestHeader(event, 'origin') }
+				: {}),
 		},
-	)
+		credentials: 'include',
+		ignoreResponseError: true,
+	})
+	if (response.status === 401 && readRefreshableSessionCookies(cookie)) {
+		await response.body?.cancel().catch(() => {})
+		const refreshed = await refreshWebAuth(event)
+		cookie = mergeRequestCookies(cookie, refreshed.cookies)
+		response = await tracedWebFetchRaw(new URL(path, getBackendBaseUrl()).toString(), {
+			...options,
+			headers: {
+				...(cookie ? { cookie } : {}),
+				...(getRequestHeader(event, 'origin')
+					? { origin: getRequestHeader(event, 'origin') }
+					: {}),
+			},
+			credentials: 'include',
+			ignoreResponseError: true,
+		})
+	}
+	forwardBackendCookies(event, response.headers)
+	const data = await readWebResponse<T>(response)
+	if (response.status >= 400) {
+		throw createError({
+			status: response.status,
+			statusText: 'Authenticated backend request failed',
+			data,
+		})
+	}
+	return data
 }

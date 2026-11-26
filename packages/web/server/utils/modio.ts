@@ -1,7 +1,5 @@
-import { withActiveSpan } from '@zeepkist/telemetry'
 import { createError, useRuntimeConfig } from 'nuxt/server'
 import type { ModDetail, ModSummary } from '../../app/types/mod'
-import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 import { sanitizeModDescription } from './sanitizeModDescription'
 import { getSharedCached } from './sharedCache'
 import { tracedWebFetch } from './tracedFetch'
@@ -87,31 +85,24 @@ export async function requestModio<T>(
 	params: Record<string, string | number | boolean> = {},
 ): Promise<T> {
 	return getSharedCached(cacheKey(path, params), async () => {
-		return withActiveSpan(
-			'web.modio.request',
-			{ shouldRecordError: shouldRecordWebError },
-			async () => {
-				const { endpoint, apiKey } = runtimeConfig()
-				const url = new URL(path.replace(/^\//, ''), endpoint)
-				for (const [key, value] of Object.entries(params))
-					url.searchParams.set(key, String(value))
-				url.searchParams.set('api_key', apiKey)
+		const { endpoint, apiKey } = runtimeConfig()
+		const url = new URL(path.replace(/^\//, ''), endpoint)
+		for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value))
+		url.searchParams.set('api_key', apiKey)
 
-				try {
-					return (await tracedWebFetch<T>(url.toString(), {
-						timeout: 5_000,
-					})) as T
-				} catch (error) {
-					const status = Number(
-						(error as { status?: number; statusCode?: number }).statusCode ??
-							(error as { status?: number }).status,
-					)
-					if (status === 404)
-						throw createError({ status: 404, statusText: 'Mod not found' })
-					throw createError({ status: 502, statusText: 'mod.io request failed' })
-				}
-			},
-		)
+		try {
+			return (await tracedWebFetch<T>(url.toString(), {
+				timeout: 5_000,
+				telemetry: { name: 'web.modio.request' },
+			})) as T
+		} catch (error) {
+			const status = Number(
+				(error as { status?: number; statusCode?: number }).statusCode ??
+					(error as { status?: number }).status,
+			)
+			if (status === 404) throw createError({ status: 404, statusText: 'Mod not found' })
+			throw createError({ status: 502, statusText: 'mod.io request failed' })
+		}
 	})
 }
 

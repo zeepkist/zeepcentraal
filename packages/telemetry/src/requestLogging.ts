@@ -1,4 +1,5 @@
 import { Elysia, StatusMap } from 'elysia'
+import { localConsole } from './logger'
 
 export type RequestLogLevel = 'ERROR' | 'WARNING' | 'INFO'
 export type RequestLogSpeed = 'FAST' | 'SLOW' | 'VERY_SLOW'
@@ -15,7 +16,7 @@ export interface RequestLogEntry {
 }
 
 export interface ElysiaRequestLoggingOptions {
-	enabled?: boolean
+	enabled?: boolean | (() => boolean)
 	sink?: (entry: RequestLogEntry) => void
 	slowThresholdMs?: number
 	trustProxy?: boolean
@@ -43,9 +44,9 @@ function resolveIp(
 
 function defaultSink(entry: RequestLogEntry) {
 	const line = formatRequestLog(entry)
-	if (entry.level === 'ERROR') console.error(line)
-	else if (entry.level === 'WARNING') console.warn(line)
-	else console.info(line)
+	if (entry.level === 'ERROR') localConsole.error(line)
+	else if (entry.level === 'WARNING') localConsole.warn(line)
+	else localConsole.info(line)
 }
 
 export function formatRequestLog(entry: RequestLogEntry) {
@@ -57,6 +58,7 @@ export function createElysiaRequestLoggingPlugin(options: ElysiaRequestLoggingOp
 	const plugin = new Elysia({ name: '@zeepkist/telemetry/request-logging' })
 	if (options.enabled === false) return plugin
 
+	const isEnabled = typeof options.enabled === 'function' ? options.enabled : () => true
 	const starts = new WeakMap<Request, number>()
 	const slowThresholdMs = options.slowThresholdMs ?? 500
 	const verySlowThresholdMs = options.verySlowThresholdMs ?? 1_000
@@ -64,14 +66,13 @@ export function createElysiaRequestLoggingPlugin(options: ElysiaRequestLoggingOp
 
 	return plugin
 		.onRequest(({ request }) => {
-			starts.set(request, performance.now())
+			if (isEnabled()) starts.set(request, performance.now())
 		})
 		.onAfterResponse(({ request, server, set }) => {
-			const durationMs = Math.max(
-				0,
-				performance.now() - (starts.get(request) ?? performance.now()),
-			)
+			const start = starts.get(request)
+			if (start === undefined) return
 			starts.delete(request)
+			const durationMs = Math.max(0, performance.now() - start)
 			const status = resolveStatus(set.status)
 			const level: RequestLogLevel =
 				status >= 500 ? 'ERROR' : status >= 400 ? 'WARNING' : 'INFO'

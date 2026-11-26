@@ -45,7 +45,7 @@ export function createTraceExporter(collectorUrl: string) {
 export function createMetricReader(collectorUrl: string) {
 	return new PeriodicExportingMetricReader({
 		exporter: new OTLPMetricExporter({ url: collectorUrl }),
-		exportIntervalMillis: 10_000,
+		exportIntervalMillis: 30_000,
 	})
 }
 
@@ -70,6 +70,7 @@ function autoInstrumentationConfig(enabledNames: readonly string[]) {
 }
 
 function resolveAutoInstrumentations(defaultNames: readonly string[]) {
+	if (defaultNames.length === 0) return []
 	const override = process.env.OTEL_NODE_ENABLED_INSTRUMENTATIONS
 	const enabledNames = override
 		? override

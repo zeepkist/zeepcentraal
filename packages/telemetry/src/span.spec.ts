@@ -6,6 +6,7 @@ import {
 	SimpleSpanProcessor,
 } from '@opentelemetry/sdk-trace-base'
 import { isWebErrorResponse, shouldRecordWebError } from '../../web/runtime/telemetryPolicy'
+import { tracedWebFetchRaw } from '../../web/server/utils/tracedFetch'
 import { sanitizeUrl, tracedFetch } from './fetch'
 import { redactLogMessage } from './logger'
 import { withActiveSpan } from './span'
@@ -55,7 +56,7 @@ describe('telemetry helpers', () => {
 			}),
 		).rejects.toBe(error)
 		const span = exporter.getFinishedSpans().find((candidate) => candidate.name === name)
-		expect(span?.events.map((event) => event.name)).toEqual(['exception', 'error'])
+		expect(span?.events.map((event) => event.name)).toEqual(['error'])
 		expect(span?.status.code).toBe(2)
 	})
 
@@ -69,7 +70,7 @@ describe('telemetry helpers', () => {
 			.getFinishedSpans()
 			.find((candidate) => candidate.name === 'default 404')
 		expect(span?.status.code).toBe(2)
-		expect(span?.events.map((event) => event.name)).toEqual(['exception', 'error'])
+		expect(span?.events.map((event) => event.name)).toEqual(['error'])
 	})
 
 	test.each([404, 500])(
@@ -123,7 +124,7 @@ describe('telemetry helpers', () => {
 		expect(span?.status.code).toBe(1)
 	})
 
-	test('records exception and error events', async () => {
+	test('records one compact error event', async () => {
 		await expect(
 			withActiveSpan('failed operation', async () => {
 				throw new Error('expected failure')
@@ -132,8 +133,43 @@ describe('telemetry helpers', () => {
 		const span = exporter
 			.getFinishedSpans()
 			.find((candidate) => candidate.name === 'failed operation')
-		expect(span?.events.map((event) => event.name)).toEqual(['exception', 'error'])
+		expect(span?.events.map((event) => event.name)).toEqual(['error'])
 		expect(span?.status.code).toBe(2)
+	})
+
+	test('keeps retries in one span and returns the intact successful response', async () => {
+		const originalFetch = globalThis.fetch
+		const finalResponse = new Response('success', { headers: { 'Set-Cookie': 'fixture=1' } })
+		let attempts = 0
+		globalThis.fetch = Object.assign(
+			async () => (++attempts === 1 ? new Response('busy', { status: 503 }) : finalResponse),
+			{ preconnect: originalFetch.preconnect },
+		)
+		try {
+			const response = await tracedWebFetchRaw(
+				'https://example.invalid/private?token=private',
+				{
+					timeout: 100,
+					telemetry: { name: 'retry fixture' },
+				},
+			)
+			expect(response).toBe(finalResponse)
+			expect(response.headers.get('Set-Cookie')).toBe('fixture=1')
+			expect(await response.text()).toBe('success')
+			expect(attempts).toBe(2)
+			const matching = exporter
+				.getFinishedSpans()
+				.filter((span) => span.name === 'retry fixture')
+			expect(matching).toHaveLength(1)
+			expect(matching[0]?.attributes).toMatchObject({
+				'http.request.retry_count': 1,
+				'http.response.status_code': 200,
+			})
+			expect(matching[0]?.attributes['url.full']).toBeUndefined()
+			expect(matching[0]?.events).toEqual([])
+		} finally {
+			globalThis.fetch = originalFetch
+		}
 	})
 
 	test('redacts URL query values and credentials', () => {
@@ -162,7 +198,7 @@ describe('telemetry helpers', () => {
 		const span = exporter
 			.getFinishedSpans()
 			.find((candidate) => candidate.name === 'GET example.test')
-		expect(span?.attributes['url.full']).toBe('https://example.test/path?token=%5Bredacted%5D')
+		expect(span?.attributes['url.full']).toBeUndefined()
 		expect(span?.events.map((event) => event.name)).toContain('error')
 		expect(span?.status.code).toBe(2)
 	})

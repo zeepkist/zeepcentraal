@@ -4,10 +4,7 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use std::{
-    cell::{Cell, RefCell},
-    collections::BTreeMap,
-};
+use std::cell::{Cell, RefCell};
 
 struct RequestContext {
     span: tracing::Span,
@@ -16,90 +13,74 @@ struct RequestContext {
     submission: RefCell<Option<RecordSubmissionDiagnostics>>,
 }
 
-const STRING_LIMIT: usize = 1024;
-const ARRAY_LIMIT: usize = 256;
+const VERSION_LIMIT: usize = 64;
+const IDENTIFIER_LIMIT: usize = 1024;
+
+pub(super) struct RecordSubmissionIdentifiers {
+    level: String,
+    hash: String,
+    workshop_id: Option<String>,
+}
+
+impl RecordSubmissionIdentifiers {
+    pub(super) fn new(level: &str, hash: &str, workshop_id: Option<&str>) -> Self {
+        let bounded = |value: &str| value.chars().take(IDENTIFIER_LIMIT).collect::<String>();
+        Self {
+            level: bounded(level),
+            hash: bounded(hash),
+            workshop_id: workshop_id.map(bounded),
+        }
+    }
+
+    fn record(&self, span: &tracing::Span) {
+        span.record("record.Level", self.level.as_str());
+        span.record("record.Hash", self.hash.as_str());
+        if let Some(workshop_id) = self.workshop_id.as_deref() {
+            span.record("record.WorkshopId", workshop_id);
+        }
+    }
+}
 
 pub(super) struct RecordSubmissionDiagnostics {
-    strings: Vec<(&'static str, String)>,
-    arrays: Vec<(&'static str, Vec<f32>)>,
-    time: f64,
+    identifiers: RecordSubmissionIdentifiers,
+    game_version: String,
+    mod_version: String,
     ghost_length: usize,
-    unset: Vec<&'static str>,
-    truncated: Vec<&'static str>,
-    original_lengths: BTreeMap<&'static str, usize>,
+    split_count: usize,
+    speed_count: usize,
     validation_errors: Vec<&'static str>,
 }
 
 impl RecordSubmissionDiagnostics {
-    pub(super) fn new(time: f32, ghost_length: usize) -> Self {
+    pub(super) fn new(
+        identifiers: RecordSubmissionIdentifiers,
+        game_version: &str,
+        mod_version: &str,
+        ghost_length: usize,
+        split_count: usize,
+        speed_count: usize,
+    ) -> Self {
         Self {
-            strings: Vec::new(),
-            arrays: Vec::new(),
-            time: f64::from(time),
+            identifiers,
+            game_version: game_version.chars().take(VERSION_LIMIT).collect(),
+            mod_version: mod_version.chars().take(VERSION_LIMIT).collect(),
             ghost_length,
-            unset: Vec::new(),
-            truncated: Vec::new(),
-            original_lengths: BTreeMap::new(),
+            split_count,
+            speed_count,
             validation_errors: Vec::new(),
         }
     }
 
-    pub(super) fn string(&mut self, key: &'static str, field: &'static str, value: Option<&str>) {
-        if let Some(value) = value {
-            let length = value.chars().count();
-            if length > STRING_LIMIT {
-                self.truncated.push(field);
-                self.original_lengths.insert(field, length);
-            }
-            self.strings
-                .push((key, value.chars().take(STRING_LIMIT).collect()));
-        } else {
-            self.unset.push(field);
-        }
-    }
-
-    pub(super) fn array(&mut self, key: &'static str, field: &'static str, value: &[f32]) {
-        if value.len() > ARRAY_LIMIT {
-            self.truncated.push(field);
-            self.original_lengths.insert(field, value.len());
-        }
-        self.arrays
-            .push((key, value[..value.len().min(ARRAY_LIMIT)].to_vec()));
-    }
-
     fn record(&self, span: &tracing::Span) {
-        for (key, value) in &self.strings {
-            span.record(*key, value.as_str());
-        }
-        for (key, value) in &self.arrays {
+        span.record("record.GameVersion", self.game_version.as_str());
+        span.record("record.ModVersion", self.mod_version.as_str());
+        span.record("record.GhostDataLength", self.ghost_length as i64);
+        span.record("record.SplitCount", self.split_count as i64);
+        span.record("record.SpeedCount", self.speed_count as i64);
+        if !self.validation_errors.is_empty() {
             span.record(
-                *key,
-                serde_json::to_string(value).expect("numeric diagnostics serialize"),
-            );
-        }
-        span.record("record.Time", self.time);
-        span.record("record.GhostData", "[redacted]");
-        span.record(
-            "record.GhostDataLength",
-            i64::try_from(self.ghost_length).expect("string length fits i64"),
-        );
-        for (key, values) in [
-            ("record.unsetFields", &self.unset),
-            ("record.truncatedFields", &self.truncated),
-            ("record.validationErrors", &self.validation_errors),
-        ] {
-            if !values.is_empty() {
-                span.record(
-                    key,
-                    serde_json::to_string(values).expect("diagnostic names serialize"),
-                );
-            }
-        }
-        if !self.original_lengths.is_empty() {
-            span.record(
-                "record.originalLengths",
-                serde_json::to_string(&self.original_lengths)
-                    .expect("diagnostic lengths serialize"),
+                "record.validationErrors",
+                serde_json::to_string(&self.validation_errors).expect("diagnostic names serialize"),
             );
         }
     }
@@ -186,12 +167,14 @@ pub async fn track_request(request: Request, next: Next) -> Response {
                 // Defer publication until final response: ignored/intermediate Problems cannot leak payloads onto success spans.
                 REQUEST_CONTEXT.with(|context| {
                     if context.record_submit
-                        && response.extensions().get::<SubmissionProblem>().is_some()
                         && (response.status().is_client_error()
                             || response.status().is_server_error())
                         && let Some(snapshot) = context.submission.borrow().as_ref()
                     {
-                        snapshot.record(&context.span);
+                        snapshot.identifiers.record(&context.span);
+                        if response.extensions().get::<SubmissionProblem>().is_some() {
+                            snapshot.record(&context.span);
+                        }
                     }
                 });
                 response
@@ -452,6 +435,7 @@ mod record_diagnostic_tests {
                     .uri(path)
                     .header("content-type", "application/json")
                     .header("x-test-mode", mode)
+                    .header("x-steam-id", "76561198000000001")
                     .header("x-test-code", code.to_string())
                     .body(Body::from(body.to_string()))
                     .unwrap(),
@@ -505,24 +489,25 @@ mod record_diagnostic_tests {
                 .rev()
                 .find(|s| s.name == "POST /record/submit")
                 .unwrap();
+            assert_eq!(text(span, "mod.steamId"), Some("76561198000000001"));
             assert_eq!(text(span, "record.Level"), Some("level"));
             assert_eq!(
                 text(span, "record.Hash"),
                 Some("0123456789ABCDEF0123456789ABCDEF")
             );
-            assert_eq!(text(span, "record.GhostData"), Some("[redacted]"));
-            assert_eq!(text(span, "record.Splits"), Some("[1.0,2.0]"));
-            assert_eq!(text(span, "record.Speeds"), Some("[3.0]"));
-            assert_eq!(text(span, "record.GameVersion"), Some("1"));
-            assert_eq!(text(span, "record.ModVersion"), Some("2"));
-            assert_eq!(text(span, "record.unsetFields"), Some("[\"WorkshopId\"]"));
-            assert_eq!(
-                text(span, "record.validationErrors"),
-                Some("[\"Hash.invalid\"]")
+            assert!(
+                span.attributes
+                    .contains(&KeyValue::new("record.SplitCount", 2_i64))
             );
             assert!(
                 span.attributes
-                    .contains(&KeyValue::new("record.Time", 42.25))
+                    .contains(&KeyValue::new("record.SpeedCount", 1_i64))
+            );
+            assert_eq!(text(span, "record.GameVersion"), Some("1"));
+            assert_eq!(text(span, "record.ModVersion"), Some("2"));
+            assert_eq!(
+                text(span, "record.validationErrors"),
+                Some("[\"Hash.invalid\"]")
             );
             assert!(
                 span.attributes
@@ -552,13 +537,17 @@ mod record_diagnostic_tests {
             .await;
             provider.force_flush().unwrap();
             let spans = exporter.get_finished_spans().unwrap();
-            assert!(no_record_attributes(
-                spans
-                    .iter()
-                    .rev()
-                    .find(|s| s.name == "POST /record/submit")
-                    .unwrap()
-            ));
+            let span = spans
+                .iter()
+                .rev()
+                .find(|s| s.name == "POST /record/submit")
+                .unwrap();
+            assert_eq!(text(span, "record.Level"), Some("suppressed"));
+            assert!(text(span, "record.Hash").is_some());
+            assert!(!span.attributes.iter().any(|attribute| {
+                let key = attribute.key.as_str();
+                key.starts_with("record.") && !matches!(key, "record.Level" | "record.Hash")
+            }));
         }
         for (path, method, mode) in [
             ("/record/submit", "POST", "success"),
@@ -572,13 +561,21 @@ mod record_diagnostic_tests {
             request(&app, path, method, &body("suppressed"), mode, 19).await;
             provider.force_flush().unwrap();
             let spans = exporter.get_finished_spans().unwrap();
-            assert!(no_record_attributes(
-                spans
-                    .iter()
-                    .rev()
-                    .find(|s| s.name == format!("{method} {path}"))
-                    .unwrap()
-            ));
+            let span = spans
+                .iter()
+                .rev()
+                .find(|s| s.name == format!("{method} {path}"))
+                .unwrap();
+            if matches!(
+                mode,
+                "uncoded" | "intermediate-uncoded" | "intermediate-status"
+            ) {
+                assert_eq!(text(span, "record.Level"), Some("suppressed"));
+                assert!(text(span, "record.Hash").is_some());
+                assert!(text(span, "record.GameVersion").is_none());
+            } else {
+                assert!(no_record_attributes(span));
+            }
         }
         for (input, expected) in [
             ("{}", StatusCode::UNPROCESSABLE_ENTITY),
@@ -623,49 +620,19 @@ mod record_diagnostic_tests {
                 .find(|s| s.name == "POST /record/submit")
                 .unwrap();
             assert_eq!(text(span, "record.Level").unwrap().chars().count(), 1024);
-            assert_eq!(text(span, "record.ModVersion").unwrap().len(), 1024);
-            assert_eq!(text(span, "record.GameVersion").unwrap().len(), 1024);
             assert_eq!(text(span, "record.WorkshopId"), Some("7"));
-            assert!(text(span, "record.unsetFields").is_none());
-            assert_eq!(
-                serde_json::from_str::<Vec<f64>>(text(span, "record.Splits").unwrap())
-                    .unwrap()
-                    .len(),
-                256
+            assert_eq!(text(span, "record.ModVersion").unwrap().len(), 64);
+            assert_eq!(text(span, "record.GameVersion").unwrap().len(), 64);
+            assert!(
+                span.attributes
+                    .contains(&KeyValue::new("record.SplitCount", 257_i64))
             );
-            assert_eq!(
-                serde_json::from_str::<Vec<f64>>(text(span, "record.Speeds").unwrap())
-                    .unwrap()
-                    .len(),
-                256
+            assert!(
+                span.attributes
+                    .contains(&KeyValue::new("record.SpeedCount", 256_i64))
             );
-            assert_eq!(
-                serde_json::from_str::<serde_json::Value>(
-                    text(span, "record.originalLengths").unwrap()
-                )
-                .unwrap(),
-                serde_json::json!({"Level":1025,"ModVersion":1025,"Splits":257})
-            );
-            assert_eq!(
-                serde_json::from_str::<Vec<String>>(text(span, "record.truncatedFields").unwrap())
-                    .unwrap(),
-                vec!["Level", "ModVersion", "Splits"]
-            );
-        }
-        let mut boundary = body(&"界".repeat(1024));
-        boundary["WorkshopId"] = serde_json::Value::Null;
-        request(&app, "/record/submit", "POST", &boundary, "", 19).await;
-        provider.force_flush().unwrap();
-        {
-            let spans = exporter.get_finished_spans().unwrap();
-            let span = spans
-                .iter()
-                .rev()
-                .find(|s| s.name == "POST /record/submit")
-                .unwrap();
-            assert!(text(span, "record.truncatedFields").is_none());
-            assert!(text(span, "record.originalLengths").is_none());
-            assert_eq!(text(span, "record.unsetFields"), Some("[\"WorkshopId\"]"));
+            assert!(text(span, "record.Splits").is_none());
+            assert!(text(span, "record.Speeds").is_none());
         }
         for (mode, ghost, reason) in [
             ("decode", "!!!!".into(), "GhostData.invalid_base64"),
@@ -694,7 +661,9 @@ mod record_diagnostic_tests {
         }
         let previous = exporter.get_finished_spans().unwrap().len();
         let a = body("concurrent-a");
-        let b = body("concurrent-b");
+        let mut b = body("concurrent-b");
+        b["Splits"] = serde_json::json!([1.0]);
+        b["WorkshopId"] = "7".into();
         let (a, b) = tokio::join!(
             request(&app, "/record/submit", "POST", &a, "", 19),
             request(&app, "/record/submit", "POST", &b, "success", 19)
@@ -711,7 +680,9 @@ mod record_diagnostic_tests {
         assert_eq!(
             requests
                 .iter()
-                .filter(|s| text(s, "record.Level") == Some("concurrent-a"))
+                .filter(|s| s
+                    .attributes
+                    .contains(&KeyValue::new("record.SplitCount", 2_i64)))
                 .count(),
             1
         );

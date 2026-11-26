@@ -42,17 +42,12 @@ fn operation(query: &dyn diesel::connection::DebugQuery) -> &'static str {
 }
 
 struct ActiveQuery {
-    span: tracing::Span,
     started: Instant,
     operation: &'static str,
     outcome: &'static str,
 }
 impl Drop for ActiveQuery {
     fn drop(&mut self) {
-        if self.outcome != "ok" {
-            self.span.record("otel.status_code", "ERROR");
-            self.span.record("error.type", self.outcome);
-        }
         static DURATION: OnceLock<opentelemetry::metrics::Histogram<f64>> = OnceLock::new();
         DURATION
             .get_or_init(|| {
@@ -73,19 +68,11 @@ impl Drop for ActiveQuery {
 }
 
 pub(crate) struct DatabaseInstrumentation {
-    host: String,
-    port: u16,
-    database: String,
     active: Option<ActiveQuery>,
 }
 impl DatabaseInstrumentation {
-    pub(crate) fn new(host: String, port: u16, database: String) -> Self {
-        Self {
-            host,
-            port,
-            database,
-            active: None,
-        }
+    pub(crate) fn new() -> Self {
+        Self { active: None }
     }
 }
 impl Instrumentation for DatabaseInstrumentation {
@@ -94,11 +81,6 @@ impl Instrumentation for DatabaseInstrumentation {
             InstrumentationEvent::StartQuery { query, .. } => {
                 let operation = operation(query);
                 self.active = Some(ActiveQuery {
-                    span: tracing::info_span!("db.client.operation", otel.kind = "client", otel.name = operation,
-                        db.system = "postgresql", db.system.name = "postgresql", db.name = %self.database,
-                        db.namespace = %self.database, db.operation = operation, db.operation.name = operation,
-                        server.address = %self.host, server.port = self.port,
-                        otel.status_code = tracing::field::Empty, error.type = tracing::field::Empty),
                     started: Instant::now(),
                     operation,
                     outcome: "cancelled",

@@ -174,14 +174,12 @@ export function createPostGraphileRuntime(
 	const httpQueryCostEvaluator = createQueryCostEvaluator({
 		maxCost: config.maxQueryCost,
 		defaultCollectionSize: config.defaultCollectionSize,
-		includeTraceDetail: config.queryTraceDetail,
 		cacheSize: config.cacheMaxEntries,
 		maxQueryBytes: config.maxQueryBytes,
 	})
 	const liveQueryCostEvaluator = createQueryCostEvaluator({
 		maxCost: config.maxQueryCost,
 		defaultCollectionSize: config.defaultCollectionSize,
-		includeTraceDetail: false,
 		cacheSize: config.cacheMaxEntries,
 		maxQueryBytes: config.maxQueryBytes,
 	})

@@ -4,6 +4,7 @@ import { tracedWebFetchRaw } from '../../server/utils/tracedFetch'
 const captured = vi.hoisted(() => ({
 	spans: [] as Array<{ attributes: Record<string, unknown>; kind: number }>,
 	ended: 0,
+	failures: [] as string[],
 }))
 vi.mock('@zeepkist/telemetry', () => ({
 	SpanKind: { CLIENT: 2 },
@@ -13,6 +14,9 @@ vi.mock('@zeepkist/telemetry', () => ({
 		result.set('traceparent', `span-${captured.spans.length}`)
 		return result
 	},
+	recordSpanFailure: (_span: unknown, category: string) => {
+		captured.failures.push(category)
+	},
 	withActiveSpan: async (
 		_name: string,
 		options: { attributes: Record<string, unknown>; kind: number },
@@ -20,7 +24,11 @@ vi.mock('@zeepkist/telemetry', () => ({
 	) => {
 		captured.spans.push(options)
 		try {
-			return await callback({ setAttribute: vi.fn(), setErrorStatus: vi.fn() })
+			return await callback({
+				setAttribute: (name: string, value: unknown) => {
+					options.attributes[name] = value
+				},
+			})
 		} finally {
 			captured.ended++
 		}
@@ -31,6 +39,7 @@ afterEach(() => {
 	vi.unstubAllGlobals()
 	captured.spans.length = 0
 	captured.ended = 0
+	captured.failures.length = 0
 })
 
 describe('web HTTP client spans', () => {
@@ -55,7 +64,7 @@ describe('web HTTP client spans', () => {
 		expect(captured.ended).toBe(1)
 		expect(await response.json()).toEqual({ ok: true })
 	})
-	it('gives GET retries separate spans but never retries mutations by default', async () => {
+	it('keeps GET retries in one span but never retries mutations by default', async () => {
 		const failed = new Response('unavailable', { status: 503 })
 		const nativeFetch = vi
 			.fn()
@@ -66,13 +75,19 @@ describe('web HTTP client spans', () => {
 		expect(nativeFetch).toHaveBeenCalledTimes(2)
 		expect(failed.bodyUsed).toBe(true)
 		expect(nativeFetch.mock.calls[0]?.[1].headers.get('traceparent')).toBe('span-1')
-		expect(nativeFetch.mock.calls[1]?.[1].headers.get('traceparent')).toBe('span-2')
+		expect(nativeFetch.mock.calls[1]?.[1].headers.get('traceparent')).toBe('span-1')
+		expect(captured.spans).toHaveLength(1)
+		expect(captured.spans[0]?.attributes).toMatchObject({
+			'http.request.retry_count': 1,
+			'http.response.status_code': 200,
+		})
+		expect(captured.failures).toEqual([])
 		nativeFetch.mockReset().mockResolvedValue(new Response('unavailable', { status: 503 }))
 		await expect(
 			tracedWebFetchRaw('https://example.test', { method: 'POST' }),
 		).rejects.toMatchObject({ statusCode: 503, data: 'unavailable' })
 		expect(nativeFetch).toHaveBeenCalledTimes(1)
-		expect(captured.ended).toBe(3)
+		expect(captured.ended).toBe(2)
 	})
 	it('does not retry aborted requests', async () => {
 		const controller = new AbortController()
@@ -84,6 +99,7 @@ describe('web HTTP client spans', () => {
 		).rejects.toThrow('cancelled')
 		expect(nativeFetch).toHaveBeenCalledTimes(1)
 		expect(captured.ended).toBe(1)
+		expect(captured.failures).toEqual(['cancelled'])
 	})
 	it('combines caller cancellation with native timeout signal', async () => {
 		const controller = new AbortController()
@@ -106,6 +122,7 @@ describe('web HTTP client spans', () => {
 		expect(controller.signal.aborted).toBe(false)
 		expect(nativeFetch).toHaveBeenCalledTimes(1)
 		expect(captured.ended).toBe(1)
+		expect(captured.failures).toEqual(['timeout'])
 	})
 	it('encodes query parameters and preserves ignored error responses', async () => {
 		const response = new Response(JSON.stringify({ code: 123 }), { status: 422 })

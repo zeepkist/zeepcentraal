@@ -9,6 +9,10 @@ export function shouldRecordWebError(error: unknown): boolean {
 }
 
 export function shouldExportWebLog(_level: TelemetryLogLevel, values: readonly unknown[]): boolean {
+	// Nitro's unhandled request entry includes the raw URL; request tracing emits a compact log.
+	if (typeof values[0] === 'string' && values[0].startsWith('[request error] [unhandled] [')) {
+		return false
+	}
 	const errors = values.filter(
 		(value) => value instanceof Error || getHttpErrorStatus(value) !== undefined,
 	)

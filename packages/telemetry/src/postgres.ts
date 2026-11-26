@@ -1,6 +1,5 @@
-import { SpanKind } from '@opentelemetry/api'
 import type { SQL } from 'bun'
-import { getMeter, type TelemetrySpan, withActiveSpan } from './span'
+import { getMeter } from './span'
 
 let databaseDuration: ReturnType<ReturnType<typeof getMeter>['createHistogram']> | undefined
 
@@ -40,50 +39,39 @@ export function databaseOperation(statement: string) {
 		: 'QUERY'
 }
 
-function queryTextFromTemplate(strings: TemplateStringsArray) {
-	return strings
-		.map((part, index) => `${part}${index < strings.length - 1 ? `$${index + 1}` : ''}`)
-		.join('')
-}
-
-function rowCount(result: unknown): number | undefined {
-	if (Array.isArray(result)) return result.length
-	if (!result || typeof result !== 'object') return undefined
-	const count = Reflect.get(result, 'count')
-	return typeof count === 'number' ? count : undefined
-}
-
-function command(result: unknown): string | undefined {
-	if (!result || typeof result !== 'object') return undefined
-	const value = Reflect.get(result, 'command')
-	return typeof value === 'string' ? value : undefined
-}
-
-function completeSpan(span: TelemetrySpan, result: unknown) {
-	const count = rowCount(result)
-	const resultCommand = command(result)
-	if (count !== undefined) span.setAttribute('db.response.returned_rows', count)
-	if (resultCommand) span.setAttribute('db.operation.name', databaseOperation(resultCommand))
-	span.addEvent('db.response', {
-		...(count !== undefined ? { 'db.response.returned_rows': count } : {}),
-		...(resultCommand ? { 'db.operation.name': databaseOperation(resultCommand) } : {}),
-	})
-}
-
 type PendingQuery = PromiseLike<unknown> & Record<PropertyKey, unknown>
 
-function wrapPendingQuery(
-	query: PendingQuery,
-	statement: string,
-	databaseUrl: string,
-): PendingQuery {
+function wrapPendingQuery(query: PendingQuery, operation: string): PendingQuery {
 	let execution: Promise<unknown> | undefined
+	let cancellationRequested = false
 	const execute = () => {
-		execution ??= traceDatabaseOperation(statement, databaseUrl, async (span) => {
-			const result = await Promise.resolve(query)
-			completeSpan(span, result)
-			return result
-		})
+		execution ??= (async () => {
+			const started = performance.now()
+			let outcome = 'ok'
+			try {
+				return await query
+			} catch (error) {
+				const code =
+					error && typeof error === 'object' ? Reflect.get(error, 'code') : undefined
+				const errno =
+					error && typeof error === 'object' ? Reflect.get(error, 'errno') : undefined
+				outcome =
+					cancellationRequested || code === '57014' || errno === '57014'
+						? 'cancelled'
+						: 'database.error'
+				throw error
+			} finally {
+				databaseDuration ??= getMeter('zeepcentraal-database').createHistogram(
+					'db.client.operation.duration',
+					{ unit: 's' },
+				)
+				databaseDuration.record((performance.now() - started) / 1_000, {
+					'db.system.name': 'postgresql',
+					'db.operation.name': operation,
+					outcome,
+				})
+			}
+		})()
 		return execution
 	}
 
@@ -101,76 +89,24 @@ function wrapPendingQuery(
 			if (typeof value !== 'function') return value
 			return (...args: unknown[]) => {
 				const result = Reflect.apply(value, target, args)
+				if (property === 'cancel') cancellationRequested = true
 				if (result === target) return receiver
 				return result && typeof result === 'object' && 'then' in result
-					? wrapPendingQuery(result as PendingQuery, statement, databaseUrl)
+					? wrapPendingQuery(result as PendingQuery, operation)
 					: result
 			}
 		},
 	})
 }
 
-async function traceDatabaseOperation<T>(
-	statement: string,
-	databaseUrl: string,
-	callback: (span: TelemetrySpan) => Promise<T>,
-) {
-	const url = new URL(databaseUrl)
-	const operation = databaseOperation(statement)
-	const started = performance.now()
-	let outcome = 'ok'
-	return withActiveSpan(
-		`${operation} ${url.pathname.slice(1) || 'postgres'}`,
-		{
-			kind: SpanKind.CLIENT,
-			shouldRecordError: () => false,
-			attributes: {
-				'db.system.name': 'postgresql',
-				'db.system': 'postgresql',
-				'db.name': url.pathname.slice(1),
-				'db.operation': operation,
-				'db.namespace': url.pathname.slice(1),
-				'db.operation.name': operation,
-				'server.address': url.hostname,
-				'server.port': Number(url.port || 5432),
-			},
-		},
-		async (span) => {
-			try {
-				return await callback(span)
-			} catch (error) {
-				outcome = 'error'
-				span.setAttribute('error.type', 'database.error')
-				span.setErrorStatus('Database operation failed')
-				throw error
-			} finally {
-				databaseDuration ??= getMeter('zeepcentraal-database').createHistogram(
-					'db.client.operation.duration',
-					{ unit: 's' },
-				)
-				databaseDuration.record((performance.now() - started) / 1_000, {
-					outcome,
-					'db.system.name': 'postgresql',
-					'db.system': 'postgresql',
-					'db.name': url.pathname.slice(1),
-					'db.operation': operation,
-					'db.operation.name': operation,
-				})
-			}
-		},
-	)
-}
-
-export function createTracedPostgresClient<T extends SQL>(client: T, databaseUrl: string): T {
+export function createTracedPostgresClient<T extends SQL>(client: T, _databaseUrl?: string): T {
 	return new Proxy(client, {
 		apply(target, thisArg, args: unknown[]) {
 			const result = Reflect.apply(target, thisArg, args) as PendingQuery
 			const first = args[0]
-			const statement = Array.isArray(first)
-				? queryTextFromTemplate(first as unknown as TemplateStringsArray)
-				: 'query'
+			const operation = Array.isArray(first) ? databaseOperation(first[0] ?? '') : 'QUERY'
 			return result && typeof result === 'object' && 'then' in result
-				? wrapPendingQuery(result, statement, databaseUrl)
+				? wrapPendingQuery(result, operation)
 				: result
 		},
 		get(target, property) {
@@ -178,17 +114,13 @@ export function createTracedPostgresClient<T extends SQL>(client: T, databaseUrl
 			if (typeof value !== 'function') return value
 			if (property === 'reserve') {
 				return async (...args: unknown[]) =>
-					createTracedPostgresClient(
-						await Reflect.apply(value, target, args),
-						databaseUrl,
-					)
+					createTracedPostgresClient(await Reflect.apply(value, target, args))
 			}
 			if (property === 'unsafe') {
 				return (statement: string, ...args: unknown[]) =>
 					wrapPendingQuery(
 						Reflect.apply(value, target, [statement, ...args]),
-						statement,
-						databaseUrl,
+						databaseOperation(statement),
 					)
 			}
 			if (property === 'begin' || property === 'savepoint') {
@@ -197,7 +129,7 @@ export function createTracedPostgresClient<T extends SQL>(client: T, databaseUrl
 					if (callbackIndex >= 0) {
 						const callback = args[callbackIndex] as (transaction: T) => unknown
 						args[callbackIndex] = (transaction: T) =>
-							callback(createTracedPostgresClient(transaction, databaseUrl))
+							callback(createTracedPostgresClient(transaction))
 					}
 					return Reflect.apply(value, target, args)
 				}

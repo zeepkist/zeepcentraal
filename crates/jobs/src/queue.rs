@@ -24,7 +24,7 @@ async fn trace_enqueue<T>(operation: impl std::future::Future<Output = Result<T>
     );
     let result = operation.instrument(span.clone()).await;
     if result.is_err() {
-        span.record("otel.status_code", "ERROR");
+        zc_telemetry::record_span_failure(&span, "job.enqueue");
     }
     result
 }

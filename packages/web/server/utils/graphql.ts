@@ -1,8 +1,6 @@
 import type { TypedDocumentNode } from '@graphql-typed-document-node/core'
-import { withActiveSpan } from '@zeepkist/telemetry'
 import { getOperationAST, print } from 'graphql'
 import { createError, useRuntimeConfig } from 'nuxt/server'
-import { shouldRecordWebError } from '../../runtime/telemetryPolicy'
 import { tracedWebFetch } from './tracedFetch'
 
 export async function fetchGraphql<TData, TVariables>(
@@ -10,32 +8,30 @@ export async function fetchGraphql<TData, TVariables>(
 	variables: TVariables,
 ): Promise<TData> {
 	const operation = getOperationAST(document)
-	return withActiveSpan(
-		`${operation?.operation ?? 'query'} ${operation?.name?.value ?? 'anonymous'}`,
+	const type = operation?.operation ?? 'query'
+	const name = operation?.name?.value ?? 'anonymous'
+	const config = useRuntimeConfig()
+	const response = await tracedWebFetch<{
+		data?: TData
+		errors?: Array<{ message: string }>
+	}>(
+		config.public.graphqlHttpUrl,
 		{
-			shouldRecordError: shouldRecordWebError,
-			attributes: {
-				'graphql.operation.type': operation?.operation ?? 'query',
-				'graphql.operation.name': operation?.name?.value ?? 'anonymous',
+			method: 'POST',
+			body: { query: print(document), variables },
+			timeout: 10_000,
+			telemetry: {
+				name: `${type} ${name}`,
+				attributes: { 'graphql.operation.type': type, 'graphql.operation.name': name },
 			},
 		},
-		async () => {
-			const config = useRuntimeConfig()
-			const response = await tracedWebFetch<{
-				data?: TData
-				errors?: Array<{ message: string }>
-			}>(config.public.graphqlHttpUrl, {
-				method: 'POST',
-
-				body: { query: print(document), variables },
-				timeout: 10_000,
-			})
+		(response) => {
 			if (response.errors?.length || !response.data)
 				throw createError({
 					status: 502,
 					statusText: response.errors?.[0]?.message ?? 'GraphQL request failed',
 				})
-			return response.data
 		},
 	)
+	return response.data as TData
 }

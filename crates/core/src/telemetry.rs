@@ -56,8 +56,7 @@ struct HttpObservation {
 impl Drop for HttpObservation {
     fn drop(&mut self) {
         if !self.completed {
-            self.span.record("otel.status_code", "ERROR");
-            self.span.record("error.type", "cancelled");
+            record_http_failure(&self.span, "cancelled");
             self.attributes
                 .push(KeyValue::new("error.type", "cancelled"));
         }
@@ -71,6 +70,12 @@ impl Drop for HttpObservation {
             })
             .record(self.started.elapsed().as_secs_f64(), &self.attributes);
     }
+}
+
+fn record_http_failure(span: &tracing::Span, category: &'static str) {
+    span.record("otel.status_code", "ERROR");
+    span.record("error.type", category);
+    span.add_event("error", vec![KeyValue::new("error.type", category)]);
 }
 
 pub trait TracedRequest {
@@ -114,8 +119,7 @@ impl TracedRequest for reqwest::RequestBuilder {
                     i64::from(status),
                 ));
                 if status >= 400 {
-                    span.record("otel.status_code", "ERROR");
-                    span.record("error.type", "http.response");
+                    record_http_failure(&span, "http.response");
                 }
             }
             Err(error) => {
@@ -126,8 +130,7 @@ impl TracedRequest for reqwest::RequestBuilder {
                 } else {
                     "transport"
                 };
-                span.record("otel.status_code", "ERROR");
-                span.record("error.type", category);
+                record_http_failure(&span, category);
                 observation
                     .attributes
                     .push(KeyValue::new("error.type", category));

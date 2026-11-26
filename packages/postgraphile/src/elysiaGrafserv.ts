@@ -1,4 +1,5 @@
 import { Buffer } from 'node:buffer'
+import { getActiveSpan, recordSpanFailure } from '@zeepkist/telemetry'
 import {
 	convertHandlerResultToResult,
 	GrafservBase,
@@ -130,13 +131,15 @@ export class ElysiaGrafserv extends GrafservBase {
 		body?: unknown,
 		requestContext?: Partial<Grafast.RequestContext>,
 	) {
-		const result = await convertHandlerResultToResult(
-			await this.graphqlHandler(
-				this.createDigest(request, body, requestContext),
-				this.graphiqlHandler,
-			),
+		const result = await this.graphqlHandler(
+			this.createDigest(request, body, requestContext),
+			this.graphiqlHandler,
 		)
-		return responseFromResult(result)
+		if (result?.type === 'graphql' && result.payload.errors?.length) {
+			const span = getActiveSpan()
+			if (span) recordSpanFailure(span, 'graphql.execution')
+		}
+		return responseFromResult(await convertHandlerResultToResult(result))
 	}
 
 	public async handleGraphiQLStaticRequest(request: Request) {

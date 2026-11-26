@@ -5,7 +5,11 @@ use crate::{
 };
 use anyhow::{Result, anyhow};
 use async_trait::async_trait;
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{
+    future::Future,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 use tokio::{
     sync::watch,
     task::{JoinError, JoinHandle, JoinSet},
@@ -152,10 +156,17 @@ async fn run_lane(
                         messaging.operation.name = "process", messaging.message.id = %job.id,
                         job.attempt = job.attempts, otel.status_code = tracing::field::Empty);
                     let _ = span.set_parent(zc_core::telemetry::remote_context(job.traceparent.as_deref(), job.tracestate.as_deref()));
-                    let result = zc_telemetry::observe_operation(operation, execute(queue, handler, job, lane, span.clone()))
+                    let started = Instant::now();
+                    let result = execute(queue, handler, job, lane, span.clone())
                         .instrument(span.clone()).await;
-                    if result.is_err() { span.record("otel.status_code", "ERROR"); }
-                    result
+                    if result.is_err() {
+                        zc_telemetry::record_span_failure(&span, "job.acknowledgement");
+                    }
+                    zc_telemetry::record_operation(operation, started.elapsed(), match result {
+                        Ok(outcome) => outcome,
+                        Err(_) => "error",
+                    });
+                    result.map(|_| ())
                 });
             }
         }
@@ -219,7 +230,7 @@ async fn execute(
     job: ClaimedJob,
     lane: JobLane,
     attempt_span: tracing::Span,
-) -> Result<()> {
+) -> Result<&'static str> {
     let task = TaskIdentifier::parse(&job.task).ok_or_else(|| anyhow!("invalid job task"));
     let result = match task {
         Ok(task) if task.validate_payload(&job.payload) => {
@@ -247,9 +258,7 @@ async fn execute(
         }
         _ => Err(anyhow!("invalid job payload")),
     };
-    if result.is_err() {
-        attempt_span.record("otel.status_code", "ERROR");
-    }
+
     let database_unavailable = result.as_ref().err().is_some_and(is_unavailable);
     let acknowledged = match result.as_ref() {
         Ok(JobOutcome::Deferred) => queue.defer(&job).await?,
@@ -266,7 +275,13 @@ async fn execute(
             job.id
         ));
     }
+    let outcome = match &result {
+        Ok(JobOutcome::Completed) => "ok",
+        Ok(JobOutcome::Deferred) => "deferred",
+        Err(_) => "error",
+    };
     if let Err(error) = result {
+        zc_telemetry::record_span_failure(&attempt_span, "job.handler");
         let message = if database_unavailable {
             "Job database unavailable; deferred without consuming attempt"
         } else {
@@ -282,7 +297,7 @@ async fn execute(
             "{message}"
         );
     }
-    Ok(())
+    Ok(outcome)
 }
 
 async fn while_lease_valid<T>(

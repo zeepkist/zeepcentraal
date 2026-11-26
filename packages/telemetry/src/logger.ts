@@ -4,7 +4,7 @@ import type { TelemetryAttributes } from './span'
 
 let loggerProvider: ReturnType<typeof logs.getLoggerProvider> | undefined
 let logger: ReturnType<typeof logs.getLogger> | undefined
-const originalConsole = {
+export const localConsole = {
 	debug: console.debug.bind(console),
 	info: console.info.bind(console),
 	log: console.log.bind(console),
@@ -43,18 +43,20 @@ export function emitTelemetryLog(
 	options: { printAttributes?: boolean } = {},
 ) {
 	const safeMessage = redactLogMessage(message)
-	getLogger().emit({
-		severityNumber: severity[level],
-		severityText: level.toUpperCase(),
-		body: safeMessage,
-		attributes,
-	})
+	if (level === 'warn' || level === 'error') {
+		getLogger().emit({
+			severityNumber: severity[level],
+			severityText: level.toUpperCase(),
+			body: safeMessage,
+			attributes,
+		})
+	}
 	const sink =
 		level === 'error'
-			? originalConsole.error
+			? localConsole.error
 			: level === 'warn'
-				? originalConsole.warn
-				: originalConsole.info
+				? localConsole.warn
+				: localConsole.info
 	if (attributes && options.printAttributes !== false) sink(safeMessage, attributes)
 	else sink(safeMessage)
 }
@@ -92,19 +94,19 @@ export function installTelemetryConsoleBridge(options: TelemetryConsoleOptions =
 		(level: TelemetryLogLevel, sink: (...values: unknown[]) => void) =>
 		(...values: unknown[]) => {
 			sink(...values)
+			if (level !== 'warn' && level !== 'error') return
 			if (options.shouldExportLog?.(level, values) === false) return
 			getLogger().emit({
 				severityNumber: severity[level],
 				severityText: level.toUpperCase(),
 				body: logBody(values),
-				attributes: { 'log.argument.count': values.length },
 			})
 		}
-	console.debug = bridge('debug', originalConsole.debug)
-	console.info = bridge('info', originalConsole.info)
-	console.log = bridge('info', originalConsole.log)
-	console.warn = bridge('warn', originalConsole.warn)
-	console.error = bridge('error', originalConsole.error)
+	console.debug = bridge('debug', localConsole.debug)
+	console.info = bridge('info', localConsole.info)
+	console.log = bridge('info', localConsole.log)
+	console.warn = bridge('warn', localConsole.warn)
+	console.error = bridge('error', localConsole.error)
 	restoreConsole = () => {
 		console.debug = previous.debug
 		console.info = previous.info

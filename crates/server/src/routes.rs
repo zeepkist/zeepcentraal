@@ -399,34 +399,15 @@ pub struct RecordSubmissionBody {
 
 impl RecordSubmissionBody {
     pub(super) fn diagnostics(&self) -> crate::mod_telemetry::RecordSubmissionDiagnostics {
-        let mut snapshot = crate::mod_telemetry::RecordSubmissionDiagnostics::new(
-            self.time,
+        use crate::mod_telemetry::{RecordSubmissionDiagnostics, RecordSubmissionIdentifiers};
+        RecordSubmissionDiagnostics::new(
+            RecordSubmissionIdentifiers::new(&self.level, &self.hash, self.workshop_id.as_deref()),
+            &self.game_version,
+            &self.mod_version,
             self.ghost_data.len(),
-        );
-        for (key, field, value) in [
-            ("record.Level", "Level", Some(self.level.as_str())),
-            ("record.Hash", "Hash", Some(self.hash.as_str())),
-            (
-                "record.WorkshopId",
-                "WorkshopId",
-                self.workshop_id.as_deref(),
-            ),
-            (
-                "record.GameVersion",
-                "GameVersion",
-                Some(self.game_version.as_str()),
-            ),
-            (
-                "record.ModVersion",
-                "ModVersion",
-                Some(self.mod_version.as_str()),
-            ),
-        ] {
-            snapshot.string(key, field, value);
-        }
-        snapshot.array("record.Splits", "Splits", &self.splits);
-        snapshot.array("record.Speeds", "Speeds", &self.speeds);
-        snapshot
+            self.splits.len(),
+            self.speeds.len(),
+        )
     }
 
     pub(super) fn decode_ghost(&self) -> ApiResult<Vec<u8>> {

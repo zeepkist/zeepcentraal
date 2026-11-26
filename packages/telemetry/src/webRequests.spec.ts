@@ -115,7 +115,7 @@ describe('web request telemetry', () => {
 				.getFinishedSpans()
 				.find((candidate) => candidate.name === `GET ${path}`)
 			expect(span?.attributes['http.response.status_code']).toBe(404)
-			expect(span?.events.map((event) => event.name)).toEqual(['web.request.completed'])
+			expect(span?.events.map((event) => event.name)).toEqual([])
 			expect(span?.status.code).toBe(1)
 			expect(logExporter.getFinishedLogRecords()).toEqual([])
 			expect(consoleSink).toHaveBeenLastCalledWith('[request error]', error)
@@ -127,7 +127,7 @@ describe('web request telemetry', () => {
 			h3App: {
 				handler: async (event) => {
 					console.error(
-						'[request error]',
+						'[request error] [unhandled] [GET] https://web.example.test/broken?token=private',
 						Object.assign(new Error('Page not found'), { status: 500 }),
 					)
 					event.node.res.statusCode = 500
@@ -146,7 +146,17 @@ describe('web request telemetry', () => {
 			.getFinishedSpans()
 			.find((candidate) => candidate.name === 'GET /broken')
 		expect(span?.status.code).toBe(2)
-		expect(span?.events.map((event) => event.name)).toEqual(['web.request.completed', 'error'])
-		expect(String(logExporter.getFinishedLogRecords().at(-1)?.body)).toContain('Page not found')
+		expect(span?.events.map((event) => event.name)).toEqual(['error'])
+		const records = logExporter.getFinishedLogRecords()
+		expect(records.map((record) => record.body)).toEqual(['HTTP request failed'])
+		expect(records[0]?.attributes).toEqual({
+			'http.request.method': 'GET',
+			'http.route': '/broken',
+			'http.response.status_code': 500,
+		})
+		expect(consoleSink).toHaveBeenCalledWith(
+			'[request error] [unhandled] [GET] https://web.example.test/broken?token=private',
+			expect.any(Error),
+		)
 	})
 })

@@ -55,6 +55,26 @@ describe('Elysia request logging', () => {
 		})
 	})
 
+	test('evaluates the access log flag without rebuilding Elysia routes', async () => {
+		let enabled = false
+		const entries: RequestLogEntry[] = []
+		const app = new Elysia()
+			.use(
+				createElysiaRequestLoggingPlugin({
+					enabled: () => enabled,
+					sink: (entry) => entries.push(entry),
+				}),
+			)
+			.get('/', () => 'OK')
+
+		await app.handle(new Request('http://localhost/'))
+		expect(entries).toEqual([])
+		enabled = true
+		await app.handle(new Request('http://localhost/'))
+		await new Promise((resolve) => queueMicrotask(resolve))
+		expect(entries).toHaveLength(1)
+	})
+
 	test('can be disabled', async () => {
 		const entries: RequestLogEntry[] = []
 		const app = new Elysia()
