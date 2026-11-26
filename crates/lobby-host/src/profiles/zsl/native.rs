@@ -654,15 +654,27 @@ impl ZslSession {
             self.once(
                 state,
                 format!("started:{slot}"),
-                &format!(
-                    "Zeepkist Super League Season {}: {} has started! Good luck and have fun!",
-                    event.season,
-                    escape_text(&event.name)
+                // Reference command: `/cm14`
+                &chat_notice(
+                    "ZSL Tournament Started",
+                    &format!("{}<br>Good luck and have fun!", zsl_messages::season(event)),
                 ),
             )
             .await?;
             if index == 7 {
-                self.once(state, format!("break:{slot}:{index}"), &zsl_messages::gradient("Break Time! Refill your drink, stay hydrated, stretch your legs and get ready for the next ZSL level!", ["#00aaff", "#88ffff"])).await?;
+                // Reference command: `/cm15`
+                self.once(
+                    state,
+                    format!("break:{slot}:{index}"),
+                    &chat_notice(
+                        "Break Time!",
+                        &zsl_messages::gradient(
+                            "Grab a drink and stretch before the next ZSL level.",
+                            ["#00aaff", "#88ffff"],
+                        ),
+                    ),
+                )
+                .await?;
             }
             if let (Some(now), Some(bundle)) = (self.context.remote_now(), state.pinned.as_ref()) {
                 let remaining = round.remaining(now);
@@ -684,7 +696,8 @@ impl ZslSession {
                     self.once(
                         state,
                         format!("reset:{slot}:{index}"),
-                        "Last chance to reset to improve your time",
+                        // Reference command: `/cm16`
+                        &chat_notice("Last Chance to Reset", "Reset now to improve your time."),
                     )
                     .await?;
                 } else if (0.0..=5.0).contains(&remaining)
@@ -693,7 +706,8 @@ impl ZslSession {
                     self.once(
                         state,
                         format!("next:{slot}:{index}"),
-                        &format!("Up next is {next}"),
+                        // Reference command: `/cm17`
+                        &chat_message("Up Next:", "#4ad9ff", &format!(" <b>{next}</b>")),
                     )
                     .await?;
                 }

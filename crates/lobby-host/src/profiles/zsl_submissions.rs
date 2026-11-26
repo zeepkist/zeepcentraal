@@ -1,6 +1,8 @@
 use super::{
     SubmissionAsset, SubmissionAssets, SubmissionPlaylist,
-    messages::{HOSTNAME, escape_text, scheduled_submission_message, submission_message},
+    messages::{
+        HOSTNAME, chat_notice, escape_text, scheduled_submission_message, submission_message,
+    },
 };
 use crate::{
     config::ManagedRoomConfig,
@@ -293,8 +295,9 @@ fn upcoming_level(state: &SessionState) -> Option<OnlineLevel> {
     }
     state.active.playlist.levels.get(state.next_index).cloned()
 }
+// Reference command: `/cm9`
 fn next_level_message(level: &OnlineLevel) -> String {
-    labelled_next_level_message(level, "Next submission:")
+    labelled_next_level_message(level, "Next Submission")
 }
 fn labelled_next_level_message(level: &OnlineLevel, label: &str) -> String {
     let author = if !level.override_author_name.is_empty() {
@@ -304,10 +307,14 @@ fn labelled_next_level_message(level: &OnlineLevel, label: &str) -> String {
     } else {
         format!("{}, {}", level.author, level.collaborators)
     };
-    format!(
-        "<color=#f9cc15>{label}</color> <b>{}</b> by {}",
-        escape_text(&level.name),
-        escape_text(&author)
+    chat_notice(
+        label,
+        &format!(
+            // Reference commands: `/cm9`, `/cm10`
+            "<b>{}</b> by {}",
+            escape_text(&level.name),
+            escape_text(&author)
+        ),
     )
 }
 struct ZslSubmissionsSession {
@@ -375,15 +382,15 @@ impl ZslSubmissionsSession {
             ensure!(!schedule.closed, "ZSL voting period ended");
             scheduled_submission_message(
                 entries,
+                position,
                 self.config.round_time_seconds,
                 &schedule.submission_end,
                 &schedule.zsl_vote_end,
                 jiff::Timestamp::now(),
             )?
         } else {
-            submission_message(entries, self.config.round_time_seconds)
+            submission_message(entries, position, self.config.round_time_seconds)
         };
-        let message = format!("{message}\nSubmission {position} of {entries}");
         self.context
             .send_round_message(&key, interval, &message)
             .await
@@ -429,7 +436,8 @@ impl ZslSubmissionsSession {
             };
             notice.announced = Some(key);
             if self.practice.is_some() {
-                labelled_next_level_message(&next, "Next level:")
+                // Reference command: `/cm10`
+                labelled_next_level_message(&next, "Next Level")
             } else {
                 next_level_message(&next)
             }
@@ -1091,7 +1099,7 @@ mod tests {
         session.overlay().await?;
         let command = zc_core::zeepnet::parse_game_host_packet_for(&sent.lock().await[0], 0, None)?;
         assert!(
-            matches!(command,GameHostPacket::Chat{message,..} if message.contains("Submission 3 of 3"))
+            matches!(command,GameHostPacket::Chat{message,..} if message.contains("Submission</color><pos=7em><b>3 of 3</b>"))
         );
         let current = session.state.lock().await.active.playlist.levels[2].clone();
         session
@@ -1144,7 +1152,7 @@ mod tests {
         named.override_author_name = "Alice & Bob <color=red>".into();
         assert_eq!(
             next_level_message(&named),
-            "<color=#f9cc15>Next submission:</color> <b>Rock & Roll <noparse><</noparse>/noparse><noparse><</noparse>size=200%>雪</b> by Alice & Bob <noparse><</noparse>color=red>"
+            "<size=85%><color=#dedede><b><size=100%><color=#4ad9ff>Next Submission</color></size></b><br><b>Rock & Roll <noparse><</noparse>/noparse><noparse><</noparse>size=200%>雪</b> by Alice & Bob <noparse><</noparse>color=red></color></size>"
         );
         Ok(())
     }
@@ -1243,10 +1251,10 @@ mod tests {
     }
 
     #[test]
-    fn submission_overlay_matches_bun_message() {
+    fn submission_overlay_includes_position() {
         assert_eq!(
-            submission_message(2, 900),
-            "/servermessage yellow 900 <size=150%><b>ZSL Level Contest Submissions</b>\n2 valid submissions</size>"
+            submission_message(2, 1, 900),
+            "/servermessage white 900 <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>ZSL Level Contest</color></size></b><br><color=#B8B8B8>Entries</color><pos=7em><b>2 valid submissions</b><br><color=#B8B8B8>Submission</color><pos=7em><b>1 of 2</b></align></size>"
         );
     }
 
@@ -1656,7 +1664,7 @@ mod practice_session_tests {
         session.overlay().await?;
         let command = zc_core::zeepnet::parse_game_host_packet_for(&sent.lock().await[0], 0, None)?;
         assert!(
-            matches!(command, GameHostPacket::Chat { message, .. } if message.contains("Level 3 of 3") && message.contains("Mixed <noparse><</noparse>Surfaces>") && !message.contains("Submission"))
+            matches!(command, GameHostPacket::Chat { message, .. } if message.contains("Level</color><pos=7em><b>3 of 3</b>") && message.contains("Mixed <noparse><</noparse>Surfaces>") && !message.contains("Submission"))
         );
         let current = session.state.lock().await.active.playlist.levels[2].clone();
         session
@@ -1678,7 +1686,7 @@ mod practice_session_tests {
         let expected = zc_core::zeepnet::targeted_chat_message_packet(
             0,
             &next_level_message(&session.state.lock().await.active.playlist.levels[0])
-                .replace("Next submission:", "Next level:"),
+                .replace("Next Submission", "Next Level"),
             HOSTNAME,
         )?;
         assert_eq!(sent.lock().await[1], expected);

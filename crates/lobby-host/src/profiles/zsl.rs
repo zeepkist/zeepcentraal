@@ -3,7 +3,7 @@ use super::{
     assets::{
         ManagedPracticeAssets, PracticeAssets, SubmissionAsset, SubmissionPlaylist, pinned_asset,
     },
-    messages::{HOSTNAME, escape_text, server_message},
+    messages::{HOSTNAME, chat_message, chat_notice, escape_text, server_message, server_row},
     zsl_messages,
 };
 use crate::{
@@ -1270,7 +1270,11 @@ impl ZslSession {
         self.once(
             state,
             format!("unscored:{slot}"),
-            "Tournament levels are unavailable. This timeslot is unscored. You can stay and play.",
+            // Reference command: `/cm18`
+            &chat_notice(
+                "Unscored Timeslot",
+                "Tournament levels are unavailable. You can stay and play.",
+            ),
         )
         .await
     }
@@ -1345,21 +1349,28 @@ impl ZslSession {
                 .asset
                 .as_ref()
                 .map_or(0, |asset| asset.playlist.levels.len());
+            // Reference command: `/sm8`
             let body = format!(
-                "<b>ZSL {} Practice</b>\nLevel {} of {entries}\nTournament handover in {}d {}h {}m",
-                escape_text(&event.name),
-                state.index + 1,
-                remaining / 86400,
-                remaining % 86400 / 3600,
-                remaining % 3600 / 60
+                "{}<br>{}<br>{}",
+                server_row("Round", escape_text(&event.name)),
+                server_row("Level", format_args!("{} of {entries}", state.index + 1)),
+                server_row(
+                    "Handover in",
+                    format_args!(
+                        "{}d {}h {}m",
+                        remaining / 86400,
+                        remaining % 86400 / 3600,
+                        remaining % 3600 / 60
+                    )
+                )
             );
             self.context
                 .send_round_message(
                     &key,
                     interval,
                     &server_message(
-                        "yellow",
                         self.shared.practice.as_ref().unwrap().round_time_seconds + 120,
+                        "ZSL Practice",
                         &body,
                     ),
                 )
@@ -1369,13 +1380,14 @@ impl ZslSession {
             .as_ref()
             .or_else(|| live.asset.as_ref()?.bundle.as_deref())
         {
+            // Reference commands: `/sm9`, `/sm12`
             let status = if state.phase == Phase::Warmup {
-                zsl_messages::warmup_countdown(
-                    (event_start(event, state.timeslot) - now).max(0) as u64
-                )
+                zsl_messages::warmup_status((event_start(event, state.timeslot) - now).max(0) as u64)
             } else if live.current_level_id.is_none() {
+                // Reference command: `/sm11`
                 "Breaktime".into()
             } else {
+                // Reference command: `/sm10`
                 "Running".into()
             };
             self.context
@@ -1391,6 +1403,7 @@ impl ZslSession {
                             state.index
                         },
                         &status,
+                        state.phase == Phase::Warmup,
                         self.phase_seconds(state.phase) as u64,
                     ),
                 )
@@ -1580,28 +1593,15 @@ impl ZslSession {
                     self.shared.practice.as_ref().unwrap().round_time_seconds,
                     remaining as u64,
                 )
-            } else if state.phase == Phase::Warmup {
-                format!(
-                    "Welcome {}, to Zeepkist Super League Season {}: {}!<br>{}",
-                    escape_text(player.username.as_deref().unwrap_or(&player.backup_name)),
-                    event.season,
-                    escape_text(&event.name),
-                    zsl_messages::warmup_countdown(
-                        (event_start(&event, state.timeslot) - received_at.as_second()).max(0)
-                            as u64
-                    )
-                )
             } else {
-                format!(
-                    "Welcome {}, to Zeepkist Super League Season {}: {}!<br>{}",
-                    escape_text(player.username.as_deref().unwrap_or(&player.backup_name)),
-                    event.season,
-                    escape_text(&event.name),
-                    if locked {
-                        "You have already set a time in Timeslot 1 for this level.<br>You may race, but improving your time in Timeslot 2 will not replace your Timeslot 1 result."
-                    } else {
-                        "Good luck and have fun!"
-                    }
+                let warmup = (state.phase == Phase::Warmup).then(|| {
+                    (event_start(&event, state.timeslot) - received_at.as_second()).max(0) as u64
+                });
+                zsl_messages::welcome(
+                    &event,
+                    player.username.as_deref().unwrap_or(&player.backup_name),
+                    warmup,
+                    locked,
                 )
             };
             self.context

@@ -7,16 +7,27 @@ use zc_database::services::lobby_assets::{TournamentLobbyPlayerContext, Tourname
 
 pub const HOSTNAME: &str = "<color=#f9cc15>HOST</color>";
 
-pub fn server_message_body(body: &str) -> String {
-    format!("<size=150%>{body}</size>")
-}
-
-pub fn server_message(color: &str, duration: u64, body: &str) -> String {
+pub fn chat_message(heading: &str, color: &str, body: &str) -> String {
     format!(
-        "/servermessage {color} {duration} {}",
-        server_message_body(body)
+        "<size=85%><color=#dedede><b><size=100%><color={color}>{heading}</color></size></b>{body}</color></size>"
     )
 }
+
+pub fn chat_notice(heading: &str, body: &str) -> String {
+    chat_message(heading, "#4ad9ff", &format!("<br>{body}"))
+}
+
+pub fn server_row(label: &str, value: impl std::fmt::Display) -> String {
+    format!("<color=#B8B8B8>{label}</color><pos=7em><b>{value}</b>")
+}
+
+pub fn server_message(duration: u64, heading: &str, body: &str) -> String {
+    format!(
+        "/servermessage white {duration} <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>{heading}</color></size></b><br>{body}</align></size>"
+    )
+}
+
+pub const UNATTENDED_NOTICE: &str = "<size=80%><color=#B8B8B8>This room is unattended. Report issues to Akane on Discord.</color></size>";
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StandingResult {
@@ -31,6 +42,7 @@ pub fn escape_text(value: &str) -> String {
     value.replace('<', "<noparse><</noparse>")
 }
 
+// Reference commands: `/cm1`, `/cm2`, `/cm3`, `/cm26`
 pub fn join_message(
     kind: TournamentType,
     player_name: &str,
@@ -41,30 +53,30 @@ pub fn join_message(
         TournamentType::Weekly => ("Track of the Week", "week", "totw"),
         TournamentType::Monthly => ("Track of the Month", "month", "totm"),
     };
-    let mut paragraphs = vec![
-        format!("Welcome to {event}, {}", display_name(Some(player_name))),
-        format!("A time attack tournament featuring a unique level each {cadence}."),
-        format!("View the full tournament leaderboard on <u>zeepki.st/{route}</u>!"),
-    ];
+    let mut body = format!(
+        "Welcome, <b>{}</b>! Race a different track each {cadence}.<br><br><b>Leaderboard:</b> <color=#4ad9ff><u>zeepki.st/{route}</u></color>",
+        display_name(Some(player_name))
+    );
     if !context.user_exists || !context.recent_record {
         let minimum = gtr_version(context.minimum_gtr_version.as_deref());
-        paragraphs.push(if minimum.is_empty() {
-            "You need GTR installed to join the tournament leaderboard.".into()
+        let requirement = if minimum.is_empty() {
+            "<br>Install <b>GTR</b> to join the leaderboard.".to_owned()
         } else {
-            format!("You need GTR {minimum}+ installed to join the tournament leaderboard.")
-        });
+            format!(
+                "<br>Install <b>GTR {minimum}+</b> with <b>Modkist</b> (<color=#4ad9ff><u>zeepki.st/wiki/setup-modkist</u></color>) to join the leaderboard."
+            )
+        };
+        body.push_str(&requirement);
     }
     if let Some((rank, time)) = context.standing {
-        paragraphs.push(format!(
-            "You are currently #{rank} on the tournament leaderboard with {}.",
+        body.push_str(&format!(
+            "<br>Your standing: <b>#{rank}</b> <b>{}</b>",
             format_time(time)
         ));
     }
-    paragraphs.push("<size=65%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size>".into());
-    format!(
-        "<size=85%><color=#dedede>{}</color></size>",
-        paragraphs.join("<br><br>")
-    )
+    body.push_str("<br><br>");
+    body.push_str(UNATTENDED_NOTICE);
+    chat_notice(event, &body)
 }
 
 pub fn tournament_message(
@@ -85,16 +97,25 @@ fn tournament_message_at(
     round_time: u64,
     now: Timestamp,
 ) -> Result<String> {
+    let heading = match kind {
+        TournamentType::Daily => "Track of the Day",
+        TournamentType::Weekly => "Track of the Week",
+        TournamentType::Monthly => "Track of the Month",
+    };
     let period = tournament_period(kind, slug);
     let remaining = tournament_remaining(end_at, now)?;
     let entries = snapshot
         .map(|s| s.entries.to_string())
         .unwrap_or_else(|| "…".into());
+    // Reference commands: `/sm1`, `/sm2`, `/sm3`
     let leaderboard = match snapshot {
-        None => "Leaderboard loading…".into(),
+        // Reference command: `/sm1`
+        None => "<color=#B8B8B8><i>Leaderboard loading…</i></color>".into(),
+        // Reference command: `/sm3`
         Some(s) if s.standings.is_empty() => {
-            "Set a time with GTR to appear on the leaderboard!".into()
+            "<color=#B8B8B8><i>Set a time with GTR to appear on the leaderboard!</i></color>".into()
         }
+        // Reference command: `/sm2`
         Some(s) => s
             .standings
             .iter()
@@ -107,19 +128,29 @@ fn tournament_message_at(
                     .unwrap_or("#FFFFFF");
                 let name = display_name(row.steam_name.as_deref());
                 format!(
-                    "<color={color}>{}. {name} — {}</color>",
+                    "<color={color}>{}. {name}<pos=16em>{}</color>",
                     row.rank,
                     format_time(row.time)
                 )
             })
             .collect::<Vec<_>>()
-            .join("\n"),
+            .join("<br>"),
     };
     let body = format!(
-        "<b>{}</b>\n{entries} Entries {remaining}\n{leaderboard}",
-        escape_text(&period)
+        "{}<br>{}<br>{}<br><br><b>Leaderboard</b><br>{leaderboard}",
+        server_row(
+            "Period",
+            escape_text(
+                period
+                    .strip_prefix(heading)
+                    .and_then(|value| value.strip_prefix(": "))
+                    .unwrap_or(&period)
+            )
+        ),
+        server_row("Entries", entries),
+        server_row("Ends in", remaining.trim_start_matches("Ends in "))
     );
-    Ok(server_message("yellow", round_time, &body))
+    Ok(server_message(round_time, heading, &body))
 }
 
 pub fn tournament_remaining(end_at: &str, now: Timestamp) -> Result<String> {
@@ -134,77 +165,55 @@ pub fn tournament_remaining(end_at: &str, now: Timestamp) -> Result<String> {
     ))
 }
 
-pub fn standing_message(
-    kind: TournamentType,
-    previous: Option<StandingResult>,
-    current: StandingResult,
-) -> String {
-    let label = match kind {
-        TournamentType::Daily => "Track of the Day",
-        TournamentType::Weekly => "Track of the Week",
-        TournamentType::Monthly => "Track of the Month",
+pub fn standing_message(previous: Option<StandingResult>, current: StandingResult) -> String {
+    let (heading, color) = match previous {
+        // Reference command: `/cm20`
+        None => ("You're on the board!", "#4ad9ff"),
+        // Reference commands: `/cm4`, `/cm28`
+        Some(previous) if current.time < previous.time => ("New Personal Best!", "#4ad9ff"),
+        // Reference command: `/cm21`
+        Some(previous) if current.rank < previous.rank => ("Rank improved!", "#fca5a5"),
+        // Reference command: `/cm22`
+        Some(_) => ("Rank dropped", "#fca5a5"),
     };
-    let heading = match previous {
-        None => "You're on the board!",
-        Some(previous) if current.time < previous.time => "New PB!",
-        Some(previous) if current.rank < previous.rank => "Rank improved!",
-        Some(_) => "Rank dropped",
-    };
-    let rank = match previous {
-        None => format!("#{}", current.rank),
-        Some(previous) => {
-            let delta = previous.rank - current.rank;
-            if delta == 0 {
-                format!("#{} (unchanged)", current.rank)
-            } else {
-                let direction = if delta > 0 { "up" } else { "down" };
-                let noun = if delta.abs() == 1 {
-                    "position"
-                } else {
-                    "positions"
-                };
-                format!(
-                    "#{} ({})",
-                    current.rank,
-                    improvement(&format!("{direction} {} {noun}", delta.abs()), delta > 0)
-                )
+    let mut rank = format!("#{}", current.rank);
+    let mut time = format_time(current.time);
+    let mut points = current.points.to_string();
+    if let Some(previous) = previous {
+        let rank_delta = i64::from(current.rank) - i64::from(previous.rank);
+        let time_delta = ((f64::from(current.time) * 1_000.0).round()
+            - (f64::from(previous.time) * 1_000.0).round())
+            / 1_000.0;
+        let points_delta = i64::from(current.points) - i64::from(previous.points);
+        for (value, delta, improved) in [
+            (
+                &mut rank,
+                (rank_delta != 0).then(|| format!("{rank_delta:+}")),
+                rank_delta < 0,
+            ),
+            (
+                &mut time,
+                (time_delta != 0.0).then(|| format!("{time_delta:+.3}s")),
+                time_delta < 0.0,
+            ),
+            (
+                &mut points,
+                (points_delta != 0).then(|| format!("{points_delta:+}")),
+                points_delta > 0,
+            ),
+        ] {
+            if let Some(delta) = delta {
+                value.push(' ');
+                value.push_str(&improvement(&delta, improved));
             }
         }
-    };
-    let time = match previous {
-        None => format_time(current.time),
-        Some(previous) => {
-            let delta = (f64::from(current.time) * 1_000.0).round() as i64
-                - (f64::from(previous.time) * 1_000.0).round() as i64;
-            if delta == 0 {
-                format!("{} (unchanged)", format_time(current.time))
-            } else {
-                format!(
-                    "{} ({})",
-                    format_time(current.time),
-                    improvement(&format!("{:.3}s", delta.abs() as f64 / 1_000.0), delta < 0)
-                )
-            }
-        }
-    };
-    let points = match previous {
-        None => format!("{} pts", current.points),
-        Some(previous) => {
-            let delta = current.points - previous.points;
-            if delta == 0 {
-                format!("{} pts (unchanged)", current.points)
-            } else {
-                let sign = if delta > 0 { "+" } else { "−" };
-                format!(
-                    "{} pts ({})",
-                    current.points,
-                    improvement(&format!("{sign}{}", delta.abs()), delta > 0)
-                )
-            }
-        }
-    };
-    format!(
-        "<size=85%><color=#dedede><b>{label}: {heading}</b><br>{rank} · {time} · {points}</color></size>"
+    }
+    chat_message(
+        heading,
+        color,
+        &format!(
+            "<br><color=#B8B8B8>Rank:</color> <b>{rank}</b>  <color=#B8B8B8>Points:</color> <b>{points}</b><br><color=#B8B8B8>Time:</color> <b>{time}</b>"
+        ),
     )
 }
 
@@ -213,29 +222,41 @@ fn improvement(value: &str, improved: bool) -> String {
     format!("<color={color}>{value}</color>")
 }
 
-pub fn submission_message(entries: usize, round_time: u64) -> String {
+// Reference command: `/sm4`
+pub fn submission_message(entries: usize, position: usize, round_time: u64) -> String {
     server_message(
-        "yellow",
         round_time,
-        &format!("<b>ZSL Level Contest Submissions</b>\n{entries} valid submissions"),
+        "ZSL Level Contest",
+        &submission_rows(entries, position),
     )
 }
 
+fn submission_rows(entries: usize, position: usize) -> String {
+    format!(
+        "{}<br>{}",
+        server_row("Entries", format_args!("{entries} valid submissions")),
+        server_row("Submission", format_args!("{position} of {entries}"))
+    )
+}
+
+// Reference commands: `/sm5`, `/sm6`
 pub fn scheduled_submission_message(
     entries: usize,
+    position: usize,
     round_time: u64,
     submission_end: &str,
     vote_end: &str,
     now: Timestamp,
 ) -> Result<String> {
     let deadline: Timestamp = submission_end.parse()?;
-    let (period, remaining) = if now < deadline {
+    let (label, action, remaining) = if now < deadline {
         (
-            "Submissions close",
+            "Submissions",
+            "Close in",
             tournament_remaining(submission_end, now)?,
         )
     } else {
-        ("ZSL voting closes", tournament_remaining(vote_end, now)?)
+        ("Voting", "Closes in", tournament_remaining(vote_end, now)?)
     };
     let start = submission_end
         .get(..16)
@@ -243,12 +264,16 @@ pub fn scheduled_submission_message(
         .replace('T', " ");
     let end = vote_end.get(..16).unwrap_or(vote_end).replace('T', " ");
     let body = format!(
-        "<b>ZSL Level Contest</b>\n\
-        {entries} valid submissions · {period} {}\nZSL voting: {start} to {end} UTC\n\
-        Vote: https://zeepki.st/super-league/vote",
-        remaining.trim_start_matches("Ends in ")
+        "{}<br>{}<br><br><b>Voting window</b><br>{} to {} UTC<br><color=#4ad9ff>https://zeepki.st/super-league/vote</color>",
+        submission_rows(entries, position),
+        server_row(
+            label,
+            format_args!("{action} {}", remaining.trim_start_matches("Ends in "))
+        ),
+        escape_text(&start),
+        escape_text(&end)
     );
-    Ok(server_message("yellow", round_time, &body))
+    Ok(server_message(round_time, "ZSL Level Contest", &body))
 }
 
 pub fn format_time(seconds: f32) -> String {
@@ -397,21 +422,23 @@ mod tests {
         let vote_end = "2026-10-04T17:00:00Z";
         let before = scheduled_submission_message(
             14,
+            3,
             300,
             close,
             vote_end,
             "2026-09-27T16:59:01Z".parse()?,
         )?;
-        assert!(before.contains("Submissions close 0d 0h 1m"));
-        assert!(before.contains("ZSL voting: 2026-09-27 17:00 to 2026-10-04 17:00 UTC"));
+        assert!(before.contains("Submissions</color><pos=7em><b>Close in 0d 0h 1m"));
+        assert!(before.contains("Voting window</b><br>2026-09-27 17:00 to 2026-10-04 17:00 UTC"));
         let after = scheduled_submission_message(
             14,
+            3,
             300,
             close,
             vote_end,
             "2026-09-27T17:00:00Z".parse()?,
         )?;
-        assert!(after.contains("ZSL voting closes 7d 0h 0m"));
+        assert!(after.contains("Voting</color><pos=7em><b>Closes in 7d 0h 0m"));
         assert!(after.contains("https://zeepki.st/super-league/vote"));
         Ok(())
     }
@@ -432,7 +459,7 @@ mod tests {
         let message = join_message(TournamentType::Weekly, "Player One", &context());
         assert_eq!(
             message,
-            "<size=85%><color=#dedede>Welcome to Track of the Week, Player One<br><br>A time attack tournament featuring a unique level each week.<br><br>View the full tournament leaderboard on <u>zeepki.st/totw</u>!<br><br><size=65%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size></color></size>"
+            "<size=85%><color=#dedede><b><size=100%><color=#4ad9ff>Track of the Week</color></size></b><br>Welcome, <b>Player One</b>! Race a different track each week.<br><br><b>Leaderboard:</b> <color=#4ad9ff><u>zeepki.st/totw</u></color><br><br><size=80%><color=#B8B8B8>This room is unattended. Report issues to Akane on Discord.</color></size></color></size>"
         );
         let packet = targeted_chat_message_packet(42, &message, HOSTNAME)?;
         let mut reader = BitReader::new(&packet);
@@ -455,15 +482,16 @@ mod tests {
                 standing: Some((12, 34.234)),
             },
         );
-        assert!(message.contains("Welcome to Track of the Month, <noparse><</noparse>b>Alice<noparse><</noparse>/b> Second"));
-        assert!(message.contains("a unique level each month."));
-        assert!(message.contains("<u>zeepki.st/totm</u>!"));
-        assert!(message.contains(
-            "You need GTR <noparse><</noparse>1.17&>+ installed to join the tournament leaderboard."
-        ));
         assert!(
-            message.contains("You are currently #12 on the tournament leaderboard with 00:34.234.")
+            message
+                .contains("Welcome, <b><noparse><</noparse>b>Alice<noparse><</noparse>/b> Second")
         );
+        assert!(message.contains("Race a different track each month."));
+        assert!(message.contains("<u>zeepki.st/totm</u>"));
+        assert!(
+            message.contains("Install <b>GTR <noparse><</noparse>1.17&>+</b> with <b>Modkist</b>")
+        );
+        assert!(message.contains("Your standing: <b>#12</b> <b>00:34.234</b>"));
         assert!(!message.contains('\n'));
         assert!(message.len() < 4_097);
         let fallback = join_message(
@@ -476,15 +504,12 @@ mod tests {
                 standing: None,
             },
         );
-        assert!(fallback.contains(&format!(
-            "Welcome to Track of the Week, {}…",
-            "😀".repeat(23)
-        )));
-        assert!(fallback.contains("You need GTR installed to join the tournament leaderboard."));
+        assert!(fallback.contains(&format!("Welcome, <b>{}…", "😀".repeat(23))));
+        assert!(fallback.contains("Install <b>GTR</b> to join the leaderboard."));
     }
 
     #[test]
-    fn titles_countdown_and_server_overlay_match_bun() -> Result<()> {
+    fn tournament_overlay_uses_positioned_columns() -> Result<()> {
         let now: Timestamp = "2026-08-30T12:00:00Z".parse()?;
         let end: Timestamp = "2026-09-05T15:38:00Z".parse()?;
         assert_eq!(
@@ -537,13 +562,13 @@ mod tests {
         )?;
         assert_eq!(
             command,
-            "/servermessage yellow 900 <size=150%><b>Track of the Week: 2026 Week 33</b>\n42 Entries Ends in 6d 3h 38m\n<color=#FFD700>1. <noparse><</noparse>Winner> — 01:01.234</color></size>"
+            "/servermessage white 900 <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>Track of the Week</color></size></b><br><color=#B8B8B8>Period</color><pos=7em><b>2026 Week 33</b><br><color=#B8B8B8>Entries</color><pos=7em><b>42</b><br><color=#B8B8B8>Ends in</color><pos=7em><b>6d 3h 38m</b><br><br><b>Leaderboard</b><br><color=#FFD700>1. <noparse><</noparse>Winner><pos=16em>01:01.234</color></align></size>"
         );
         Ok(())
     }
 
     #[test]
-    fn standing_notifications_match_bun_words_and_deltas() {
+    fn standing_notifications_use_compact_signed_deltas() {
         let previous = StandingResult {
             rank: 15,
             time: 34.75,
@@ -554,13 +579,14 @@ mod tests {
             time: 34.234,
             points: 656,
         };
-        let message = standing_message(TournamentType::Weekly, Some(previous), current);
-        assert!(message.contains("<b>Track of the Week: New PB!</b>"));
-        assert!(message.contains("<color=#86efac>up 3 positions</color>"));
-        assert!(message.contains("<color=#86efac>0.516s</color>"));
+        let message = standing_message(Some(previous), current);
+        assert!(message.contains("<color=#4ad9ff>New Personal Best!</color>"));
+        assert!(message.contains("<color=#86efac>-3</color>"));
+        assert!(message.contains("<color=#86efac>-0.516s</color>"));
         assert!(message.contains("<color=#86efac>+26</color>"));
+        assert!(message.contains("-3</color></b>  <color=#B8B8B8>Points:"));
+        assert!(message.contains("</b><br><color=#B8B8B8>Time:"));
         let drop = standing_message(
-            TournamentType::Monthly,
             Some(previous),
             StandingResult {
                 rank: 16,
@@ -568,13 +594,10 @@ mod tests {
                 points: 620,
             },
         );
-        assert!(drop.contains("Track of the Month: Rank dropped"));
-        assert!(drop.contains("<color=#fca5a5>down 1 position</color>"));
-        assert!(drop.contains("00:34.750 (unchanged)"));
-        assert!(drop.contains("−10"));
-        assert!(
-            standing_message(TournamentType::Weekly, None, previous)
-                .contains("You're on the board!")
-        );
+        assert!(drop.contains("<color=#fca5a5>Rank dropped</color>"));
+        assert!(drop.contains("<color=#fca5a5>+1</color>"));
+        assert!(drop.contains("Time:</color> <b>00:34.750</b>"));
+        assert!(drop.contains("<color=#fca5a5>-10</color>"));
+        assert!(standing_message(None, previous).contains("You're on the board!"));
     }
 }

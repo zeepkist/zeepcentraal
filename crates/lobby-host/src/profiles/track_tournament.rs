@@ -145,7 +145,7 @@ impl TrackTournamentSession {
             {
                 continue;
             }
-            let message = standing_message(self.tournament_type, previous, current);
+            let message = standing_message(previous, current);
             if self
                 .context
                 .chat()
@@ -571,7 +571,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn failed_lookup_sends_bun_gtr_fallback() -> Result<()> {
+    async fn failed_lookup_sends_gtr_fallback() -> Result<()> {
         let (context, state, stopped, player, packets) = welcome_fixture().await?;
         send_tournament_welcome(
             context,
@@ -586,7 +586,7 @@ mod tests {
         assert_eq!(packets.len(), 1);
         assert!(
             read_targeted_message(&packets[0])?
-                .contains("You need GTR installed to join the tournament leaderboard.")
+                .contains("Install <b>GTR</b> to join the leaderboard.")
         );
         Ok(())
     }
@@ -638,7 +638,7 @@ mod tests {
         assert_eq!(*looked_up.lock().await, [7, 8]);
         let packets = packets.lock().await;
         assert_eq!(packets.len(), 1);
-        assert!(read_targeted_message(&packets[0])?.contains("You are currently #8"));
+        assert!(read_targeted_message(&packets[0])?.contains("Your standing: <b>#8</b>"));
         Ok(())
     }
 

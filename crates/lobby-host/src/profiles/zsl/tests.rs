@@ -610,8 +610,8 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
                 assert_eq!(reader.read_u16()?, zc_core::zeepnet::CUSTOM_CHAT_MESSAGE);
                 assert_eq!(reader.read_u64()?, player().steam_id);
                 let text = reader.read_string(4096)?;
-                assert!(text.contains("Zeepkist Super League is starting in"));
-                assert!(text.contains("Stay in this room."));
+                assert!(text.contains("Tournament starts in"));
+                assert!(text.contains("Stay in this room to join automatically."));
                 assert!(!text.contains("Good luck"));
                 assert!(!text.contains("has started"));
             }

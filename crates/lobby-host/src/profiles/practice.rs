@@ -1,4 +1,4 @@
-use super::messages::{escape_text, server_message};
+use super::messages::{UNATTENDED_NOTICE, chat_notice, escape_text, server_message, server_row};
 use anyhow::{Context, Result, ensure};
 use jiff::Timestamp;
 use std::sync::{
@@ -51,6 +51,7 @@ impl PracticeSchedule {
     pub fn title(&self) -> String {
         format!("ZSL {} Practice", self.name.trim())
     }
+    // Reference command: `/sm7`
     pub fn overlay(
         &self,
         entries: usize,
@@ -60,23 +61,35 @@ impl PracticeSchedule {
     ) -> String {
         let remaining = (self.close_at(now).as_second() - now.as_second()).max(0);
         let body = format!(
-            "<b>{}</b>\nLevel {position} of {entries}\nCloses in {}d {}h {}m",
-            escape_text(&self.title()),
-            remaining / 86400,
-            remaining % 86400 / 3600,
-            remaining % 3600 / 60,
+            "{}<br>{}<br>{}",
+            server_row("Round", escape_text(self.name.trim())),
+            server_row("Level", format_args!("{position} of {entries}")),
+            server_row(
+                "Closes in",
+                format_args!(
+                    "{}d {}h {}m",
+                    remaining / 86400,
+                    remaining % 86400 / 3600,
+                    remaining % 3600 / 60
+                )
+            )
         );
-        server_message("yellow", duration, &body)
+        server_message(duration, "ZSL Practice", &body)
     }
+
+    // Reference command: `/cm8`
     pub fn welcome(&self, player: &str, duration: u64, now: Timestamp) -> String {
         let remaining = (self.close_at(now).as_second() - now.as_second()).max(0);
-        format!(
-            "<size=85%><color=#dedede>Welcome to {}, {}!<br><br>Practice every level in playlist order. The playlist repeats, with {duration} seconds per level.<br><br>This room closes in {}h {}m {}s before the tournament.<br><br><size=65%>This is an unattended room, so chat is not monitored. If you find something wrong, please contact Akane on Discord.</size></color></size>",
-            escape_text(&self.title()),
-            escape_text(player),
-            remaining / 3600,
-            remaining % 3600 / 60,
-            remaining % 60
+        chat_notice(
+            "Level Contest Practice",
+            &format!(
+                "Welcome, <b>{}</b>! Round: <b>{}</b>.<br>Race the repeating playlist in order. Time per level: <b>{duration} seconds</b>.<br>Closes in: <b>{}h {}m {}s</b><br><br>{UNATTENDED_NOTICE}",
+                escape_text(player),
+                escape_text(self.name.trim()),
+                remaining / 3600,
+                remaining % 3600 / 60,
+                remaining % 60
+            ),
         )
     }
 }
@@ -219,8 +232,8 @@ mod tests {
     fn practice_messages_and_duration() {
         let schedule = schedule(30000);
         let overlay = schedule.overlay(14, 3, 900, time(9000));
-        assert!(overlay.starts_with("/servermessage yellow 900 <size=150%>"));
-        assert!(overlay.contains("Level 3 of 14"));
+        assert!(overlay.starts_with("/servermessage white 900 <size=150%>"));
+        assert!(overlay.contains("Level</color><pos=7em><b>3 of 14</b>"));
         assert!(overlay.contains("Mixed <noparse><</noparse>Surfaces>"));
         assert!(
             schedule
@@ -239,7 +252,7 @@ mod tests {
         assert!(
             schedule
                 .overlay(14, 1, 900, time(1000))
-                .contains("Closes in 4d 8h 34m")
+                .contains("Closes in</color><pos=7em><b>4d 8h 34m</b>")
         );
     }
     #[tokio::test]
