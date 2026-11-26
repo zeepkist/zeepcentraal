@@ -1431,9 +1431,20 @@ impl ZslSession {
                 .or_insert(time);
         }
         let mut totals: HashMap<u64, i32> = HashMap::new();
-        let mut level_ids: HashSet<i32> =
-            live.finishes.iter().map(|finish| finish.id_level).collect();
-        level_ids.insert(level_id);
+        // Timeslot 1 can already have results for the entire playlist.
+        let previous_level_ids = self
+            .shared
+            .database
+            .zsl_previous_scoring_level_ids(
+                self.shared.round_id,
+                state.timeslot as i32 + 1,
+                state.index as i32,
+            )
+            .await?;
+        let level_ids = previous_level_ids
+            .into_iter()
+            .filter(|&id| id != level_id)
+            .chain(std::iter::once(level_id));
         for id in level_ids {
             let values = if id == level_id {
                 times.clone()

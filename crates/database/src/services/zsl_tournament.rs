@@ -30,8 +30,8 @@ struct JsonRow {
 }
 #[derive(QueryableByName)]
 struct IdRow {
-    #[diesel(sql_type = Integer, column_name = id)]
-    _id: i32,
+    #[diesel(sql_type = Integer)]
+    id: i32,
 }
 #[derive(Clone, Debug, QueryableByName)]
 pub struct ZslFinish {
@@ -221,6 +221,24 @@ impl Database {
                 .load(&mut connection)
                 .await?,
         )
+    }
+
+    pub async fn zsl_previous_scoring_level_ids(
+        &self,
+        round_id: i32,
+        timeslot: i32,
+        playlist_index: i32,
+    ) -> Result<Vec<i32>> {
+        let mut connection = self.connection().await?;
+        let rows = sql_query(include_str!(
+            "../queries/zsl_tournament/zsl_previous_scoring_level_ids.sql"
+        ))
+        .bind::<Integer, _>(round_id)
+        .bind::<Integer, _>(timeslot)
+        .bind::<Integer, _>(playlist_index)
+        .load::<IdRow>(&mut connection)
+        .await?;
+        Ok(rows.into_iter().map(|row| row.id).collect())
     }
     pub async fn publish_zsl_results(
         &self,

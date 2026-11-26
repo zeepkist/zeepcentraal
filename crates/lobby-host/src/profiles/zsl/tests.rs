@@ -937,6 +937,7 @@ async fn recover_phase(
     context: &RoomContext,
     target: &DispatchTarget,
 ) -> Result<()> {
+    let player_count = context.players().await.len();
     let shared = &profile.shared;
     let event = shared.event()?;
     let snapshot = {
@@ -990,7 +991,7 @@ async fn recover_phase(
         assert_eq!(recovered.loaded_at, snapshot.loaded_at);
         assert_eq!(recovered.deadline_ms, snapshot.deadline_ms);
     }
-    assert_eq!(context.players().await.len(), 1);
+    assert_eq!(context.players().await.len(), player_count);
     assert_eq!(
         shared
             .database
@@ -1306,12 +1307,20 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     );
 
     let warmup_asset = pinned_asset(bundle(7, true), storage.clone())?;
+    // Allocate the final track's scoring ID first. IDs do not encode playlist order.
+    let final_level_id = session.scoring_level(&bundle(7, false), 14).await?.unwrap();
     let tournament_asset = pinned_asset(bundle(7, false), storage.clone())?;
     {
         let mut selections = shared.selections.lock().await;
         selections.warmup = Some(warmup_asset);
         selections.tournament = Some(tournament_asset);
     }
+    let returning = player();
+    let second_only = GameHostPlayer {
+        uid: 43,
+        steam_id: returning.steam_id + 1,
+        ..returning.clone()
+    };
     for slot in 0..2 {
         for index in 0..4 {
             loaded_at += 0.01;
@@ -1321,7 +1330,16 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                 Some((Phase::Warmup, slot, index))
             );
         }
+        if slot == 1 {
+            context
+                .dispatch(
+                    session.as_ref(),
+                    &GameHostPacket::PlayerDisconnected(returning.uid),
+                )
+                .await?;
+        }
         for index in 0..15 {
+            let first_packet = sent.lock().await.len();
             loaded_at += 0.01;
             native_advance(&session, &sent, loaded_at, "zsl", index, 15, 420.0).await?;
             assert_eq!(
@@ -1341,14 +1359,47 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                     checkpoints: 0,
                 };
                 if slot == 0 {
+                    assert!(session.live.lock().await.current_level_id.unwrap() > final_level_id);
                     // Timeslot 2 becomes eligible while Timeslot 1 still has 14 rounds left.
                     shared.event.write().unwrap().as_mut().unwrap().second = now;
                     session.tick().await?;
                     assert_eq!(shared.saved.lock().await.timeslot, 0);
                     delayed_finish_finalisation_barrier(session.clone(), &client, &finish).await?;
                 } else {
+                    for attempt in 0..2 {
+                        let start = sent.lock().await.len();
+                        context
+                            .dispatch(
+                                session.as_ref(),
+                                &GameHostPacket::PlayerConnected {
+                                    player: returning.clone(),
+                                    is_host: false,
+                                    has_host_powers: false,
+                                },
+                            )
+                            .await?;
+                        session.tick().await?;
+                        assert_override_points(&sent, start, returning.steam_id, 100, 100).await?;
+                        if attempt == 0 {
+                            context
+                                .dispatch(
+                                    session.as_ref(),
+                                    &GameHostPacket::PlayerDisconnected(returning.uid),
+                                )
+                                .await?;
+                        }
+                    }
+                    context
+                        .dispatch(
+                            session.as_ref(),
+                            &GameHostPacket::PlayerConnected {
+                                player: second_only.clone(),
+                                is_host: false,
+                                has_host_powers: false,
+                            },
+                        )
+                        .await?;
                     session.on_packet(&finish).await?;
-                    assert_eq!(database.zsl_finishes(7).await?[0].timeslot, 1);
                 }
             }
             if index == 7 {
@@ -1365,6 +1416,50 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                     "zsl-7"
                 );
                 recover_phase(&profile, &context, &target).await?;
+                if slot == 1 {
+                    let packets = sent.lock().await;
+                    let overrides = points_overrides(&packets[first_packet..], returning.steam_id)?;
+                    assert!(!overrides.is_empty());
+                    assert!(overrides.iter().all(|item| item.points.is_empty()));
+                }
+            } else if slot == 0 && index != 0 {
+                session
+                    .on_packet(&GameHostPacket::PlayerResult {
+                        uid: returning.uid,
+                        has_result: true,
+                        level_uid: format!("zsl-{index}"),
+                        time: 25.0,
+                        checkpoints: 0,
+                    })
+                    .await?;
+            } else if slot == 1 {
+                session
+                    .on_packet(&GameHostPacket::PlayerResult {
+                        uid: second_only.uid,
+                        has_result: true,
+                        level_uid: format!("zsl-{index}"),
+                        time: 35.0,
+                        checkpoints: 0,
+                    })
+                    .await?;
+                session.tick().await?;
+                let scoring_levels = (index + 1 - usize::from(index > 7)) as i32;
+                assert_override_points(
+                    &sent,
+                    first_packet,
+                    returning.steam_id,
+                    scoring_levels * 100,
+                    100,
+                )
+                .await?;
+                assert_override_points(
+                    &sent,
+                    first_packet,
+                    second_only.steam_id,
+                    scoring_levels * 80,
+                    80,
+                )
+                .await?;
             }
         }
     }
@@ -1373,7 +1468,15 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
         .await?;
     assert_eq!(shared.saved.lock().await.completed, [true, true]);
     assert!(profile.close_at().is_some());
-    assert_eq!(database.zsl_finishes(7).await?.len(), 1);
+    let finishes = database.zsl_finishes(7).await?;
+    assert_eq!(finishes.len(), 28);
+    assert!(finishes.iter().all(|finish| finish.finalised
+        && finish.timeslot
+            == if finish.steam_id == returning.steam_id as i64 {
+                1
+            } else {
+                2
+            }));
     let packets = sent.lock().await;
     assert_eq!(
         packets
@@ -1388,7 +1491,7 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
             .all(|packet| u16::from_le_bytes([packet[0], packet[1]]) != KICK_PLAYER)
     );
     drop(packets);
-    assert_eq!(context.players().await.len(), 1);
+    assert_eq!(context.players().await.len(), 2);
     profile.scheduled_closed().await?;
     assert!(database.managed_lobby_join_id("practice").await?.is_none());
     profile.stop().await?;
@@ -1396,6 +1499,51 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     assert!(restarted.prepare().await?.is_none());
     restarted.stop().await?;
     driver.abort();
+    Ok(())
+}
+
+fn points_overrides(packets: &[Vec<u8>], steam_id: u64) -> Result<Vec<LeaderboardOverrides>> {
+    let mut overrides = Vec::new();
+    for packet in packets {
+        let mut reader = BitReader::new(packet);
+        if reader.read_u16()? != zc_core::zeepnet::CUSTOM_LEADERBOARD
+            || reader.read_u64()? != steam_id
+        {
+            continue;
+        }
+        reader.read_bool()?;
+        reader.read_f32()?;
+        reader.read_i32()?;
+        reader.read_bool()?;
+        if reader.read_bool()? {
+            overrides.push(crate::leaderboard::read_test_overrides(packet)?.1);
+        }
+    }
+    Ok(overrides)
+}
+
+async fn assert_override_points(
+    packets: &Mutex<Vec<Vec<u8>>>,
+    start: usize,
+    steam_id: u64,
+    total: i32,
+    current: i32,
+) -> Result<()> {
+    let packets = packets.lock().await;
+    let overrides = points_overrides(&packets[start..], steam_id)?;
+    let expected = (total.to_string(), current.to_string());
+    let mut awarded = overrides
+        .iter()
+        .filter(|item| !item.points.is_empty())
+        .peekable();
+    assert!(
+        awarded.peek().is_some(),
+        "No points override for {steam_id}"
+    );
+    assert!(
+        awarded.all(|item| (&item.points, &item.points_won) == (&expected.0, &expected.1)),
+        "Unexpected overrides for {steam_id}: {overrides:?}"
+    );
     Ok(())
 }
 
