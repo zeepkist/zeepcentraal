@@ -1379,7 +1379,8 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                             )
                             .await?;
                         session.tick().await?;
-                        assert_override_points(&sent, start, returning.steam_id, 100, 100).await?;
+                        assert_override_points(&sent, start, returning.steam_id, 100, Some(100))
+                            .await?;
                         if attempt == 0 {
                             context
                                 .dispatch(
@@ -1416,11 +1417,10 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                     "zsl-7"
                 );
                 recover_phase(&profile, &context, &target).await?;
+                assert_override_points(&sent, first_packet, returning.steam_id, 700, None).await?;
                 if slot == 1 {
-                    let packets = sent.lock().await;
-                    let overrides = points_overrides(&packets[first_packet..], returning.steam_id)?;
-                    assert!(!overrides.is_empty());
-                    assert!(overrides.iter().all(|item| item.points.is_empty()));
+                    assert_override_points(&sent, first_packet, second_only.steam_id, 560, None)
+                        .await?;
                 }
             } else if slot == 0 && index != 0 {
                 session
@@ -1433,6 +1433,17 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                     })
                     .await?;
             } else if slot == 1 {
+                let scoring_levels = (index + 1 - usize::from(index > 7)) as i32;
+                session.tick().await?;
+                assert_override_points(
+                    &sent,
+                    first_packet,
+                    second_only.steam_id,
+                    (scoring_levels - 1) * 80,
+                    None,
+                )
+                .await?;
+                let after_finish = sent.lock().await.len();
                 session
                     .on_packet(&GameHostPacket::PlayerResult {
                         uid: second_only.uid,
@@ -1443,21 +1454,20 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
                     })
                     .await?;
                 session.tick().await?;
-                let scoring_levels = (index + 1 - usize::from(index > 7)) as i32;
                 assert_override_points(
                     &sent,
                     first_packet,
                     returning.steam_id,
                     scoring_levels * 100,
-                    100,
+                    Some(100),
                 )
                 .await?;
                 assert_override_points(
                     &sent,
-                    first_packet,
+                    after_finish,
                     second_only.steam_id,
                     scoring_levels * 80,
-                    80,
+                    Some(80),
                 )
                 .await?;
             }
@@ -1502,7 +1512,11 @@ async fn seamless_handover_break_rejoin_return_and_terminal_restart() -> Result<
     Ok(())
 }
 
-fn points_overrides(packets: &[Vec<u8>], steam_id: u64) -> Result<Vec<LeaderboardOverrides>> {
+fn points_overrides(
+    packets: &[Vec<u8>],
+    steam_id: u64,
+    forbid_time: bool,
+) -> Result<Vec<LeaderboardOverrides>> {
     let mut overrides = Vec::new();
     for packet in packets {
         let mut reader = BitReader::new(packet);
@@ -1517,6 +1531,8 @@ fn points_overrides(packets: &[Vec<u8>], steam_id: u64) -> Result<Vec<Leaderboar
         reader.read_bool()?;
         if reader.read_bool()? {
             overrides.push(crate::leaderboard::read_test_overrides(packet)?.1);
+        } else {
+            assert!(!forbid_time, "Unexpected time packet for {steam_id}");
         }
     }
     Ok(overrides)
@@ -1527,11 +1543,14 @@ async fn assert_override_points(
     start: usize,
     steam_id: u64,
     total: i32,
-    current: i32,
+    current: Option<i32>,
 ) -> Result<()> {
     let packets = packets.lock().await;
-    let overrides = points_overrides(&packets[start..], steam_id)?;
-    let expected = (total.to_string(), current.to_string());
+    let overrides = points_overrides(&packets[start..], steam_id, current.is_none())?;
+    let expected = (
+        total.to_string(),
+        current.map_or_else(|| " ".into(), |points| points.to_string()),
+    );
     let mut awarded = overrides
         .iter()
         .filter(|item| !item.points.is_empty())
@@ -1541,7 +1560,10 @@ async fn assert_override_points(
         "No points override for {steam_id}"
     );
     assert!(
-        awarded.all(|item| (&item.points, &item.points_won) == (&expected.0, &expected.1)),
+        awarded.all(
+            |item| (&item.points, &item.points_won) == (&expected.0, &expected.1)
+                && (current.is_some() || (item.time.is_empty() && item.position.is_empty()))
+        ),
         "Unexpected overrides for {steam_id}: {overrides:?}"
     );
     Ok(())

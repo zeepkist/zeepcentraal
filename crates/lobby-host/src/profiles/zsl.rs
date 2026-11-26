@@ -1405,19 +1405,24 @@ impl ZslSession {
         live: &mut LiveState,
         event: &ZslEvent,
     ) -> Result<()> {
-        let Some(level_id) = live.current_level_id else {
+        let Some(level) = live
+            .asset
+            .as_ref()
+            .and_then(|asset| asset.playlist.levels.get(state.index))
+        else {
             return Ok(());
         };
+        let level_id = live.current_level_id;
         let mut times: HashMap<u64, i64> = live
             .finishes
             .iter()
-            .filter(|finish| finish.id_level == level_id)
+            .filter(|finish| Some(finish.id_level) == level_id)
             .map(|finish| (finish.steam_id as u64, finish.microseconds))
             .collect();
-        for (&steam, &time) in &live.records {
+        for (&steam, &time) in live.records.iter().filter(|_| level_id.is_some()) {
             if state.timeslot == 1
                 && live.finishes.iter().any(|finish| {
-                    finish.id_level == level_id
+                    Some(finish.id_level) == level_id
                         && finish.steam_id == steam as i64
                         && finish.timeslot == 1
                         && finish.finalised
@@ -1441,56 +1446,65 @@ impl ZslSession {
                 state.index as i32,
             )
             .await?;
-        let level_ids = previous_level_ids
+        let points_for_rank = |position: usize| {
+            event
+                .points
+                .get(position - 1)
+                .copied()
+                .unwrap_or(event.minimum_points)
+        };
+        for id in previous_level_ids
             .into_iter()
-            .filter(|&id| id != level_id)
-            .chain(std::iter::once(level_id));
-        for id in level_ids {
-            let values = if id == level_id {
-                times.clone()
-            } else {
-                live.finishes
-                    .iter()
-                    .filter(|finish| finish.id_level == id)
-                    .map(|finish| (finish.steam_id as u64, finish.microseconds))
-                    .collect()
-            };
+            .filter(|&id| Some(id) != level_id)
+        {
+            let values = live
+                .finishes
+                .iter()
+                .filter(|finish| finish.id_level == id)
+                .map(|finish| (finish.steam_id as u64, finish.microseconds))
+                .collect();
             for (steam, _, position) in ranked_times(values) {
-                *totals.entry(steam).or_default() += event
-                    .points
-                    .get(position - 1)
-                    .copied()
-                    .unwrap_or(event.minimum_points);
+                *totals.entry(steam).or_default() += points_for_rank(position);
             }
         }
-        let desired = ranked_times(times)
+        let current: HashMap<_, _> = ranked_times(times)
             .into_iter()
-            .map(|(steam, time, position)| DesiredPlayerStanding {
-                steam_id: steam,
-                time: Some(time as f32 / 1_000_000.0),
-                overrides: LeaderboardOverrides {
-                    position: position.to_string(),
-                    points: totals.get(&steam).copied().unwrap_or_default().to_string(),
-                    points_won: event
-                        .points
-                        .get(position - 1)
-                        .copied()
-                        .unwrap_or(event.minimum_points)
-                        .to_string(),
-                    ..Default::default()
-                },
+            .map(|(steam, time, position)| {
+                let points = points_for_rank(position);
+                *totals.entry(steam).or_default() += points;
+                (steam, (time, position, points))
             })
             .collect();
         let mut board = self.board.lock().await;
-        let uid = live.asset.as_ref().unwrap().playlist.levels[state.index]
-            .uid
-            .clone();
+        let desired = board
+            .roster_steam_ids()
+            .into_iter()
+            .map(|steam_id| {
+                let result = current.get(&steam_id);
+                DesiredPlayerStanding {
+                    steam_id,
+                    time: result.map(|&(time, _, _)| time as f32 / 1_000_000.0),
+                    overrides: LeaderboardOverrides {
+                        position: result
+                            .map_or_else(String::new, |&(_, position, _)| position.to_string()),
+                        points: totals
+                            .get(&steam_id)
+                            .copied()
+                            .unwrap_or_default()
+                            .to_string(),
+                        points_won: result
+                            .map_or_else(|| " ".into(), |&(_, _, points)| points.to_string()),
+                        ..Default::default()
+                    },
+                }
+            })
+            .collect();
         board.set_scope(
             format!(
                 "zsl:{}:{}:{}",
                 self.shared.round_id, state.timeslot, state.index
             ),
-            uid,
+            level.uid.clone(),
         );
         board.set_ready(true);
         board.set_desired(desired);
