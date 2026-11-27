@@ -27,8 +27,8 @@ use tokio::{
     time::Instant,
 };
 use zc_core::zeepnet::{
-    GameHostPacket, LobbyTiming, RemoteClock, change_lobby_master_packet, change_lobby_name_packet,
-    change_lobby_visibility_packet, kick_player_packet,
+    GameHostPacket, LobbyTiming, OnlinePlaylist, RemoteClock, change_lobby_master_packet,
+    change_lobby_name_packet, change_lobby_visibility_packet, kick_player_packet,
 };
 
 const RECOVERY_TIMEOUT: Duration = Duration::from_secs(30);
@@ -219,6 +219,7 @@ struct RoomState {
     schedule_authority: Arc<AtomicBool>,
     roster: Arc<Mutex<RoomRoster>>,
     timing: Option<LobbyTiming>,
+    playlist: Option<OnlinePlaylist>,
     recovery: Option<Recovery>,
     active: Option<ActiveSession>,
     controls: JoinSet<Result<()>>,
@@ -235,6 +236,7 @@ impl RoomState {
             schedule_authority: Arc::new(AtomicBool::new(false)),
             roster: Arc::new(Mutex::new(RoomRoster::default())),
             timing: None,
+            playlist: None,
             recovery: None,
             active: None,
             controls: JoinSet::new(),
@@ -260,6 +262,12 @@ impl RoomState {
 
     fn observe_timing(&mut self, packet: &GameHostPacket) {
         match packet {
+            GameHostPacket::Playlist(playlist) => self.playlist = Some(playlist.clone()),
+            GameHostPacket::PlaylistIndex { current_index, .. } => {
+                if let Some(playlist) = &mut self.playlist {
+                    playlist.current_index = *current_index;
+                }
+            }
             GameHostPacket::Initial { timing, .. } => self.timing = Some(timing.clone()),
             GameHostPacket::GameState(game_state) => {
                 if let Some(timing) = &mut self.timing {
@@ -538,6 +546,11 @@ impl ConnectedRoom<'_> {
             overlay_send: Arc::default(),
             local_steam_id: self.local_steam_id,
         };
+        if let Some(playlist) = &state.playlist {
+            context
+                .observe_received(&GameHostPacket::Playlist(playlist.clone()))
+                .await?;
+        }
         let profile = self.profile.create_session(context.clone()).await?;
         if !state.schedule_authority.load(Ordering::Acquire) {
             context.authority.store(false, Ordering::Release);

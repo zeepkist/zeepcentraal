@@ -488,7 +488,10 @@ impl RoomContext {
         Ok(received)
     }
 
-    async fn observe_received(&self, packet: &GameHostPacket) -> Result<Vec<TransferEvent>> {
+    pub(crate) async fn observe_received(
+        &self,
+        packet: &GameHostPacket,
+    ) -> Result<Vec<TransferEvent>> {
         self.transfer.lock().await.observe_received(packet)
     }
     async fn execute_transfer(
@@ -605,6 +608,12 @@ impl RoomContext {
     pub async fn set_round_time(&self, seconds: f64) -> Result<()> {
         anyhow::ensure!(self.is_host(), "Room host authority unavailable");
         self.transfer.lock().await.set_round_time(seconds)
+    }
+
+    pub(crate) async fn adopt_current_level(&self, level: PreparedLevel) -> Result<bool> {
+        let mut transfer = self.transfer.lock().await;
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
+        transfer.adopt_current_level(level)
     }
 
     pub(crate) async fn set_visibility(&self, public: bool) -> Result<()> {

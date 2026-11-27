@@ -249,7 +249,7 @@ impl TrackTournamentSession {
 impl ProfileSession for TrackTournamentSession {
     async fn start(&self) -> Result<()> {
         let first = self.state.lock().await.asset.clone();
-        self.context.activate(first.level.clone(), None).await?;
+        resume_or_activate(&self.context, &first).await?;
         self.context.chat().command("/joinmessage off").await?;
         {
             let mut state = self.state.lock().await;
@@ -387,6 +387,31 @@ impl ProfileSession for TrackTournamentSession {
     }
 }
 
+async fn resume_or_activate(context: &RoomContext, asset: &TournamentAsset) -> Result<()> {
+    if !context.adopt_current_level(asset.level.clone()).await? {
+        return context.activate(asset.level.clone(), None).await;
+    }
+    if let Some(seconds) = recovery_seconds(&asset.tournament_end_at, jiff::Timestamp::now())? {
+        context
+            .send(zc_core::zeepnet::chat_message_packet(&format!(
+                "/settime {seconds}"
+            ))?)
+            .await?;
+    }
+    Ok(())
+}
+
+fn recovery_seconds(end_at: &str, now: jiff::Timestamp) -> Result<Option<i64>> {
+    let end: jiff::Timestamp = end_at.parse().context("Tournament end time is invalid")?;
+    if end <= now {
+        return Ok(None);
+    }
+    let remaining = end.duration_since(now);
+    Ok(Some(
+        remaining.as_secs() + i64::from(remaining.subsec_nanos() != 0),
+    ))
+}
+
 fn desired_standing(
     player: &GameHostPlayer,
     row: Option<&TournamentLobbyStanding>,
@@ -506,6 +531,96 @@ mod tests {
     use super::*;
     use crate::{assets::PreparedLevel, chat::FnPacketSender};
     use zc_core::zeepnet::{BitReader, CUSTOM_CHAT_MESSAGE, OnlineLevel};
+
+    #[test]
+    fn recovery_timer_rounds_up_to_tournament_end() -> Result<()> {
+        let now = "2026-08-31T23:59:58.999Z".parse()?;
+        let end = "2026-09-01T00:00:00Z";
+        assert_eq!(recovery_seconds(end, now)?, Some(2));
+        assert_eq!(recovery_seconds(end, end.parse()?)?, None);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn mismatched_workshop_id_uses_existing_activation() -> Result<()> {
+        let (context, state, _, _, packets) = welcome_fixture().await?;
+        let asset = state.lock().await.asset.clone();
+        let properties = |workshop_id, level_loaded_at| GameHostPacket::GameProperties {
+            uid: asset.level.level.uid.clone(),
+            workshop_id,
+            level_loaded_at,
+            round_time: 900.0,
+        };
+        context.observe_received(&properties(2, 10.0)).await?;
+        context
+            .observe_received(&GameHostPacket::GameState(0))
+            .await?;
+        let (activation, confirmation) =
+            tokio::join!(resume_or_activate(&context, &asset), async {
+                let sent = packets.lock().await;
+                let ids = sent
+                    .iter()
+                    .map(|packet| BitReader::new(packet).read_u16())
+                    .collect::<Result<Vec<_>>>()?;
+                assert_eq!(
+                    ids,
+                    [
+                        zc_core::zeepnet::CHANGE_LOBBY_PLAYLIST,
+                        zc_core::zeepnet::SKIP_TO_LEVEL
+                    ]
+                );
+                drop(sent);
+                context.observe_received(&properties(1, 11.0)).await?;
+                context
+                    .observe_received(&GameHostPacket::GameState(0))
+                    .await?;
+                Ok::<_, anyhow::Error>(())
+            });
+        confirmation?;
+        activation?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn matching_round_only_corrects_timer_and_keeps_expired_fallback() -> Result<()> {
+        let (context, state, _, _, packets) = welcome_fixture().await?;
+        let mut asset = state.lock().await.asset.clone();
+        asset.tournament_end_at =
+            (jiff::Timestamp::now() + jiff::SignedDuration::from_secs(60)).to_string();
+        context
+            .observe_received(&GameHostPacket::Initial {
+                is_host: true,
+                players: vec![],
+                timing: zc_core::zeepnet::LobbyTiming {
+                    uid: asset.level.level.uid.clone(),
+                    workshop_id: asset.level.level.workshop_id,
+                    level_loaded_at: 10.0,
+                    round_time: 900.0,
+                    game_state: 0,
+                },
+            })
+            .await?;
+        resume_or_activate(&context, &asset).await?;
+        let sent = std::mem::take(&mut *packets.lock().await);
+        assert_eq!(sent.len(), 1);
+        let mut reader = BitReader::new(&sent[0]);
+        assert_eq!(reader.read_u16()?, zc_core::zeepnet::CHAT_MESSAGE);
+        assert_eq!(reader.read_u32()?, 0);
+        let command = reader.read_string(64)?;
+        let seconds: i64 = command
+            .strip_prefix("/settime ")
+            .context("Expected timer command")?
+            .parse()?;
+        assert!((59..=60).contains(&seconds));
+
+        asset.tournament_end_at = "2026-09-01T00:00:00Z".into();
+        resume_or_activate(&context, &asset).await?;
+        assert!(packets.lock().await.is_empty());
+        context.test_ownership_loss().await;
+        assert!(resume_or_activate(&context, &asset).await.is_err());
+        assert!(packets.lock().await.is_empty());
+        Ok(())
+    }
 
     async fn welcome_fixture() -> Result<(
         RoomContext,
