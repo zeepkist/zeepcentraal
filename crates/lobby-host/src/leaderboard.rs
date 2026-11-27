@@ -216,7 +216,7 @@ fn player_leaderboard_name(player: &GameHostPlayer) -> String {
         .unwrap_or(&player.backup_name);
     let [r, g, b] = player.chat_color.unwrap_or([255; 3]);
     format!(
-        "<color=#{r:02X}{g:02X}{b:02X}>{}</color>",
+        "<#{r:02X}{g:02X}{b:02X}>{}</color>",
         leaderboard_name(&format!("{}{name}", player.player_tag))
     )
 }
@@ -280,7 +280,7 @@ mod tests {
         assert_eq!(id, 10);
         assert_eq!(
             overrides.name,
-            "<color=#FFFFFF><nobr>[T]<noparse><</noparse>b>Fallback<noparse><</noparse>/b></nobr></color>"
+            "<#FFFFFF><nobr>[T]<noparse><</noparse>b>Fallback<noparse><</noparse>/b></nobr></color>"
         );
         assert_eq!(overrides.position, "");
         assert!(board.reconcile()?.is_empty());
@@ -312,14 +312,14 @@ mod tests {
         assert_eq!(
             player_leaderboard_name(&player),
             format!(
-                "<color=#010203><nobr><noparse><</noparse>T>Current&{}</nobr></color>",
+                "<#010203><nobr><noparse><</noparse>T>Current&{}</nobr></color>",
                 "x".repeat(69)
             )
         );
         player.username = Some(" \t ".into());
         assert_eq!(
             player_leaderboard_name(&player),
-            "<color=#010203><nobr><noparse><</noparse>T>p</nobr></color>"
+            "<#010203><nobr><noparse><</noparse>T>p</nobr></color>"
         );
     }
 
@@ -357,7 +357,7 @@ mod tests {
         });
         let packets = board.reconcile()?;
         assert_eq!(packets.len(), 1);
-        expected.name = "<color=#FF0000><nobr>p</nobr></color>".into();
+        expected.name = "<#FF0000><nobr>p</nobr></color>".into();
         assert_eq!(read_test_overrides(&packets[0])?.1, expected);
         assert_eq!(board.times[&10], 12.5);
         board.set_ready(true);
@@ -402,7 +402,7 @@ mod tests {
         assert_eq!(
             read_test_overrides(&packets[0])?.1,
             LeaderboardOverrides {
-                name: "<color=#FFFFFF><nobr>p</nobr></color>".into(),
+                name: "<#FFFFFF><nobr>p</nobr></color>".into(),
                 ..Default::default()
             }
         );
@@ -444,7 +444,7 @@ mod tests {
             (
                 20,
                 LeaderboardOverrides {
-                    name: "<color=#FFFFFF><nobr>p</nobr></color>".into(),
+                    name: "<#FFFFFF><nobr>p</nobr></color>".into(),
                     ..Default::default()
                 }
             )

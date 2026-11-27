@@ -12,7 +12,7 @@ fn standings(players: u64, points: &str) -> Result<Vec<Vec<u8>>> {
         packets.push(player_leaderboard_overrides_packet(
             id,
             &LeaderboardOverrides {
-                name: format!("<color=#123456>Player {id}</color>"),
+                name: format!("<#123456>Player {id}</color>"),
                 points: points.into(),
                 ..Default::default()
             },
@@ -55,7 +55,7 @@ async fn restores_two_then_sixty_four_players_during_delayed_acks_and_coalesces_
         vec![player_leaderboard_overrides_packet(
             64,
             &LeaderboardOverrides {
-                name: "<color=#123456>Player 64</color>".into(),
+                name: "<#123456>Player 64</color>".into(),
                 points: "30".into(),
                 ..Default::default()
             },

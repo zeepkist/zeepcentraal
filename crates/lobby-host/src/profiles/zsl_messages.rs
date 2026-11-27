@@ -24,7 +24,7 @@ fn warmup_notice(remaining: u64) -> String {
     } else {
         // Reference commands: `/cm6`, `/cm27`
         let time = human_duration(remaining.div_ceil(60) * 60);
-        format!("Tournament starts in <b><color=#ffd21c>{time}</color></b>.")
+        format!("Tournament starts in <b><#ffd21c>{time}</color></b>.")
     };
     format!("{start}<br>Stay in this room to join automatically.")
 }
@@ -69,7 +69,7 @@ pub fn practice_welcome(
         "<b>shortly</b>".to_owned()
     } else {
         format!(
-            "in <b><color=#ffd21c>{}</color></b>",
+            "in <b><#ffd21c>{}</color></b>",
             human_duration(remaining_seconds.div_ceil(60) * 60)
         )
     };
@@ -127,7 +127,7 @@ pub fn gradient(text: &str, colors: [&str; 2]) -> String {
                 color |= ((a + (b - a) * t).round() as u32) << shift;
             }
             format!(
-                "<color=#{color:06x}>{}</color>",
+                "<#{color:06x}>{}</color>",
                 escape_text(&character.to_string())
             )
         })
@@ -148,11 +148,11 @@ pub fn progress(bundle: &PracticeBundle, current: usize) -> String {
                 "BREAK".into()
             };
             if index == current {
-                format!("<b><color=#00ffff>[{label}]</color></b>")
+                format!("<b><#00ffff>[{label}]</color></b>")
             } else if index < current {
-                format!("<color=#00AA00>{label}</color>")
+                format!("<#00AA00>{label}</color>")
             } else {
-                format!("<color=#CCCCCC>{label}</color>")
+                format!("<#CCCCCC>{label}</color>")
             }
         })
         .collect::<Vec<_>>()
@@ -178,14 +178,14 @@ pub fn overlay(
         "ZSL Tournament"
     };
     let body = format!(
-        "{}<br>{}<br><br><color=#B8B8B8><i>{}</i></color><br><br><b>Track order</b><br>{}",
+        "{}<br>{}<br><br><#B8B8B8><i>{}</i></color><br><br><b>Track order</b><br>{}",
         server_row(
             "Season",
             format_args!("{}: {}", event.season, escape_text(&event.name))
         ),
         server_row(
             "Author time",
-            format_args!("<color=#d400b4>{author_time:.3}s</color>")
+            format_args!("<#d400b4>{author_time:.3}s</color>")
         ),
         escape_text(status),
         progress(bundle, current)
@@ -204,7 +204,7 @@ pub fn thanks(event: &ZslEvent, published: bool) -> String {
     chat_notice(
         "Thanks for Racing!",
         &format!(
-            "ZSL Round {}: <b>{}</b><br>Vote for your favourite décor and track layouts: <color=#4ad9ff><u>zeepki.st/super-league/vote</u></color><br>{label}: <color=#4ad9ff><u>zeepki.st/super-league/season-{}/round-{}</u></color>{availability}",
+            "ZSL Round {}: <b>{}</b><br>Vote for your favourite décor and track layouts: <#4ad9ff><u>zeepki.st/super-league/vote</u></color><br>{label}: <#4ad9ff><u>zeepki.st/super-league/season-{}/round-{}</u></color>{availability}",
             event.round,
             escape_text(&event.name),
             event.season,
@@ -218,9 +218,9 @@ mod tests {
     use super::*;
     #[test]
     fn warmup_countdown_uses_remaining_time() {
-        assert!(warmup_countdown(1200).contains("<color=#ffd21c>20 minutes</color>"));
-        assert!(warmup_countdown(61).contains("<color=#ffd21c>2 minutes</color>"));
-        assert!(warmup_countdown(1).contains("<color=#ffd21c>1 minute</color>"));
+        assert!(warmup_countdown(1200).contains("<#ffd21c>20 minutes</color>"));
+        assert!(warmup_countdown(61).contains("<#ffd21c>2 minutes</color>"));
+        assert!(warmup_countdown(1).contains("<#ffd21c>1 minute</color>"));
         assert!(warmup_countdown(0).contains("Tournament starts after warmup."));
         assert!(warmup_status(1200).contains("starting in 20 minutes"));
     }

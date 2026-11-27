@@ -390,7 +390,7 @@ async fn names_reconcile_in_every_phase_without_lifecycle_locks() -> Result<()> 
             crate::leaderboard::read_test_overrides(&sent.lock().await[0])?
                 .1
                 .name,
-            "<color=#FFFFFF><nobr>Player</nobr></color>"
+            "<#FFFFFF><nobr>Player</nobr></color>"
         );
         let packet = GameHostPacket::PlayerCosmetics {
             uid: player().uid,
@@ -401,7 +401,7 @@ async fn names_reconcile_in_every_phase_without_lifecycle_locks() -> Result<()> 
             crate::leaderboard::read_test_overrides(&sent.lock().await[1])?
                 .1
                 .name,
-            "<color=#123456><nobr>Player</nobr></color>"
+            "<#123456><nobr>Player</nobr></color>"
         );
         session.on_packet(&packet).await?;
         assert_eq!(sent.lock().await.len(), 2);
@@ -531,7 +531,7 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
                 match u16::from_le_bytes([packet[0], packet[1]]) {
                     zc_core::zeepnet::CUSTOM_LEADERBOARD => {
                         let overrides = crate::leaderboard::read_test_overrides(&packet)?.1;
-                        assert_eq!(overrides.name, "<color=#FFFFFF><nobr>Player</nobr></color>");
+                        assert_eq!(overrides.name, "<#FFFFFF><nobr>Player</nobr></color>");
                         assert_eq!(overrides.position, "");
                         assert_eq!(overrides.points, "");
                         assert_eq!(overrides.points_won, "");
@@ -602,7 +602,7 @@ async fn handovers_dispatch_join_chat_playlist_and_podium_packets_before_upload(
                 .context("Missing player name override")?;
             assert_eq!(
                 crate::leaderboard::read_test_overrides(&name)?.1.name,
-                "<color=#FFFFFF><nobr>Player</nobr></color>"
+                "<#FFFFFF><nobr>Player</nobr></color>"
             );
             if phase == Phase::Warmup {
                 let welcome = packets.recv().await.context("Missing warmup welcome")?;

@@ -1034,7 +1034,7 @@ mod tests {
         let overrides = crate::leaderboard::read_test_overrides(&sent.lock().await[0])?.1;
         assert_eq!(
             overrides.name,
-            "<color=#000000><nobr>[T]<noparse><</noparse>Player></nobr></color>"
+            "<#000000><nobr>[T]<noparse><</noparse>Player></nobr></color>"
         );
         assert_eq!(overrides.position, "");
         assert_eq!(overrides.time, "");
@@ -1047,7 +1047,7 @@ mod tests {
             crate::leaderboard::read_test_overrides(&sent.lock().await[1])?
                 .1
                 .name,
-            "<color=#FFFFFF><nobr>[T]<noparse><</noparse>Player></nobr></color>"
+            "<#FFFFFF><nobr>[T]<noparse><</noparse>Player></nobr></color>"
         );
         session.on_packet(&packet).await?;
         assert_eq!(sent.lock().await.len(), 2);
@@ -1152,7 +1152,7 @@ mod tests {
         named.override_author_name = "Alice & Bob <color=red>".into();
         assert_eq!(
             next_level_message(&named),
-            "<size=85%><color=#dedede><b><size=100%><color=#4ad9ff>Next Submission</color></size></b><br><b>Rock & Roll <noparse><</noparse>/noparse><noparse><</noparse>size=200%>雪</b> by Alice & Bob <noparse><</noparse>color=red></color></size>"
+            "<size=85%><#dedede><b><size=100%><#4ad9ff>Next Submission</color></size></b><br><b>Rock & Roll <noparse><</noparse>/noparse><noparse><</noparse>size=200%>雪</b> by Alice & Bob <noparse><</noparse>color=red></color></size>"
         );
         Ok(())
     }
@@ -1254,7 +1254,7 @@ mod tests {
     fn submission_overlay_includes_position() {
         assert_eq!(
             submission_message(2, 1, 900),
-            "/servermessage white 900 <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>ZSL Level Contest</color></size></b><br><color=#B8B8B8>Entries</color><pos=7em><b>2 valid submissions</b><br><color=#B8B8B8>Submission</color><pos=7em><b>1 of 2</b></align></size>"
+            "/servermessage white 900 <size=150%><align=left><b><size=200%><#ffd21c>Zeepkist</color> <#4ad9ff>ZSL Level Contest</color></size></b><br><#B8B8B8>Entries</color><pos=7em><b>2 valid submissions</b><br><#B8B8B8>Submission</color><pos=7em><b>1 of 2</b></align></size>"
         );
     }
 
@@ -1708,7 +1708,7 @@ mod practice_session_tests {
         let packets = sent.lock().await;
         assert_eq!(
             crate::leaderboard::read_test_overrides(&packets[2])?.1.name,
-            "<color=#FFFFFF><nobr><noparse><</noparse>Player></nobr></color>"
+            "<#FFFFFF><nobr><noparse><</noparse>Player></nobr></color>"
         );
         let mut reader = zc_core::zeepnet::BitReader::new(&packets[3]);
         reader.read_u16()?;
@@ -1734,7 +1734,7 @@ mod practice_session_tests {
             crate::leaderboard::read_test_overrides(&sent.lock().await[4])?
                 .1
                 .name,
-            "<color=#123456><nobr><noparse><</noparse>Player></nobr></color>"
+            "<#123456><nobr><noparse><</noparse>Player></nobr></color>"
         );
         Ok(())
     }

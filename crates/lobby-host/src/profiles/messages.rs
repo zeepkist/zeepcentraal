@@ -5,11 +5,16 @@ use regex::Regex;
 use std::sync::OnceLock;
 use zc_database::services::lobby_assets::{TournamentLobbyPlayerContext, TournamentLobbySnapshot};
 
-pub const HOSTNAME: &str = "<color=#f9cc15>HOST</color>";
+pub const HOSTNAME: &str = "<#f9cc15>HOST</color>";
 
 pub fn chat_message(heading: &str, color: &str, body: &str) -> String {
+    let color_tag = if color.starts_with('#') {
+        format!("<{color}>")
+    } else {
+        format!("<color={color}>")
+    };
     format!(
-        "<size=85%><color=#dedede><b><size=100%><color={color}>{heading}</color></size></b>{body}</color></size>"
+        "<size=85%><#dedede><b><size=100%>{color_tag}{heading}</color></size></b>{body}</color></size>"
     )
 }
 
@@ -18,16 +23,17 @@ pub fn chat_notice(heading: &str, body: &str) -> String {
 }
 
 pub fn server_row(label: &str, value: impl std::fmt::Display) -> String {
-    format!("<color=#B8B8B8>{label}</color><pos=7em><b>{value}</b>")
+    format!("<#B8B8B8>{label}</color><pos=7em><b>{value}</b>")
 }
 
 pub fn server_message(duration: u64, heading: &str, body: &str) -> String {
     format!(
-        "/servermessage white {duration} <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>{heading}</color></size></b><br>{body}</align></size>"
+        "/servermessage white {duration} <size=150%><align=left><b><size=200%><#ffd21c>Zeepkist</color> <#4ad9ff>{heading}</color></size></b><br>{body}</align></size>"
     )
 }
 
-pub const UNATTENDED_NOTICE: &str = "<size=80%><color=#B8B8B8>This room is unattended. Report issues to Akane on Discord.</color></size>";
+pub const UNATTENDED_NOTICE: &str =
+    "<size=80%><#B8B8B8>This room is unattended. Report issues to Akane on Discord.</color></size>";
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StandingResult {
@@ -54,7 +60,7 @@ pub fn join_message(
         TournamentType::Monthly => ("Track of the Month", "month", "totm"),
     };
     let mut body = format!(
-        "Welcome, <b>{}</b>! Race a different track each {cadence}.<br><br><b>Leaderboard:</b> <color=#4ad9ff><u>zeepki.st/{route}</u></color>",
+        "Welcome, <b>{}</b>! Race a different track each {cadence}.<br><br><b>Leaderboard:</b> <#4ad9ff><u>zeepki.st/{route}</u></color>",
         display_name(Some(player_name))
     );
     if !context.user_exists || !context.recent_record {
@@ -63,7 +69,7 @@ pub fn join_message(
             "<br>Install <b>GTR</b> to join the leaderboard.".to_owned()
         } else {
             format!(
-                "<br>Install <b>GTR {minimum}+</b> with <b>Modkist</b> (<color=#4ad9ff><u>zeepki.st/wiki/setup-modkist</u></color>) to join the leaderboard."
+                "<br>Install <b>GTR {minimum}+</b> with <b>Modkist</b> (<#4ad9ff><u>zeepki.st/wiki/setup-modkist</u></color>) to join the leaderboard."
             )
         };
         body.push_str(&requirement);
@@ -110,10 +116,10 @@ fn tournament_message_at(
     // Reference commands: `/sm1`, `/sm2`, `/sm3`
     let leaderboard = match snapshot {
         // Reference command: `/sm1`
-        None => "<color=#B8B8B8><i>Leaderboard loading…</i></color>".into(),
+        None => "<#B8B8B8><i>Leaderboard loading…</i></color>".into(),
         // Reference command: `/sm3`
         Some(s) if s.standings.is_empty() => {
-            "<color=#B8B8B8><i>Set a time with GTR to appear on the leaderboard!</i></color>".into()
+            "<#B8B8B8><i>Set a time with GTR to appear on the leaderboard!</i></color>".into()
         }
         // Reference command: `/sm2`
         Some(s) => {
@@ -125,7 +131,7 @@ fn tournament_message_at(
                     .unwrap_or("#FFFFFF");
                 let name = bounded_display_name(row.steam_name.as_deref(), 10);
                 format!(
-                    "{position}<color={color}>{}. {name}<pos={time_position}em>{}</color>",
+                    "{position}<{color}>{}. {name}<pos={time_position}em>{}</color>",
                     row.rank,
                     format_time(row.time)
                 )
@@ -241,14 +247,14 @@ pub fn standing_message(previous: Option<StandingResult>, current: StandingResul
         heading,
         color,
         &format!(
-            "<br><color=#B8B8B8>Rank:</color> <b>{rank}</b>  <color=#B8B8B8>Points:</color> <b>{points}</b><br><color=#B8B8B8>Time:</color> <b>{time}</b>"
+            "<br><#B8B8B8>Rank:</color> <b>{rank}</b>  <#B8B8B8>Points:</color> <b>{points}</b><br><#B8B8B8>Time:</color> <b>{time}</b>"
         ),
     )
 }
 
 fn improvement(value: &str, improved: bool) -> String {
     let color = if improved { "#86efac" } else { "#fca5a5" };
-    format!("<color={color}>{value}</color>")
+    format!("<{color}>{value}</color>")
 }
 
 // Reference command: `/sm4`
@@ -293,7 +299,7 @@ pub fn scheduled_submission_message(
         .replace('T', " ");
     let end = vote_end.get(..16).unwrap_or(vote_end).replace('T', " ");
     let body = format!(
-        "{}<br>{}<br><br><b>Voting window</b><br>{} to {} UTC<br><color=#4ad9ff>https://zeepki.st/super-league/vote</color>",
+        "{}<br>{}<br><br><b>Voting window</b><br>{} to {} UTC<br><#4ad9ff>https://zeepki.st/super-league/vote</color>",
         submission_rows(entries, position),
         server_row(
             label,
@@ -492,7 +498,7 @@ mod tests {
         let message = join_message(TournamentType::Weekly, "Player One", &context());
         assert_eq!(
             message,
-            "<size=85%><color=#dedede><b><size=100%><color=#4ad9ff>Track of the Week</color></size></b><br>Welcome, <b>Player One</b>! Race a different track each week.<br><br><b>Leaderboard:</b> <color=#4ad9ff><u>zeepki.st/totw</u></color><br><br><size=80%><color=#B8B8B8>This room is unattended. Report issues to Akane on Discord.</color></size></color></size>"
+            "<size=85%><#dedede><b><size=100%><#4ad9ff>Track of the Week</color></size></b><br>Welcome, <b>Player One</b>! Race a different track each week.<br><br><b>Leaderboard:</b> <#4ad9ff><u>zeepki.st/totw</u></color><br><br><size=80%><#B8B8B8>This room is unattended. Report issues to Akane on Discord.</color></size></color></size>"
         );
         let packet = targeted_chat_message_packet(42, &message, HOSTNAME)?;
         let mut reader = BitReader::new(&packet);
@@ -595,7 +601,7 @@ mod tests {
         )?;
         assert_eq!(
             command,
-            "/servermessage white 900 <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>Track of the Week</color></size></b><br><color=#B8B8B8>Period</color><pos=7em><b>2026 Week 33</b><br><color=#B8B8B8>Entries</color><pos=7em><b>42</b><br><color=#B8B8B8>Ends in</color><pos=7em><b>6d 4h</b><br><br><b>Leaderboard</b><br><color=#FFD700>1. <noparse><</noparse>Winner><pos=13em>01:01.234</color></align></size>"
+            "/servermessage white 900 <size=150%><align=left><b><size=200%><#ffd21c>Zeepkist</color> <#4ad9ff>Track of the Week</color></size></b><br><#B8B8B8>Period</color><pos=7em><b>2026 Week 33</b><br><#B8B8B8>Entries</color><pos=7em><b>42</b><br><#B8B8B8>Ends in</color><pos=7em><b>6d 4h</b><br><br><b>Leaderboard</b><br><#FFD700>1. <noparse><</noparse>Winner><pos=13em>01:01.234</color></align></size>"
         );
         Ok(())
     }
@@ -640,7 +646,7 @@ mod tests {
                     .collect(),
                 connected_players: vec![],
             });
-            let command = tournament_message_at(
+            let mut command = tournament_message_at(
                 TournamentType::Daily,
                 "2026-11-27",
                 end,
@@ -652,6 +658,10 @@ mod tests {
                 command.matches("<pos=22em>").count(),
                 (count.unwrap_or(0) - 6).max(0) as usize
             );
+            if let Some(boundary) = label.strip_prefix("boundary-") {
+                let bytes = zc_core::zeepnet::chat_message_packet(&command)?.len();
+                command.push_str(&" ".repeat(boundary.parse::<usize>()? - bytes));
+            }
             let packet = zc_core::zeepnet::chat_message_packet(&command)?;
             if label == "one" {
                 assert!(packet.len() <= 1195);
@@ -712,12 +722,12 @@ mod tests {
             points: 656,
         };
         let message = standing_message(Some(previous), current);
-        assert!(message.contains("<color=#4ad9ff>New Personal Best!</color>"));
-        assert!(message.contains("<color=#86efac>-3</color>"));
-        assert!(message.contains("<color=#86efac>-0.516s</color>"));
-        assert!(message.contains("<color=#86efac>+26</color>"));
-        assert!(message.contains("-3</color></b>  <color=#B8B8B8>Points:"));
-        assert!(message.contains("</b><br><color=#B8B8B8>Time:"));
+        assert!(message.contains("<#4ad9ff>New Personal Best!</color>"));
+        assert!(message.contains("<#86efac>-3</color>"));
+        assert!(message.contains("<#86efac>-0.516s</color>"));
+        assert!(message.contains("<#86efac>+26</color>"));
+        assert!(message.contains("-3</color></b>  <#B8B8B8>Points:"));
+        assert!(message.contains("</b><br><#B8B8B8>Time:"));
         let drop = standing_message(
             Some(previous),
             StandingResult {
@@ -726,10 +736,10 @@ mod tests {
                 points: 620,
             },
         );
-        assert!(drop.contains("<color=#fca5a5>Rank dropped</color>"));
-        assert!(drop.contains("<color=#fca5a5>+1</color>"));
+        assert!(drop.contains("<#fca5a5>Rank dropped</color>"));
+        assert!(drop.contains("<#fca5a5>+1</color>"));
         assert!(drop.contains("Time:</color> <b>00:34.750</b>"));
-        assert!(drop.contains("<color=#fca5a5>-10</color>"));
+        assert!(drop.contains("<#fca5a5>-10</color>"));
         assert!(standing_message(None, previous).contains("You're on the board!"));
     }
 }
