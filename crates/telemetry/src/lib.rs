@@ -258,7 +258,11 @@ pub fn initialize(package: &str) -> Result<TelemetryGuard> {
     let log_bridge =
         OpenTelemetryTracingBridge::new(&logger_provider).with_filter(filter_fn(|metadata| {
             (metadata.level() <= &tracing::Level::WARN
-                || metadata.target() == "zc_telemetry::canary")
+                || (metadata.level() == &tracing::Level::INFO
+                    && matches!(
+                        metadata.target(),
+                        "zc_telemetry::canary" | "zc_lobby_host::chat::audit"
+                    )))
                 && !metadata.target().starts_with("opentelemetry")
                 && metadata.target() != "zc_telemetry::export"
         }));

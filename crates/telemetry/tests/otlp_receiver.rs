@@ -50,7 +50,7 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
         std::env::remove_var("RUST_LOG");
     }
     zc_core::environment::initialize()?;
-    let telemetry = zc_telemetry::initialize("server")?;
+    let telemetry = zc_telemetry::initialize("lobby-host")?;
     zc_telemetry::observe_operation("test.operation", async { Ok::<(), anyhow::Error>(()) })
         .await?;
     zc_telemetry::observe_operation("prepareZslWarmupPlaylist", async {
@@ -138,6 +138,12 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
     .await?;
     http.abort();
     tracing::info!(target: "zc_telemetry::test", "Local routine log");
+    tracing::info!(target: "zc_lobby_host::runtime", "Local lobby runtime log");
+    tracing::info!(
+        target: "zc_lobby_host::chat::audit",
+        { room.key = "totw", room.profile = "track-tournament.weekly" },
+        "[chat] [totw] Player: hello"
+    );
     tracing::error!("OTLP receiver test error event");
     telemetry.force_flush().await?;
 
@@ -214,19 +220,44 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
         assert!(metric_names.contains(&"http.client.request.duration"));
         assert!(metric_names.contains(&"zc.service.startups"));
         assert!(metric_names.contains(&"zc.service.operation.count"));
-        let severities = captured
+        let logs = captured
             .logs
             .iter()
             .flat_map(|request| &request.resource_logs)
             .filter(|resource| has_service_name(resource.resource.as_ref()))
             .flat_map(|resource| &resource.scope_logs)
             .flat_map(|scope| &scope.log_records)
-            .map(|log| log.severity_text.as_str())
             .collect::<Vec<_>>();
-        assert_eq!(
-            severities.iter().filter(|level| **level == "INFO").count(),
-            1
+        let info_logs: Vec<_> = logs
+            .iter()
+            .filter(|log| log.severity_text == "INFO")
+            .filter_map(|log| match log.body.as_ref()?.value.as_ref()? {
+                Value::StringValue(body) => Some((body.as_str(), &log.attributes)),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(info_logs.len(), 2);
+        assert!(
+            info_logs
+                .iter()
+                .any(|(body, _)| *body == "OpenTelemetry startup canary")
         );
+        let (_, attributes) = info_logs
+            .iter()
+            .find(|(body, _)| *body == "[chat] [totw] Player: hello")
+            .expect("lobby chat audit reaches OTLP");
+        for (key, value) in [
+            ("room.key", "totw"),
+            ("room.profile", "track-tournament.weekly"),
+        ] {
+            assert!(attributes.iter().any(|attribute| {
+                attribute.key == key
+                    && matches!(
+                        attribute.value.as_ref().and_then(|value| value.value.as_ref()),
+                        Some(Value::StringValue(actual)) if actual == value
+                    )
+            }));
+        }
         for span in &spans {
             assert!(!span.attributes.iter().any(|attribute| {
                 let key = attribute.key.as_str();
@@ -236,7 +267,7 @@ async fn exports_nonempty_signals_and_reports_receiver_failures() -> Result<()> 
             }));
             assert!(span.events.len() <= 1);
         }
-        assert!(severities.contains(&"ERROR"), "{severities:?}");
+        assert!(logs.iter().any(|log| log.severity_text == "ERROR"));
     }
 
     collector.reject_traces.store(true, Ordering::Relaxed);
