@@ -59,7 +59,7 @@ async fn main() -> anyhow::Result<()> {
     }
     tracing::info!("Lobby host stopping; making rooms private");
     for (_, room) in running.drain() {
-        room.supervisor.stop(true).await?;
+        room.supervisor.stop().await?;
         room.task.await?;
     }
     telemetry.shutdown().await
@@ -82,8 +82,7 @@ async fn reconcile_rooms(
     let changed = changed_room_keys(running.values().map(|active| &active.config), &next);
     for key in changed {
         if let Some(active) = running.remove(&key) {
-            let updating = next.iter().any(|room| room.key == key && room.enabled);
-            active.supervisor.stop(updating).await?;
+            active.supervisor.stop().await?;
             active.task.await?;
             tracing::info!(room = key, "Managed room stopped for config change");
         }
