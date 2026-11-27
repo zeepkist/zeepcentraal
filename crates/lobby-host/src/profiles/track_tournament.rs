@@ -208,12 +208,7 @@ impl TrackTournamentSession {
             )?
         };
         self.context
-            .send_tournament_overlay(
-                &key,
-                interval,
-                std::time::Duration::from_secs(self.config.round_time_seconds),
-                &message,
-            )
+            .send_round_message(&key, interval, &message)
             .await
     }
 
@@ -239,7 +234,6 @@ impl TrackTournamentSession {
             state.board.set_scope(tournament_id, level_uid);
             state.snapshot = None;
             state.notifications.reset();
-            self.context.invalidate_tournament_overlay();
         }
         Ok(())
     }

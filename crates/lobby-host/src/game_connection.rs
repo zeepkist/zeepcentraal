@@ -54,10 +54,6 @@ impl GameConnection {
     }
 
     pub async fn send(&self, packet: Vec<u8>) -> Result<()> {
-        self.send_timed(packet).await.map(|_| ())
-    }
-
-    pub(crate) async fn send_timed(&self, packet: Vec<u8>) -> Result<tokio::time::Instant> {
         ensure!(
             packet.get(..2)
                 != Some(
@@ -69,28 +65,15 @@ impl GameConnection {
         );
         let ticket = self.diagnostics.record(&packet);
         let observer = ticket.observer();
-        let first = Arc::new(std::sync::OnceLock::new());
-        let first_write = first.clone();
         let result = self
             .client
-            .send_reliable_ordered_observed(
-                packet,
-                0,
-                Some(Arc::new(move |write| {
-                    first_write.get_or_init(|| tokio::time::Instant::from_std(write.at));
-                    observer(write);
-                })),
-            )
+            .send_reliable_ordered_observed(packet, 0, Some(observer))
             .await;
         ticket.complete(result.is_ok());
         if matches!(result, Err(zc_core::zeepnet::LidgrenError::Closed)) {
             self.client.wait_for_close().await?;
         }
-        result?;
-        first
-            .get()
-            .copied()
-            .context("Acknowledged game packet has no recorded UDP write")
+        Ok(result?)
     }
 
     pub(crate) fn terminal_error(&self) -> Option<zc_core::zeepnet::LidgrenError> {

@@ -95,7 +95,6 @@ pub struct RoomContext {
     remote_clock: zc_core::zeepnet::RemoteClock,
     round_clock: Arc<std::sync::Mutex<round::RoundClock>>,
     round_changed: Arc<Notify>,
-    overlay_send: Arc<Mutex<()>>,
     pub local_steam_id: u64,
 }
 
@@ -137,7 +136,6 @@ impl RoomContext {
             remote_clock: zc_core::zeepnet::RemoteClock::default(),
             round_clock: Arc::default(),
             round_changed: Arc::default(),
-            overlay_send: Arc::default(),
             local_steam_id,
         })
     }
@@ -278,92 +276,6 @@ impl RoomContext {
             clock.last_message = Some(tokio::time::Instant::now());
         }
         self.chat().command(message).await
-    }
-
-    pub(crate) async fn send_tournament_overlay(
-        &self,
-        key: &RoundKey,
-        interval: Duration,
-        duration: Duration,
-        message: &str,
-    ) -> Result<()> {
-        let Ok(_pending) = self.overlay_send.try_lock() else {
-            return Ok(());
-        };
-        let now = tokio::time::Instant::now();
-        let generation = self.generation.load(Ordering::Acquire);
-        let (joins, revision) = {
-            let mut clock = self.round_clock.lock().unwrap();
-            if !self.is_host()
-                || !clock.round.as_ref().is_some_and(|round| round.key == *key)
-                || !clock
-                    .message_deadline(interval)
-                    .is_some_and(|deadline| deadline <= now)
-            {
-                return Ok(());
-            }
-            clock.overlay.evaluated = Some(now);
-            if let Some(sent) = &clock.overlay.submitted {
-                let unchanged = sent.content == message;
-                if unchanged && now < sent.refresh && clock.overlay.joins == sent.joins {
-                    tracing::debug!("Duplicate tournament overlay suppressed");
-                    return Ok(());
-                }
-                tracing::debug!(
-                    expiry = now >= sent.refresh,
-                    player_joined = clock.overlay.joins != sent.joins,
-                    content_changed = !unchanged,
-                    "Tournament overlay evaluated"
-                );
-            }
-            (clock.overlay.joins, clock.overlay.revision)
-        };
-        let packet = zc_core::zeepnet::chat_message_packet(message)?;
-        let bytes = packet.len();
-        let written = if let Some(publisher) = &self.publisher {
-            let clock = self.round_clock.clone();
-            let key = key.clone();
-            let Some(written) = publisher
-                .send_confirmed(packet, move || {
-                    let clock = clock.lock().unwrap();
-                    clock.overlay.revision == revision
-                        && clock.round.as_ref().is_some_and(|round| round.key == key)
-                })
-                .await?
-            else {
-                return Ok(());
-            };
-            written
-        } else {
-            self.sender.send_timed(packet).await?
-        };
-        let mut clock = self.round_clock.lock().unwrap();
-        if self.is_host()
-            && self.generation.load(Ordering::Acquire) == generation
-            && clock.overlay.revision == revision
-            && clock.round.as_ref().is_some_and(|round| round.key == *key)
-        {
-            clock.overlay.submitted = Some(round::OverlaySubmission {
-                content: message.to_owned(),
-                written,
-                refresh: written + duration - (duration / 10).min(Duration::from_secs(30)),
-                joins,
-            });
-        }
-        tracing::debug!(
-            bytes,
-            fragmented = bytes > zc_core::zeepnet::lidgren::DEFAULT_UNFRAGMENTED_PAYLOAD_BYTES,
-            "Tournament overlay acknowledged"
-        );
-        Ok(())
-    }
-
-    pub(crate) fn invalidate_tournament_overlay(&self) {
-        let mut clock = self.round_clock.lock().unwrap();
-        clock.overlay.revision = clock.overlay.revision.wrapping_add(1);
-        clock.overlay.evaluated = None;
-        clock.overlay.submitted = None;
-        self.round_changed.notify_one();
     }
 
     pub fn chat(&self) -> RoomChat {

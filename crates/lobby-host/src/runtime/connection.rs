@@ -57,9 +57,6 @@ impl PacketSender for GameConnection {
     async fn send(&self, packet: Vec<u8>) -> Result<()> {
         GameConnection::send(self, packet).await
     }
-    async fn send_timed(&self, packet: Vec<u8>) -> Result<Instant> {
-        GameConnection::send_timed(self, packet).await
-    }
 }
 
 #[async_trait::async_trait]
@@ -96,13 +93,6 @@ impl PacketSender for HostSender {
             "Room host authority unavailable"
         );
         self.connection.send(packet).await
-    }
-    async fn send_timed(&self, packet: Vec<u8>) -> Result<Instant> {
-        ensure!(
-            self.authority.load(Ordering::Acquire),
-            "Room host authority unavailable"
-        );
-        self.connection.send_timed(packet).await
     }
 }
 
@@ -543,7 +533,6 @@ impl ConnectedRoom<'_> {
             remote_clock: self.connection.remote_clock(),
             round_clock: Arc::default(),
             round_changed: Arc::default(),
-            overlay_send: Arc::default(),
             local_steam_id: self.local_steam_id,
         };
         if let Some(playlist) = &state.playlist {
@@ -741,11 +730,6 @@ impl ConnectedRoom<'_> {
             log_chat_audit_line(&self.config.key, self.profile.name(), &line);
         }
         state.observe_timing(packet);
-        if let GameHostPacket::PlayerConnected { .. } = packet
-            && let Some(active) = &state.active
-        {
-            active.context.round_clock.lock().unwrap().overlay.joins += 1;
-        }
         if let Some(host) = ownership {
             state.host = host;
             if host {

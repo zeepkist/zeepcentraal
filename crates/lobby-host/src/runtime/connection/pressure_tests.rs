@@ -322,56 +322,33 @@ async fn queue_overflow_is_terminal_and_unknown_traffic_is_skipped() -> Result<(
 }
 
 #[tokio::test(start_paused = true)]
-async fn tournament_overlay_suppresses_duplicates_and_refreshes_before_expiry() -> Result<()> {
+async fn round_message_repeats_unchanged_content_at_configured_interval() -> Result<()> {
     let mut h = Harness::with_clock(RemoteClock::from_sample(491.0, Duration::ZERO));
     h.packet(initial(true));
     flush().await;
     advance(4).await;
     let context = h.stats.contexts.lock().unwrap()[0].clone();
+    let interval = Duration::from_secs(60);
+    assert!(context.round_message_due(interval).is_none());
+
     context.observe_round(
         &GameHostPacket::Timer("6:59".into()),
         jiff::Timestamp::now(),
     );
-    let interval = Duration::from_secs(60);
-    let display = Duration::from_secs(120);
     let key = context.round_message_due(interval).context("Overlay due")?;
-    let content = "/servermessage white 120 Race";
-    context
-        .send_tournament_overlay(&key, interval, display, content)
-        .await?;
+    let message = "/servermessage white 120 Race";
     let sent = h.count(zc_core::zeepnet::CHAT_MESSAGE);
-    advance(60).await;
-    context
-        .send_tournament_overlay(&key, interval, display, content)
-        .await?;
-    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent);
-    assert!(context.round_message_due(interval).is_none());
-    advance(48).await;
-    assert!(context.round_message_due(interval).is_some());
-    context
-        .send_tournament_overlay(&key, interval, display, content)
-        .await?;
-    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent + 1);
-    for uid in [50, 51] {
-        h.packet(GameHostPacket::PlayerConnected {
-            player: player(uid),
-            is_host: false,
-            has_host_powers: false,
-        });
-    }
+    context.send_round_message(&key, interval, message).await?;
     flush().await;
-    assert!(context.round_message_due(interval).is_none());
-    advance(60).await;
-    context
-        .send_tournament_overlay(&key, interval, display, content)
-        .await?;
-    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent + 2);
+    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent + 1);
 
-    context.invalidate_tournament_overlay();
-    context
-        .send_tournament_overlay(&key, interval, display, content)
-        .await?;
-    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent + 3);
+    advance(59).await;
+    assert!(context.round_message_due(interval).is_none());
+    advance(1).await;
+    assert_eq!(context.round_message_due(interval), Some(key.clone()));
+    context.send_round_message(&key, interval, message).await?;
+    flush().await;
+    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent + 2);
     h.shutdown().await?;
     Ok(())
 }

@@ -64,6 +64,5 @@ Rejected joins retain the master result code. Ambiguous master responses recycle
 the master connection. Reconnects use capped exponential backoff and stable-host
 decay. The supported disconnect write does not provide a membership acknowledgement.
 
-Tournament overlays update on visible changes and refresh before their encoded
-display duration expires. Player joins request one refresh at the next eligible
-slot pending verification of the game's overlay synchronization.
+Tournament overlays send after the first valid countdown sample and refresh at
+the configured message interval.
