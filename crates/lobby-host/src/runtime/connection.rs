@@ -27,8 +27,8 @@ use tokio::{
     time::Instant,
 };
 use zc_core::zeepnet::{
-    GameHostPacket, LobbyTiming, RemoteClock, change_lobby_master_packet, change_lobby_name_packet,
-    change_lobby_visibility_packet, kick_player_packet,
+    GameHostPacket, LobbyTiming, OnlinePlaylist, RemoteClock, change_lobby_master_packet,
+    change_lobby_name_packet, change_lobby_visibility_packet, kick_player_packet,
 };
 
 const RECOVERY_TIMEOUT: Duration = Duration::from_secs(30);
@@ -97,6 +97,7 @@ pub(super) struct ConnectedRoom<'a> {
     pub local_steam_id: u64,
     pub player_uid: u32,
     pub stopped: &'a AtomicBool,
+    pub updating: &'a AtomicBool,
     pub wake: &'a Notify,
 }
 
@@ -203,6 +204,7 @@ struct RoomState {
     schedule_authority: Arc<AtomicBool>,
     roster: Arc<Mutex<RoomRoster>>,
     timing: Option<LobbyTiming>,
+    playlist: Option<OnlinePlaylist>,
     recovery: Option<Recovery>,
     active: Option<ActiveSession>,
     controls: JoinSet<Result<()>>,
@@ -219,6 +221,7 @@ impl RoomState {
             schedule_authority: Arc::new(AtomicBool::new(false)),
             roster: Arc::new(Mutex::new(RoomRoster::default())),
             timing: None,
+            playlist: None,
             recovery: None,
             active: None,
             controls: JoinSet::new(),
@@ -244,6 +247,12 @@ impl RoomState {
 
     fn observe_timing(&mut self, packet: &GameHostPacket) {
         match packet {
+            GameHostPacket::Playlist(playlist) => self.playlist = Some(playlist.clone()),
+            GameHostPacket::PlaylistIndex { current_index, .. } => {
+                if let Some(playlist) = &mut self.playlist {
+                    playlist.current_index = *current_index;
+                }
+            }
             GameHostPacket::Initial { timing, .. } => self.timing = Some(timing.clone()),
             GameHostPacket::GameState(game_state) => {
                 if let Some(timing) = &mut self.timing {
@@ -346,11 +355,11 @@ impl ConnectedRoom<'_> {
             }
         }));
         let authority = state.schedule_authority.clone();
-        let (result, scheduled) = tokio::select! {
+        let (result, scheduled, updating) = tokio::select! {
             biased;
-            _ = wait_for_stop(self.stopped, self.wake) => (Ok(()), false),
-            _ = self.watch_schedule(authority) => (Ok(()), true),
-            result = self.drive(&mut state, retry, &mut receiver, &mut receipt.0) => (result, false),
+            _ = wait_for_stop(self.stopped, self.wake) => (Ok(()), false, self.updating.load(Ordering::Acquire)),
+            _ = self.watch_schedule(authority) => (Ok(()), true, false),
+            result = self.drive(&mut state, retry, &mut receiver, &mut receipt.0) => (result, false, false),
         };
         receipt.0.abort();
         let _ = (&mut receipt.0).await;
@@ -366,6 +375,20 @@ impl ConnectedRoom<'_> {
         if (scheduled || self.stopped.load(Ordering::Acquire)) && !state.host {
             // Covers disable during assignment/connection and host recovery.
             state.host = self.recover_shutdown_authority(&state.roster).await;
+        }
+        if updating
+            && state.host
+            && matches!(self.config.profile, RoomProfile::TrackTournament { .. })
+        {
+            let chat = RoomChat::new(self.connection.clone());
+            let notice = chat.command("I'm reconnecting to apply an update. Stay in the room to keep playing when I rejoin.");
+            if let Err(error) = tokio::time::timeout(Duration::from_secs(2), notice)
+                .await
+                .context("Update notice timed out")
+                .and_then(|result| result)
+            {
+                tracing::warn!(%error, "Could not send managed room update notice");
+            }
         }
         // Profiles that publish only after activation keep an open room visible during recovery.
         if (scheduled || self.stopped.load(Ordering::Acquire) || self.profile.publish_on_connect())
@@ -507,6 +530,11 @@ impl ConnectedRoom<'_> {
             round_changed: Arc::default(),
             local_steam_id: self.local_steam_id,
         };
+        if let Some(playlist) = &state.playlist {
+            context
+                .observe_received(&GameHostPacket::Playlist(playlist.clone()))
+                .await?;
+        }
         let profile = self.profile.create_session(context.clone()).await?;
         if !state.schedule_authority.load(Ordering::Acquire) {
             context.authority.store(false, Ordering::Release);

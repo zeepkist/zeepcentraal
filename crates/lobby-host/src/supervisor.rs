@@ -12,7 +12,7 @@ use tokio::{sync::Notify, task::JoinSet};
 pub trait SupervisedRoom: Send + Sync + 'static {
     fn key(&self) -> &str;
     async fn run(&self) -> Result<()>;
-    async fn stop(&self) -> Result<()>;
+    async fn stop(&self, updating: bool) -> Result<()>;
 }
 
 pub struct LobbyHostSupervisor {
@@ -50,14 +50,14 @@ impl LobbyHostSupervisor {
         while set.join_next().await.is_some() {}
     }
 
-    pub async fn stop(&self) -> Result<()> {
+    pub async fn stop(&self, updating: bool) -> Result<()> {
         if self.stopped.swap(true, Ordering::AcqRel) {
             return Ok(());
         }
         self.wake.notify_waiters();
         let mut first = None;
         for room in &self.rooms {
-            if let Err(error) = room.stop().await {
+            if let Err(error) = room.stop(updating).await {
                 first.get_or_insert(error);
             }
         }

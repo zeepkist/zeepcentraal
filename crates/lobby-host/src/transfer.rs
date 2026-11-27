@@ -8,8 +8,8 @@ use std::collections::VecDeque;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::oneshot;
 use zc_core::zeepnet::{
-    GameHostPacket, change_lobby_levels_packet, change_lobby_playlist_packet, level_data_packet,
-    skip_to_level_packet,
+    GameHostPacket, OnlinePlaylist, change_lobby_levels_packet, change_lobby_playlist_packet,
+    level_data_packet, skip_to_level_packet,
 };
 
 #[cfg(test)]
@@ -103,6 +103,7 @@ pub struct LevelTransfer {
     next_activation_id: u64,
     playlist_revision: u64,
     timing: Option<(String, u64, f64)>,
+    observed_playlist: Option<OnlinePlaylist>,
     game_state: Option<i32>,
     #[cfg(test)]
     sender: Arc<dyn PacketSender>,
@@ -130,6 +131,7 @@ impl LevelTransfer {
             next_activation_id: 0,
             playlist_revision: 0,
             timing: None,
+            observed_playlist: None,
             game_state: None,
             #[cfg(test)]
             sender,
@@ -141,6 +143,25 @@ impl LevelTransfer {
 
     pub fn timeout(&self) -> Duration {
         self.timeout
+    }
+
+    pub(crate) fn adopt_current_level(&mut self, level: PreparedLevel) -> Result<bool> {
+        ensure!(!self.closed, "GameServer connection closed");
+        let desired = &level.level;
+        let matches = self.timing.as_ref().is_some_and(|(uid, workshop_id, _)| {
+            *uid == desired.uid && *workshop_id == desired.workshop_id
+        }) && self.observed_playlist.as_ref().is_none_or(|playlist| {
+            usize::try_from(playlist.current_index)
+                .ok()
+                .and_then(|index| playlist.levels.get(index))
+                .is_some_and(|entry| {
+                    entry.level.uid == desired.uid && entry.level.workshop_id == desired.workshop_id
+                })
+        });
+        if matches {
+            self.active = Some(level);
+        }
+        Ok(matches)
     }
 
     #[cfg(test)]
@@ -275,6 +296,12 @@ impl LevelTransfer {
             self.cancel_activation(activation.id);
         }
         match packet {
+            GameHostPacket::Playlist(playlist) => self.observed_playlist = Some(playlist.clone()),
+            GameHostPacket::PlaylistIndex { current_index, .. } => {
+                if let Some(playlist) = &mut self.observed_playlist {
+                    playlist.current_index = *current_index;
+                }
+            }
             GameHostPacket::Initial { timing, .. } => {
                 self.timing = Some((
                     timing.uid.clone(),
@@ -545,6 +572,7 @@ impl LevelTransfer {
         self.active = None;
         self.playlist = None;
         self.timing = None;
+        self.observed_playlist = None;
         self.game_state = None;
     }
 }
@@ -573,6 +601,52 @@ mod tests {
     }
 
     struct FixedLoader(Option<PreparedLevel>);
+
+    #[tokio::test]
+    async fn adopt_requires_matching_timing_and_current_playlist_entry() -> Result<()> {
+        let sender = Arc::new(FnPacketSender(|_| async { Ok(()) }));
+        let mut transfer = LevelTransfer::new(sender, 300.0, Duration::from_secs(1))?;
+        let desired = level();
+        let mut other = desired.level.clone();
+        other.workshop_id += 1;
+        assert!(!transfer.adopt_current_level(desired.clone())?);
+        transfer.observe_received(&GameHostPacket::GameProperties {
+            uid: desired.level.uid.clone(),
+            workshop_id: other.workshop_id,
+            level_loaded_at: 10.0,
+            round_time: 300.0,
+        })?;
+        assert!(!transfer.adopt_current_level(desired.clone())?);
+        transfer.observe_received(&GameHostPacket::GameProperties {
+            uid: desired.level.uid.clone(),
+            workshop_id: desired.level.workshop_id,
+            level_loaded_at: 11.0,
+            round_time: 300.0,
+        })?;
+        let playlist = zc_core::zeepnet::change_lobby_levels_packet(
+            &[other, desired.level.clone()],
+            300.0,
+            0,
+            1,
+        )?;
+        transfer.observe_received(&zc_core::zeepnet::parse_game_host_packet(&playlist)?)?;
+        assert!(!transfer.adopt_current_level(desired.clone())?);
+        transfer.observe_received(&GameHostPacket::PlaylistIndex {
+            current_index: 1,
+            next_index: 0,
+            select_next: false,
+        })?;
+        assert!(transfer.adopt_current_level(desired.clone())?);
+        let work = transfer
+            .prepare_work(&GameHostPacket::LevelRequest {
+                uid: desired.level.uid.clone(),
+                workshop_id: desired.level.workshop_id,
+                name: desired.level.name.clone(),
+            })?
+            .context("Expected adopted level to serve requests")?;
+        assert_eq!(work.load().await?.content_sha256, desired.content_sha256);
+        Ok(())
+    }
 
     #[async_trait::async_trait]
     impl LevelLoader for FixedLoader {

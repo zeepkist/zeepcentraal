@@ -400,7 +400,10 @@ impl RoomContext {
         Ok(received)
     }
 
-    async fn observe_received(&self, packet: &GameHostPacket) -> Result<Vec<TransferEvent>> {
+    pub(crate) async fn observe_received(
+        &self,
+        packet: &GameHostPacket,
+    ) -> Result<Vec<TransferEvent>> {
         self.transfer.lock().await.observe_received(packet)
     }
     async fn execute_transfer(
@@ -519,6 +522,12 @@ impl RoomContext {
         self.transfer.lock().await.set_round_time(seconds)
     }
 
+    pub(crate) async fn adopt_current_level(&self, level: PreparedLevel) -> Result<bool> {
+        let mut transfer = self.transfer.lock().await;
+        anyhow::ensure!(self.is_host(), "Room host authority unavailable");
+        transfer.adopt_current_level(level)
+    }
+
     pub(crate) async fn set_visibility(&self, public: bool) -> Result<()> {
         self.send(zc_core::zeepnet::change_lobby_visibility_packet(public)?)
             .await
@@ -531,6 +540,7 @@ pub struct ManagedLobbyHost {
     broker: RoomBrokerClient,
     profile: Arc<dyn LobbyProfile>,
     stopped: AtomicBool,
+    updating: AtomicBool,
     wake: Notify,
 }
 
@@ -547,6 +557,7 @@ impl ManagedLobbyHost {
             broker,
             profile,
             stopped: AtomicBool::new(false),
+            updating: AtomicBool::new(false),
             wake: Notify::new(),
         }
     }
@@ -627,6 +638,7 @@ impl ManagedLobbyHost {
             local_steam_id: assignment.steam_id()?,
             player_uid: assignment.player_uid,
             stopped: &self.stopped,
+            updating: &self.updating,
             wake: &self.wake,
         }
         .run(retry)
@@ -644,7 +656,8 @@ impl SupervisedRoom for ManagedLobbyHost {
         self.run_loop().await
     }
 
-    async fn stop(&self) -> Result<()> {
+    async fn stop(&self, updating: bool) -> Result<()> {
+        self.updating.store(updating, Ordering::Release);
         if self.stopped.swap(true, Ordering::AcqRel) {
             return Ok(());
         }

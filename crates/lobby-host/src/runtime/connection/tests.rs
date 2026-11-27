@@ -182,6 +182,7 @@ struct Harness {
     connection: Arc<FakeConnection>,
     stats: Arc<ProfileStats>,
     stopped: Arc<AtomicBool>,
+    updating: Arc<AtomicBool>,
     wake: Arc<Notify>,
     task: Option<JoinHandle<Result<()>>>,
 }
@@ -206,11 +207,13 @@ impl Harness {
         });
         let stats = Arc::new(ProfileStats::default());
         let stopped = Arc::new(AtomicBool::new(false));
+        let updating = Arc::new(AtomicBool::new(false));
         let wake = Arc::new(Notify::new());
         let task = {
             let connection = connection.clone();
             let stats = stats.clone();
             let stopped = stopped.clone();
+            let updating = updating.clone();
             let wake = wake.clone();
             tokio::spawn(async move {
                 let config = ManagedRoomConfig {
@@ -238,6 +241,7 @@ impl Harness {
                     local_steam_id: BOT_STEAM_ID,
                     player_uid: BOT_UID,
                     stopped: &stopped,
+                    updating: &updating,
                     wake: &wake,
                 }
                 .run(&mut RetryBackoff::new(config.reconnect_max_ms))
@@ -249,6 +253,7 @@ impl Harness {
             connection,
             stats,
             stopped,
+            updating,
             wake,
             task: Some(task),
         }
@@ -287,6 +292,31 @@ impl Harness {
 
 fn packet_type(packet: &[u8]) -> u16 {
     u16::from_le_bytes([packet[0], packet[1]])
+}
+
+#[tokio::test(start_paused = true)]
+async fn update_notice_precedes_disconnect_even_if_chat_stalls() -> Result<()> {
+    let mut h = Harness::new();
+    h.packet(initial(true));
+    flush().await;
+    advance(4).await;
+    assert_eq!(h.starts(), 1);
+    h.updating.store(true, Ordering::Release);
+    h.connection.stall_controls.store(true, Ordering::Release);
+    h.shutdown().await?;
+    let sent = h.connection.sent.lock().unwrap();
+    let close = h.connection.packets_at_close.lock().unwrap()[0];
+    let expected = zc_core::zeepnet::chat_message_packet(
+        "I'm reconnecting to apply an update. Stay in the room to keep playing when I rejoin.",
+    )?;
+    assert_eq!(
+        sent[..close]
+            .iter()
+            .filter(|packet| **packet == expected)
+            .count(),
+        1
+    );
+    Ok(())
 }
 fn player(uid: u32) -> GameHostPlayer {
     GameHostPlayer {
@@ -344,6 +374,7 @@ async fn owned_join_waits_for_initial_and_settling_then_starts_once() -> Result<
     assert_eq!(h.starts(), 1);
     assert_eq!(h.count(CHAT_MESSAGE), 0);
     h.shutdown().await?;
+    assert_eq!(h.count(CHAT_MESSAGE), 0);
     assert_eq!(h.stops(), 1);
     assert_eq!(h.connection.closes.load(Ordering::Acquire), 1);
     assert_eq!(h.count(CHANGE_LOBBY_VISIBILITY), 2);

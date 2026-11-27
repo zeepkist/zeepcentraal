@@ -97,10 +97,10 @@ fn tournament_message_at(
     round_time: u64,
     now: Timestamp,
 ) -> Result<String> {
-    let heading = match kind {
-        TournamentType::Daily => "Track of the Day",
-        TournamentType::Weekly => "Track of the Week",
-        TournamentType::Monthly => "Track of the Month",
+    let (heading, route) = match kind {
+        TournamentType::Daily => ("Track of the Day", "totd"),
+        TournamentType::Weekly => ("Track of the Week", "totw"),
+        TournamentType::Monthly => ("Track of the Month", "totm"),
     };
     let period = tournament_period(kind, slug);
     let remaining = tournament_remaining(end_at, now)?;
@@ -116,28 +116,34 @@ fn tournament_message_at(
             "<color=#B8B8B8><i>Set a time with GTR to appear on the leaderboard!</i></color>".into()
         }
         // Reference command: `/sm2`
-        Some(s) => s
-            .standings
-            .iter()
-            .take(6)
-            .enumerate()
-            .map(|(index, row)| {
+        Some(s) => {
+            let cell = |index: usize, position: &str, time_position: u8| {
+                let row = &s.standings[index];
                 let color = ["#FFD700", "#C0C0C0", "#CD7F32"]
                     .get(index)
                     .copied()
                     .unwrap_or("#FFFFFF");
-                let name = display_name(row.steam_name.as_deref());
+                let name = bounded_display_name(row.steam_name.as_deref(), 10);
                 format!(
-                    "<color={color}>{}. {name}<pos=16em>{}</color>",
+                    "{position}<color={color}>{}. {name}<pos={time_position}em>{}</color>",
                     row.rank,
                     format_time(row.time)
                 )
-            })
-            .collect::<Vec<_>>()
-            .join("<br>"),
+            };
+            (0..s.standings.len().min(6))
+                .map(|left| {
+                    let mut row = cell(left, "", 13);
+                    if left + 6 < s.standings.len() {
+                        row.push_str(&cell(left + 6, "<pos=22em>", 35));
+                    }
+                    row
+                })
+                .collect::<Vec<_>>()
+                .join("<br>")
+        }
     };
     let body = format!(
-        "{}<br>{}<br>{}<br><br><b>Leaderboard</b><br>{leaderboard}",
+        "{}<br>{}<br>{}<br><br><b>Leaderboard</b><pos=13em><color=#4ad9ff><u>zeepki.st/{route}</u></color><br>{leaderboard}",
         server_row(
             "Period",
             escape_text(
@@ -343,6 +349,10 @@ fn control_or_format() -> &'static Regex {
 }
 
 fn display_name(value: Option<&str>) -> String {
+    bounded_display_name(value, 24)
+}
+
+fn bounded_display_name(value: Option<&str>, limit: usize) -> String {
     let sanitized = control_or_format().replace_all(value.unwrap_or_default(), " ");
     let collapsed = sanitized.split_whitespace().collect::<Vec<_>>().join(" ");
     let name = if collapsed.is_empty() {
@@ -351,7 +361,7 @@ fn display_name(value: Option<&str>) -> String {
         &collapsed
     };
     let mut chars = name.chars();
-    let prefix = chars.by_ref().take(23).collect::<String>();
+    let prefix = chars.by_ref().take(limit - 1).collect::<String>();
     let bounded = if chars.next().is_some() {
         format!("{prefix}…")
     } else {
@@ -562,8 +572,57 @@ mod tests {
         )?;
         assert_eq!(
             command,
-            "/servermessage white 900 <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>Track of the Week</color></size></b><br><color=#B8B8B8>Period</color><pos=7em><b>2026 Week 33</b><br><color=#B8B8B8>Entries</color><pos=7em><b>42</b><br><color=#B8B8B8>Ends in</color><pos=7em><b>6d 3h 38m</b><br><br><b>Leaderboard</b><br><color=#FFD700>1. <noparse><</noparse>Winner><pos=16em>01:01.234</color></align></size>"
+            "/servermessage white 900 <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>Track of the Week</color></size></b><br><color=#B8B8B8>Period</color><pos=7em><b>2026 Week 33</b><br><color=#B8B8B8>Entries</color><pos=7em><b>42</b><br><color=#B8B8B8>Ends in</color><pos=7em><b>6d 3h 38m</b><br><br><b>Leaderboard</b><pos=13em><color=#4ad9ff><u>zeepki.st/totw</u></color><br><color=#FFD700>1. <noparse><</noparse>Winner><pos=13em>01:01.234</color></align></size>"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn tournament_leaderboard_pairs_columns_and_keeps_the_url() -> Result<()> {
+        let now: Timestamp = "2026-08-10T00:00:00Z".parse()?;
+        let end = "2026-09-01T00:00:00Z";
+        for (count, kind, route) in [
+            (0_i64, TournamentType::Daily, "totd"),
+            (6, TournamentType::Weekly, "totw"),
+            (7, TournamentType::Monthly, "totm"),
+            (12, TournamentType::Daily, "totd"),
+        ] {
+            let snapshot = TournamentLobbySnapshot {
+                entries: count,
+                standings: (1..=count)
+                    .map(|rank| TournamentLobbyStanding {
+                        user_id: 1,
+                        record_id: 10,
+                        steam_id: 42,
+                        steam_name: Some("<b>ReallyLongName".into()),
+                        time: 61.234,
+                        rank: rank as i32,
+                        points: 0,
+                    })
+                    .collect(),
+                connected_players: vec![],
+            };
+            let command = tournament_message_at(kind, "", end, Some(&snapshot), 900, now)?;
+            let header = format!(
+                "<b>Leaderboard</b><pos=13em><color=#4ad9ff><u>zeepki.st/{route}</u></color>"
+            );
+            let rows = command
+                .split_once(&header)
+                .context("Expected leaderboard header")?
+                .1;
+            assert_eq!(rows.matches("<pos=13em>").count(), count.min(6) as usize);
+            let right_count = (count as usize).saturating_sub(6);
+            assert_eq!(rows.matches("<pos=22em>").count(), right_count);
+            assert_eq!(rows.matches("<pos=35em>").count(), right_count);
+            if count >= 7 {
+                assert!(rows.split("<br>").nth(1).unwrap().contains(
+                    "1. <noparse><</noparse>b>Really…<pos=13em>01:01.234</color><pos=22em><color=#FFFFFF>7. "
+                ));
+            }
+        }
+        let loading = tournament_message_at(TournamentType::Weekly, "", end, None, 900, now)?;
+        assert!(loading.contains("zeepki.st/totw"));
+        assert!(loading.contains("Leaderboard loading"));
         Ok(())
     }
 
