@@ -31,6 +31,11 @@ impl RetryBackoff {
             .unwrap_or_else(|| self.next_delay())
     }
 
+    pub(super) fn jitter(&self, delay: Duration, sample: u64) -> Duration {
+        let margin = (self.cap - delay).min(delay / 5).as_millis() as u64;
+        delay + Duration::from_millis(sample % (margin + 1))
+    }
+
     pub(super) fn confirmed_host(&mut self, now: Instant) {
         self.next_decay.get_or_insert(now + DECAY_INTERVAL);
     }
@@ -69,6 +74,17 @@ mod tests {
         let mut low_cap = RetryBackoff::new(5_000);
         assert_eq!(low_cap.next_delay(), RETRY_FLOOR);
         assert_eq!(low_cap.next_delay(), RETRY_FLOOR);
+    }
+
+    #[test]
+    fn jitter_respects_floor_cap_and_does_not_change_growth() {
+        let mut retry = RetryBackoff::new(61_000);
+        let floor = retry.next_delay();
+        assert_eq!(retry.jitter(floor, 1_234).as_millis(), 31_234);
+        let next = retry.next_delay();
+        assert_eq!(retry.jitter(next, 1_000).as_millis(), 61_000);
+        let cap = retry.next_delay();
+        assert_eq!(retry.jitter(cap, 42), cap);
     }
 
     #[test]

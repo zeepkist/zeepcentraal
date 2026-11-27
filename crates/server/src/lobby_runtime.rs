@@ -108,6 +108,17 @@ impl fmt::Display for MasterRecycle {
 
 impl Error for MasterRecycle {}
 
+#[derive(Debug)]
+struct MasterJoinRejected(u16);
+
+impl fmt::Display for MasterJoinRejected {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "Master rejected room join (result {})", self.0)
+    }
+}
+
+impl Error for MasterJoinRejected {}
+
 trait SteamEventSource {
     fn poll_event(
         &mut self,
@@ -255,11 +266,31 @@ async fn assign_room(
     }
     match tokio::time::timeout_at(deadline.into(), response_rx).await {
         Ok(Ok(Ok(assignment))) => no_store((StatusCode::OK, Json(assignment)).into_response()),
+        Ok(Ok(Err(error))) => join_rejection_response(&error).unwrap_or_else(|| {
+            broker_response(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "Room assignment unavailable",
+            )
+        }),
         _ => broker_response(
             StatusCode::SERVICE_UNAVAILABLE,
             "Room assignment unavailable",
         ),
     }
+}
+
+fn join_rejection_response(error: &anyhow::Error) -> Option<Response> {
+    let body = if let Some(rejected) = error.downcast_ref::<MasterJoinRejected>() {
+        serde_json::json!({ "result": rejected.0 })
+    } else if let Some(LidgrenError::RemoteDisconnect { reason, .. }) =
+        error.downcast_ref::<LidgrenError>()
+        && reason.to_ascii_lowercase().contains("already is in one")
+    {
+        serde_json::json!({ "reason": zc_core::zeepnet::sanitize_lidgren_disconnect_reason(reason) })
+    } else {
+        return None;
+    };
+    Some(no_store((StatusCode::CONFLICT, Json(body)).into_response()))
 }
 
 async fn not_found() -> Response {
@@ -449,6 +480,11 @@ async fn run_steam_session(
                     if let Some(LidgrenError::RemoteDisconnect { category, .. }) =
                         error.downcast_ref::<LidgrenError>()
                     {
+                        if *category
+                            == zc_core::zeepnet::LidgrenDisconnectCategory::CredentialExpired
+                        {
+                            cached_ticket = None;
+                        }
                         tracing::warn!(
                             ?category,
                             "Zeepkist master rejected lobby collector; retrying"
@@ -626,7 +662,9 @@ async fn run_master_connected(
                     tracing::info!(%remote, "Initial Zeepkist lobby snapshot received");
                 }
                 let handed_off = result.is_ok();
-                let recycle = result.as_ref().is_err_and(|error| error.is::<MasterRecycle>());
+                let recycle = result.as_ref().is_err_and(|error|
+                    error.is::<MasterRecycle>() || error.is::<MasterJoinRejected>() || error.is::<LidgrenError>()
+                );
                 if handed_off {
                     return finish_master_handoff(
                         client.close("Room assignment handed off"),
@@ -640,7 +678,7 @@ async fn run_master_connected(
                         client.close("Master connection remained assigned to previous room"),
                     ).await;
                     let _ = command.response.send(result);
-                    tracing::warn!("Master rejected room creation on assigned connection; recycling");
+                    tracing::warn!("Master room assignment failed; recycling connection");
                     bail!(MasterRecycle);
                 }
                 let _ = command.response.send(result);
@@ -762,7 +800,9 @@ async fn assign_on_master(
                 token,
             );
         }
-        ensure!(result == 4, "Stored room join rejected");
+        if result != 4 {
+            bail!(MasterJoinRejected(result));
+        }
     }
     let room_name = sanitize_lobby_text(&request.room.name, "ZeepCentraal");
     client
@@ -795,7 +835,9 @@ async fn assign_on_master(
     if result != 1 {
         tracing::warn!(result, "Master rejected created room join");
     }
-    ensure!(result == 1, "Created room join rejected");
+    if result != 1 {
+        bail!(MasterJoinRejected(result));
+    }
     assignment(
         request.key,
         join_id,
@@ -862,7 +904,7 @@ async fn wait_room_response(
         }
     })
     .await
-    .context("Master room response timed out")?
+    .context(MasterRecycle)?
 }
 
 fn apply_payload(
@@ -1270,6 +1312,34 @@ mod tests {
         .await?;
         let _ = client.close("Test complete").await;
         result
+    }
+
+    #[tokio::test]
+    async fn join_rejection_returns_result_or_redacted_membership_reason() {
+        for (error, expected) in [
+            (
+                anyhow::Error::from(MasterJoinRejected(17)),
+                serde_json::json!({ "result": 17 }),
+            ),
+            (
+                anyhow::Error::from(LidgrenError::RemoteDisconnect {
+                    category: zc_core::zeepnet::LidgrenDisconnectCategory::Remote,
+                    reason: "tried to join a lobby, but already is in one; token=secret".into(),
+                }),
+                serde_json::json!({ "reason": "tried to join a lobby, but already is in one; token=[redacted]" }),
+            ),
+        ] {
+            let response = join_rejection_response(&error).unwrap();
+            assert_eq!(response.status(), StatusCode::CONFLICT);
+            let body = axum::body::to_bytes(response.into_body(), 1024)
+                .await
+                .unwrap();
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&body).unwrap(),
+                expected
+            );
+        }
+        assert!(join_rejection_response(&LidgrenError::ConnectionTimeout.into()).is_none());
     }
 
     #[tokio::test]

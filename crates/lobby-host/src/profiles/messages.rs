@@ -103,7 +103,7 @@ fn tournament_message_at(
         TournamentType::Monthly => "Track of the Month",
     };
     let period = tournament_period(kind, slug);
-    let remaining = tournament_remaining(end_at, now)?;
+    let remaining = overlay_remaining(end_at, now)?;
     let entries = snapshot
         .map(|s| s.entries.to_string())
         .unwrap_or_else(|| "…".into());
@@ -116,25 +116,31 @@ fn tournament_message_at(
             "<color=#B8B8B8><i>Set a time with GTR to appear on the leaderboard!</i></color>".into()
         }
         // Reference command: `/sm2`
-        Some(s) => s
-            .standings
-            .iter()
-            .take(6)
-            .enumerate()
-            .map(|(index, row)| {
+        Some(s) => {
+            let cell = |index: usize, position: &str, time_position: u8| {
+                let row = &s.standings[index];
                 let color = ["#FFD700", "#C0C0C0", "#CD7F32"]
                     .get(index)
                     .copied()
                     .unwrap_or("#FFFFFF");
-                let name = display_name(row.steam_name.as_deref());
+                let name = bounded_display_name(row.steam_name.as_deref(), 10);
                 format!(
-                    "<color={color}>{}. {name}<pos=16em>{}</color>",
+                    "{position}<color={color}>{}. {name}<pos={time_position}em>{}</color>",
                     row.rank,
                     format_time(row.time)
                 )
-            })
-            .collect::<Vec<_>>()
-            .join("<br>"),
+            };
+            (0..s.standings.len().min(6))
+                .map(|left| {
+                    let mut row = cell(left, "", 13);
+                    if left + 6 < s.standings.len() {
+                        row.push_str(&cell(left + 6, "<pos=22em>", 35));
+                    }
+                    row
+                })
+                .collect::<Vec<_>>()
+                .join("<br>")
+        }
     };
     let body = format!(
         "{}<br>{}<br>{}<br><br><b>Leaderboard</b><br>{leaderboard}",
@@ -151,6 +157,29 @@ fn tournament_message_at(
         server_row("Ends in", remaining.trim_start_matches("Ends in "))
     );
     Ok(server_message(round_time, heading, &body))
+}
+
+fn overlay_remaining(end_at: &str, now: Timestamp) -> Result<String> {
+    let end: Timestamp = end_at.parse().context("Tournament end time is invalid")?;
+    let milliseconds = (end.as_millisecond() - now.as_millisecond()).max(0);
+    let minute = 60_000;
+    let hour = 60 * minute;
+    let day = 24 * hour;
+    let result = if milliseconds >= 7 * day {
+        let days = (milliseconds + day - 1) / day;
+        format!("{}w {}d", days / 7, days % 7)
+    } else if milliseconds >= day {
+        let hours = (milliseconds + hour - 1) / hour;
+        format!("{}d {}h", hours / 24, hours % 24)
+    } else {
+        let minutes = (milliseconds + minute - 1) / minute;
+        if milliseconds >= hour {
+            format!("{}h {}m", minutes / 60, minutes % 60)
+        } else {
+            format!("{minutes}m")
+        }
+    };
+    Ok(result)
 }
 
 pub fn tournament_remaining(end_at: &str, now: Timestamp) -> Result<String> {
@@ -343,6 +372,10 @@ fn control_or_format() -> &'static Regex {
 }
 
 fn display_name(value: Option<&str>) -> String {
+    bounded_display_name(value, 24)
+}
+
+fn bounded_display_name(value: Option<&str>, max_chars: usize) -> String {
     let sanitized = control_or_format().replace_all(value.unwrap_or_default(), " ");
     let collapsed = sanitized.split_whitespace().collect::<Vec<_>>().join(" ");
     let name = if collapsed.is_empty() {
@@ -351,7 +384,7 @@ fn display_name(value: Option<&str>) -> String {
         &collapsed
     };
     let mut chars = name.chars();
-    let prefix = chars.by_ref().take(23).collect::<String>();
+    let prefix = chars.by_ref().take(max_chars - 1).collect::<String>();
     let bounded = if chars.next().is_some() {
         format!("{prefix}…")
     } else {
@@ -562,8 +595,107 @@ mod tests {
         )?;
         assert_eq!(
             command,
-            "/servermessage white 900 <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>Track of the Week</color></size></b><br><color=#B8B8B8>Period</color><pos=7em><b>2026 Week 33</b><br><color=#B8B8B8>Entries</color><pos=7em><b>42</b><br><color=#B8B8B8>Ends in</color><pos=7em><b>6d 3h 38m</b><br><br><b>Leaderboard</b><br><color=#FFD700>1. <noparse><</noparse>Winner><pos=16em>01:01.234</color></align></size>"
+            "/servermessage white 900 <size=150%><align=left><b><size=200%><color=#ffd21c>Zeepkist</color> <color=#4ad9ff>Track of the Week</color></size></b><br><color=#B8B8B8>Period</color><pos=7em><b>2026 Week 33</b><br><color=#B8B8B8>Entries</color><pos=7em><b>42</b><br><color=#B8B8B8>Ends in</color><pos=7em><b>6d 4h</b><br><br><b>Leaderboard</b><br><color=#FFD700>1. <noparse><</noparse>Winner><pos=13em>01:01.234</color></align></size>"
         );
+        Ok(())
+    }
+
+    #[test]
+    fn overlay_wire_fixtures_and_fragmentation() -> Result<()> {
+        let now: Timestamp = "2026-11-27T09:00:00Z".parse()?;
+        let end = "2026-11-28T18:00:00Z";
+        let mut expected = include_str!("../../tests/fixtures/tournament-overlay.hex").lines();
+        for (label, count, name) in [
+            ("loading", None, ""),
+            ("empty", Some(0), ""),
+            ("one", Some(1), "Player"),
+            ("six", Some(6), "Player"),
+            ("seven", Some(7), "Player"),
+            ("twelve", Some(12), "Player"),
+            ("unicode", Some(12), "日本語🧼"),
+            ("escaped", Some(12), "<<<<<<<<<"),
+            ("boundary-1195", Some(12), "日本語🧼"),
+            ("boundary-1196", Some(12), "日本語🧼"),
+        ] {
+            let snapshot = count.map(|count| TournamentLobbySnapshot {
+                entries: 42,
+                standings: (1..=count)
+                    .map(|rank| TournamentLobbyStanding {
+                        user_id: rank,
+                        record_id: rank + 10,
+                        steam_id: i64::from(rank),
+                        steam_name: Some(if label.starts_with("boundary-") {
+                            let extra = if label == "boundary-1195" { 49 } else { 50 };
+                            format!(
+                                "{name}{}",
+                                "x".repeat((extra - 5 * (rank - 1)).clamp(0, 5) as usize)
+                            )
+                        } else {
+                            name.into()
+                        }),
+                        time: 61.234,
+                        rank,
+                        points: 630,
+                    })
+                    .collect(),
+                connected_players: vec![],
+            });
+            let command = tournament_message_at(
+                TournamentType::Daily,
+                "2026-11-27",
+                end,
+                snapshot.as_ref(),
+                900,
+                now,
+            )?;
+            assert_eq!(
+                command.matches("<pos=22em>").count(),
+                (count.unwrap_or(0) - 6).max(0) as usize
+            );
+            let packet = zc_core::zeepnet::chat_message_packet(&command)?;
+            if label == "one" {
+                assert!(packet.len() <= 1195);
+            }
+            if label == "escaped" {
+                assert!(packet.len() > 1195);
+            }
+            if let Some(boundary) = label.strip_prefix("boundary-") {
+                assert_eq!(packet.len(), boundary.parse::<usize>()?, "{label}");
+            }
+            let (expected_label, expected_hex) = expected
+                .next()
+                .context("Missing overlay fixture")?
+                .split_once(' ')
+                .context("Invalid overlay fixture")?;
+            assert_eq!(expected_label, label);
+            assert!(
+                hex::encode(packet) == expected_hex,
+                "Overlay fixture {label} differs"
+            );
+        }
+        assert!(expected.next().is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn overlay_countdown_rounds_up_at_each_display_unit() -> Result<()> {
+        let now: Timestamp = "2026-11-27T09:00:00Z".parse()?;
+        for (seconds, expected) in [
+            (0, "0m"),
+            (1, "1m"),
+            (421, "8m"),
+            (3599, "60m"),
+            (3600, "1h 0m"),
+            (16680, "4h 38m"),
+            (86400, "1d 0h"),
+            (446400, "5d 4h"),
+            (604800, "1w 0d"),
+            (2160000, "3w 4d"),
+            (2160001, "3w 5d"),
+        ] {
+            let end = now + jiff::SignedDuration::from_secs(seconds);
+            assert_eq!(overlay_remaining(&end.to_string(), now)?, expected);
+        }
         Ok(())
     }
 

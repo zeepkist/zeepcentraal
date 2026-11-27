@@ -58,11 +58,19 @@ async fn main() -> anyhow::Result<()> {
         }
     }
     tracing::info!("Lobby host stopping; making rooms private");
-    for (_, room) in running.drain() {
-        room.supervisor.stop().await?;
-        room.task.await?;
+    let mut failure = None;
+    for room in running.values() {
+        if let Err(error) = room.supervisor.stop().await {
+            failure.get_or_insert(error);
+        }
     }
-    telemetry.shutdown().await
+    for (_, room) in running.drain() {
+        if let Err(error) = room.task.await {
+            failure.get_or_insert(error.into());
+        }
+    }
+    let shutdown = telemetry.shutdown().await;
+    failure.map_or(shutdown, Err)
 }
 
 struct RunningRoom {

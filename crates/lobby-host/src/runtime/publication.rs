@@ -1,5 +1,5 @@
 use crate::chat::PacketSender;
-use anyhow::{Result, bail, ensure};
+use anyhow::{Context, Result, bail, ensure};
 use std::{
     collections::{HashMap, VecDeque},
     sync::{
@@ -7,7 +7,10 @@ use std::{
         atomic::{AtomicBool, AtomicU64, Ordering},
     },
 };
-use tokio::sync::{Notify, watch};
+use tokio::{
+    sync::{Notify, oneshot, watch},
+    time::Instant,
+};
 use zc_core::zeepnet::{BitReader, CUSTOM_LEADERBOARD};
 
 const PACKETS: usize = 256;
@@ -16,7 +19,13 @@ const BYTES: usize = 4 * 1024 * 1024;
 struct Batch {
     generation: u64,
     standings: bool,
+    receipt: Option<ConfirmedPublication>,
     packets: VecDeque<Vec<u8>>,
+}
+
+struct ConfirmedPublication {
+    response: oneshot::Sender<Option<Instant>>,
+    is_current: Box<dyn Fn() -> bool + Send + Sync>,
 }
 
 #[derive(Default)]
@@ -48,7 +57,35 @@ impl Publisher {
         })
     }
 
-    pub(super) fn enqueue(&self, mut packets: Vec<Vec<u8>>, standings: bool) -> Result<()> {
+    pub(super) fn enqueue(&self, packets: Vec<Vec<u8>>, standings: bool) -> Result<()> {
+        self.enqueue_inner(packets, standings, None)
+    }
+
+    pub(super) async fn send_confirmed(
+        &self,
+        packet: Vec<u8>,
+        is_current: impl Fn() -> bool + Send + Sync + 'static,
+    ) -> Result<Option<Instant>> {
+        let (response, receipt) = oneshot::channel();
+        self.enqueue_inner(
+            vec![packet],
+            false,
+            Some(ConfirmedPublication {
+                response,
+                is_current: Box::new(is_current),
+            }),
+        )?;
+        receipt
+            .await
+            .context("Room publication retired before acknowledgement")
+    }
+
+    fn enqueue_inner(
+        &self,
+        mut packets: Vec<Vec<u8>>,
+        standings: bool,
+        receipt: Option<ConfirmedPublication>,
+    ) -> Result<()> {
         ensure!(
             !self.stopped.load(Ordering::Acquire),
             "Room publisher stopped"
@@ -120,9 +157,16 @@ impl Publisher {
         queue.packets += packets.len();
         queue.bytes += bytes;
         if !packets.is_empty() {
+            if tracing::enabled!(tracing::Level::DEBUG) {
+                use sha2::{Digest, Sha256};
+                for packet in &packets {
+                    tracing::debug!(generation, bytes = packet.len(), sha256 = %hex::encode(Sha256::digest(packet)), "Application packet admitted to publication queue");
+                }
+            }
             queue.batches.push_back(Batch {
                 generation,
                 standings,
+                receipt,
                 packets: packets.into(),
             });
         }
@@ -211,10 +255,11 @@ impl Publisher {
                     queue.bytes -= batch.packets.iter().map(Vec::len).sum::<usize>();
                 }
                 let next = queue.batches.front_mut().and_then(|batch| {
+                    let receipt = batch.receipt.take();
                     batch
                         .packets
                         .pop_front()
-                        .map(|packet| (batch.generation, packet))
+                        .map(|packet| (batch.generation, packet, receipt))
                 });
                 if queue
                     .batches
@@ -225,15 +270,25 @@ impl Publisher {
                 }
                 next
             };
-            if let Some((generation, packet)) = next {
+            if let Some((generation, packet, receipt)) = next {
                 let bytes = packet.len();
                 let result = if generation == self.generation.load(Ordering::Acquire) {
-                    sender.send(packet).await
+                    if let Some(receipt) = receipt {
+                        if (receipt.is_current)() {
+                            sender.send_timed(packet).await.map(|sent| {
+                                let _ = receipt.response.send(Some(sent));
+                            })
+                        } else {
+                            let _ = receipt.response.send(None);
+                            Ok(())
+                        }
+                    } else {
+                        sender.send(packet).await
+                    }
                 } else {
                     Ok(())
                 };
                 if let Err(error) = result {
-                    tracing::warn!(generation, error = %error, "Room publication failed");
                     self.stop();
                     return Err(error.context("Room publication failed"));
                 }

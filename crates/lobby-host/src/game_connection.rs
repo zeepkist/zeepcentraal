@@ -1,6 +1,8 @@
+mod diagnostics;
+
 use crate::broker::RoomAssignment;
 use anyhow::{Context, Result, ensure};
-use std::net::SocketAddr;
+use std::{net::SocketAddr, sync::Arc};
 use tokio::net::lookup_host;
 use zc_core::zeepnet::{
     BitWriter, GameHostPacket, LidgrenClient, LidgrenClientOptions, parse_game_host_packet_for,
@@ -10,6 +12,7 @@ pub struct GameConnection {
     client: LidgrenClient,
     steam_id: u64,
     player_uid: u32,
+    diagnostics: Arc<diagnostics::History>,
 }
 
 impl GameConnection {
@@ -17,12 +20,13 @@ impl GameConnection {
         let remote = resolve_remote(&assignment.host, assignment.port).await?;
         let mut hail = BitWriter::new();
         hail.write_string(&assignment.token)?;
-        let client =
-            LidgrenClient::start(LidgrenClientOptions::game_server(remote, hail.into_bytes()))
-                .await?;
+        let options = LidgrenClientOptions::game_server(remote, hail.into_bytes());
+        let diagnostics = Arc::new(diagnostics::History::new(options.mtu));
+        let client = LidgrenClient::start(options).await?;
         client.connect().await?;
         Ok(Self {
             client,
+            diagnostics,
             steam_id: assignment.steam_id()?,
             player_uid: assignment.player_uid,
         })
@@ -50,6 +54,10 @@ impl GameConnection {
     }
 
     pub async fn send(&self, packet: Vec<u8>) -> Result<()> {
+        self.send_timed(packet).await.map(|_| ())
+    }
+
+    pub(crate) async fn send_timed(&self, packet: Vec<u8>) -> Result<tokio::time::Instant> {
         ensure!(
             packet.get(..2)
                 != Some(
@@ -59,16 +67,50 @@ impl GameConnection {
                 ),
             "Cannot send server-only GameProperties packet"
         );
-        if let Err(error) = self.client.send_reliable_ordered(packet, 0).await {
-            if matches!(error, zc_core::zeepnet::LidgrenError::Closed) {
-                self.client.wait_for_close().await?;
-            }
-            return Err(error.into());
+        let ticket = self.diagnostics.record(&packet);
+        let observer = ticket.observer();
+        let first = Arc::new(std::sync::OnceLock::new());
+        let first_write = first.clone();
+        let result = self
+            .client
+            .send_reliable_ordered_observed(
+                packet,
+                0,
+                Some(Arc::new(move |write| {
+                    first_write.get_or_init(|| tokio::time::Instant::from_std(write.at));
+                    observer(write);
+                })),
+            )
+            .await;
+        ticket.complete(result.is_ok());
+        if matches!(result, Err(zc_core::zeepnet::LidgrenError::Closed)) {
+            self.client.wait_for_close().await?;
         }
-        Ok(())
+        result?;
+        first
+            .get()
+            .copied()
+            .context("Acknowledged game packet has no recorded UDP write")
+    }
+
+    pub(crate) fn terminal_error(&self) -> Option<zc_core::zeepnet::LidgrenError> {
+        self.client.close_result().and_then(Result::err)
+    }
+
+    pub(crate) fn log_termination(
+        &self,
+        lobby: &str,
+        profile: &str,
+        result: &Result<()>,
+        dump: bool,
+        retry: Option<std::time::Duration>,
+    ) {
+        self.diagnostics
+            .log_termination(lobby, profile, result, dump, retry);
     }
 
     pub async fn close(&self, reason: &str) -> Result<()> {
+        self.diagnostics.local_reason(reason);
         self.client.close(reason).await?;
         Ok(())
     }
@@ -127,6 +169,7 @@ mod tests {
                 client,
                 steam_id: 1,
                 player_uid: 1,
+                diagnostics: Arc::new(diagnostics::History::new(1200)),
             };
             assert_eq!(
                 connection

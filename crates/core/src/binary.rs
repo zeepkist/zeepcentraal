@@ -228,6 +228,23 @@ impl BitWriter {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn variable_uint32_three_byte_boundary() -> Result<()> {
+        for (value, expected) in [
+            (16_383, &[0xff, 0x7f][..]),
+            (16_384, &[0x80, 0x80, 0x01][..]),
+            (16_385, &[0x81, 0x80, 0x01][..]),
+        ] {
+            let mut writer = BitWriter::new();
+            writer.variable_uint32(value);
+            assert_eq!(writer.as_bytes(), expected);
+            let mut reader = BitReader::new(expected);
+            assert_eq!(reader.variable_uint32()?, value);
+            assert_eq!(reader.remaining_bits(), 0);
+        }
+        Ok(())
+    }
+
     use super::*;
     #[test]
     fn rejects_truncated_overflow_and_invalid_utf8() {

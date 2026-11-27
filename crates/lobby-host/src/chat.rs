@@ -7,6 +7,12 @@ pub(crate) mod audit;
 #[async_trait::async_trait]
 pub trait PacketSender: Send + Sync {
     async fn send(&self, packet: Vec<u8>) -> Result<()>;
+
+    async fn send_timed(&self, packet: Vec<u8>) -> Result<tokio::time::Instant> {
+        let started = tokio::time::Instant::now();
+        self.send(packet).await?;
+        Ok(started)
+    }
 }
 
 pub struct FnPacketSender<F>(pub F);

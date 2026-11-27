@@ -212,11 +212,22 @@ impl LidgrenClient {
         payload: Vec<u8>,
         sequence_channel: u8,
     ) -> std::result::Result<(), LidgrenError> {
+        self.send_reliable_ordered_observed(payload, sequence_channel, None)
+            .await
+    }
+
+    pub async fn send_reliable_ordered_observed(
+        &self,
+        payload: Vec<u8>,
+        sequence_channel: u8,
+        observer: Option<ReliableWriteObserver>,
+    ) -> std::result::Result<(), LidgrenError> {
         let (complete, response) = oneshot::channel();
         self.commands
             .send(Command::Send {
                 payload,
                 sequence_channel,
+                observer,
                 complete,
             })
             .await
@@ -239,6 +250,10 @@ impl LidgrenClient {
         response.await.unwrap_or(Err(LidgrenError::Closed))
     }
 
+    pub fn close_result(&self) -> Option<std::result::Result<(), LidgrenError>> {
+        self.closed.borrow().clone()
+    }
+
     pub async fn wait_for_close(&self) -> std::result::Result<(), LidgrenError> {
         let mut closed = self.closed.clone();
         loop {
@@ -250,10 +265,28 @@ impl LidgrenClient {
     }
 }
 
+/// Successful writes only. Completion of the send future indicates all chunks were ACKed.
+#[derive(Clone, Copy, Debug)]
+pub struct ReliableWrite {
+    pub transfer_id: u64,
+    pub message_type: u8,
+    pub channel: u8,
+    pub sequence: u16,
+    pub fragment_group: Option<u32>,
+    pub chunk_count: usize,
+    pub chunk_index: usize,
+    pub chunk_bytes: usize,
+    pub attempt: u8,
+    pub at: Instant,
+}
+
+pub type ReliableWriteObserver = Arc<dyn Fn(ReliableWrite) + Send + Sync>;
+
 enum Command {
     Send {
         payload: Vec<u8>,
         sequence_channel: u8,
+        observer: Option<ReliableWriteObserver>,
         complete: oneshot::Sender<std::result::Result<(), LidgrenError>>,
     },
     Close {
@@ -277,6 +310,7 @@ struct FragmentGroup {
 }
 
 struct Transfer {
+    observer: Option<ReliableWriteObserver>,
     payload: Arc<[u8]>,
     chunk_byte_size: usize,
     chunk_count: usize,
@@ -288,6 +322,8 @@ struct Transfer {
 }
 
 struct PendingReliable {
+    observer: Option<ReliableWriteObserver>,
+    chunk: ReliableWrite,
     attempts: u8,
     fragmented: bool,
     last_sent_at: Instant,
@@ -402,8 +438,8 @@ async fn run_actor(
             command = commands.recv() => {
                 let Some(command) = command else { break Ok(()) };
                 match command {
-                    Command::Send { payload, sequence_channel, complete } => {
-                        if let Err((error, complete)) = enqueue_transfer(&mut state, payload, sequence_channel, complete) {
+                    Command::Send { payload, sequence_channel, observer, complete } => {
+                        if let Err((error, complete)) = enqueue_transfer(&mut state, payload, sequence_channel, observer, complete) {
                             let _ = complete.send(Err(error));
                         } else if let Err(error) = flush_reliable_queue(&socket, &mut state).await {
                             break Err(error);
@@ -462,11 +498,11 @@ async fn run_actor(
         .err()
         .cloned()
         .unwrap_or(LidgrenError::Closed);
-    state.reject_transfers(terminal_error.clone());
-    if !state.connected {
-        let _ = connected.send(Some(Err(terminal_error)));
-    }
     let _ = closed.send(Some(outcome));
+    if !state.connected {
+        let _ = connected.send(Some(Err(terminal_error.clone())));
+    }
+    state.reject_transfers(terminal_error);
 }
 
 async fn send_connect(socket: &UdpSocket, state: &State) -> std::result::Result<(), LidgrenError> {
@@ -773,6 +809,7 @@ fn enqueue_transfer(
     state: &mut State,
     payload: Vec<u8>,
     sequence_channel: u8,
+    observer: Option<ReliableWriteObserver>,
     complete: oneshot::Sender<std::result::Result<(), LidgrenError>>,
 ) -> std::result::Result<
     (),
@@ -793,11 +830,12 @@ fn enqueue_transfer(
     {
         return Err((LidgrenError::OutgoingLimit, complete));
     }
-    let chunk_byte_size = state.options.mtu - 32;
-    let chunk_count = if payload.len() + 5 <= state.options.mtu {
-        1
+    let (chunk_byte_size, chunk_count) = if payload.len() + 5 <= state.options.mtu {
+        // The fragment chunk budget includes metadata. A single datagram does not need it.
+        (payload.len(), 1)
     } else {
-        payload.len().div_ceil(chunk_byte_size)
+        let chunk_byte_size = state.options.mtu - 32;
+        (chunk_byte_size, payload.len().div_ceil(chunk_byte_size))
     };
     let group_id = if chunk_count == 1 {
         0
@@ -816,6 +854,7 @@ fn enqueue_transfer(
     state.transfers.insert(
         transfer_id,
         Transfer {
+            observer,
             payload: payload.into(),
             chunk_byte_size,
             chunk_count,
@@ -873,6 +912,19 @@ async fn flush_reliable_queue(
             .send_sequences
             .insert(transfer.message_type, (sequence + 1) % SEQUENCE_MODULUS);
         let mut pending = PendingReliable {
+            observer: transfer.observer.clone(),
+            chunk: ReliableWrite {
+                transfer_id,
+                message_type: transfer.message_type,
+                channel: transfer.message_type - RELIABLE_ORDERED,
+                sequence,
+                fragment_group: (transfer.group_id != 0).then_some(transfer.group_id),
+                chunk_count: transfer.chunk_count,
+                chunk_index: chunk_number,
+                chunk_bytes: chunk.len(),
+                attempt: 0,
+                at: Instant::now(),
+            },
             attempts: 0,
             fragmented: transfer.group_id != 0,
             last_sent_at: Instant::now() - RESEND_DELAY,
@@ -943,7 +995,15 @@ async fn send_reliable_message(
         pending.sequence,
         pending.fragmented,
     )
-    .await
+    .await?;
+    if let Some(observer) = &pending.observer {
+        observer(ReliableWrite {
+            attempt: pending.attempts,
+            at: Instant::now(),
+            ..pending.chunk
+        });
+    }
+    Ok(())
 }
 
 async fn send_message(
@@ -1247,6 +1307,87 @@ mod tests {
         {
             assert_ne!(datagram[..length][0], PONG);
         }
+    }
+
+    #[tokio::test]
+    async fn chat_fragments_match_independent_datagrams() {
+        let server = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let client = timeout(
+            Duration::from_secs(5),
+            connected_client(&server, DEFAULT_MTU),
+        )
+        .await
+        .unwrap();
+        let fixture: Vec<_> = include_str!("../../tests/fixtures/chat-lidgren.hex")
+            .lines()
+            .map(|line| hex::decode(line).unwrap())
+            .collect();
+        let send = async {
+            for message in ["x".repeat(1183), "x".repeat(1184), "hello".into()] {
+                let packet = super::super::chat_message_packet(&message).unwrap();
+                client.send_reliable_ordered(packet, 0).await.unwrap();
+            }
+        };
+        let inspect = async {
+            let mut datagram = [0; 2048];
+            for (sequence, expected) in fixture.into_iter().enumerate() {
+                loop {
+                    let (length, remote) = server.recv_from(&mut datagram).await.unwrap();
+                    if datagram[0] != RELIABLE_ORDERED {
+                        continue;
+                    }
+                    assert_eq!(length, expected.len(), "datagram {sequence} length");
+                    assert!(
+                        datagram[..length] == expected,
+                        "datagram {sequence} bytes differ"
+                    );
+                    let ack = [RELIABLE_ORDERED, sequence as u8, 0];
+                    server
+                        .send_to(&encode_message(ACKNOWLEDGE, &ack, 24, 0, false), remote)
+                        .await
+                        .unwrap();
+                    break;
+                }
+            }
+        };
+        timeout(Duration::from_secs(5), async {
+            tokio::join!(send, inspect);
+        })
+        .await
+        .unwrap();
+    }
+
+    #[tokio::test]
+    async fn releases_fragmented_payload_once_across_sequence_wrap() {
+        let server = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let socket = UdpSocket::bind("127.0.0.1:0").await.unwrap();
+        let remote = server.local_addr().unwrap();
+        socket.connect(remote).await.unwrap();
+        let mut state = State::new(LidgrenClientOptions::game_server(remote, vec![]));
+        state.connected = true;
+        state.expected_sequences.insert(RELIABLE_ORDERED, 1022);
+        let (payloads, mut received) = mpsc::channel(4);
+        let (connected, _) = watch::channel(None);
+        let fixture: Vec<_> = include_str!("../../tests/fixtures/chat-lidgren.hex")
+            .lines()
+            .map(|line| hex::decode(line).unwrap())
+            .collect();
+        for index in [2, 3, 0, 2, 1, 1] {
+            let mut datagram = fixture[index].clone();
+            let sequence = (1022 + index as u16) % SEQUENCE_MODULUS;
+            let header = (sequence << 1) | u16::from(datagram[1] & 1);
+            datagram[1..3].copy_from_slice(&header.to_le_bytes());
+            receive_datagram(&socket, &mut state, &datagram, &payloads, &connected)
+                .await
+                .unwrap();
+        }
+        for message in ["x".repeat(1183), "x".repeat(1184), "hello".into()] {
+            assert_eq!(
+                received.try_recv().unwrap(),
+                super::super::chat_message_packet(&message).unwrap()
+            );
+        }
+        assert!(received.try_recv().is_err());
     }
 
     #[tokio::test]

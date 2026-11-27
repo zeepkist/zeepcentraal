@@ -32,6 +32,22 @@ pub(super) struct RoundClock {
     waiting_for_properties: bool,
     countdown: bool,
     pub last_message: Option<Instant>,
+    pub overlay: OverlayClock,
+}
+
+#[derive(Default)]
+pub(super) struct OverlayClock {
+    pub evaluated: Option<Instant>,
+    pub submitted: Option<OverlaySubmission>,
+    pub joins: u64,
+    pub revision: u64,
+}
+
+pub(super) struct OverlaySubmission {
+    pub content: String,
+    pub written: Instant,
+    pub refresh: Instant,
+    pub joins: u64,
 }
 
 impl RoundClock {
@@ -152,6 +168,7 @@ impl RoundClock {
             self.waiting_for_properties = false;
             self.countdown = false;
             self.last_message = None;
+            self.overlay = OverlayClock::default();
         }
         let deadline_ms =
             remote_now.map(|now| deadline_ms(received_at, key.loaded_at, timing.round_time, now));
@@ -167,8 +184,21 @@ impl RoundClock {
 
     pub fn message_deadline(&self, interval: Duration) -> Option<Instant> {
         (self.countdown && self.round.as_ref().is_some_and(|round| round.state == 0)).then(|| {
-            self.last_message
-                .map_or_else(Instant::now, |last| last + interval)
+            if let Some(evaluated) = self.overlay.evaluated {
+                let ordinary = self
+                    .overlay
+                    .submitted
+                    .as_ref()
+                    .map_or(evaluated, |sent| evaluated.max(sent.written))
+                    + interval;
+                self.overlay
+                    .submitted
+                    .as_ref()
+                    .map_or(ordinary, |sent| ordinary.min(sent.refresh))
+            } else {
+                self.last_message
+                    .map_or_else(Instant::now, |last| last + interval)
+            }
         })
     }
 }

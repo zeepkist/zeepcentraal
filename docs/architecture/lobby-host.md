@@ -33,3 +33,37 @@ physical room. That pair uses the practice config `key`; submissions stays separ
 Readiness checks appear in the admin panel. Jobs also log
 `ZSL playlists need attention before start` with the round, timeslot and lead
 time.
+
+## Lobby connection diagnostics
+
+Enable `ZC_LOBBY_HOST_RAW_CHAT=1` on the lobby-host process to capture exact outbound
+application bytes for `/servermessage`, `/settime`, and `/joinmessage`. Restart the
+process to apply the setting. The default records digests and metadata. Each
+connection retains up to 32 records and 64 KiB of raw bytes. Raw overlay captures
+can contain player names. Limit access to incident logs and disable raw capture
+after collecting evidence.
+
+Search by the `connection` field. Per-packet debug events at publication admission
+also carry SHA-256. Match that digest to packet history at transport shutdown.
+Abnormal termination dumps packet history at most once per minute per managed
+room. The decoded remote reason remains attached to the internal error. Logs
+sanitize remote text and error chains.
+
+```text
+Game connection terminated connection=<id> lobby=<join-id> profile=totd origin="remote" classification="remote_disconnect" retry_ms=Some(31800)
+Recent outbound game packet connection=<id> packet_type="CHAT_MESSAGE" payload_bytes=1196 sha256=<digest> fragmented=true outcome="acknowledged" raw_status="omitted"
+```
+
+An ACK confirms that Lidgren acknowledged every chunk. Compare captured raw bytes
+with the server's reassembled application bytes to locate divergence. The first
+and last chunk records contain the transfer ID, group, sequence, chunk size and
+write timing. Publication admission, UDP write, and ACK are separate milestones.
+
+The broker serializes room assignments through game handshake per process.
+Rejected joins retain the master result code. Ambiguous master responses recycle
+the master connection. Reconnects use capped exponential backoff and stable-host
+decay. The supported disconnect write does not provide a membership acknowledgement.
+
+Tournament overlays update on visible changes and refresh before their encoded
+display duration expires. Player joins request one refresh at the next eligible
+slot pending verification of the game's overlay synchronization.

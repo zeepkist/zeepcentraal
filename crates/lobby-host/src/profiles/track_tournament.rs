@@ -208,7 +208,12 @@ impl TrackTournamentSession {
             )?
         };
         self.context
-            .send_round_message(&key, interval, &message)
+            .send_tournament_overlay(
+                &key,
+                interval,
+                std::time::Duration::from_secs(self.config.round_time_seconds),
+                &message,
+            )
             .await
     }
 
@@ -216,12 +221,17 @@ impl TrackTournamentSession {
         let Some(next) = self.assets.refresh().await? else {
             return Ok(());
         };
-        let changed = {
+        let (level_changed, tournament_changed) = {
             let state = self.state.lock().await;
-            state.asset.level.content_sha256 != next.level.content_sha256
+            (
+                state.asset.level.content_sha256 != next.level.content_sha256,
+                state.asset.id_tournament != next.id_tournament,
+            )
         };
-        if changed {
+        if level_changed {
             self.context.activate(next.level.clone(), None).await?;
+        }
+        if level_changed || tournament_changed {
             let mut state = self.state.lock().await;
             state.asset = next;
             let tournament_id = state.asset.id_tournament.to_string();
@@ -229,6 +239,7 @@ impl TrackTournamentSession {
             state.board.set_scope(tournament_id, level_uid);
             state.snapshot = None;
             state.notifications.reset();
+            self.context.invalidate_tournament_overlay();
         }
         Ok(())
     }

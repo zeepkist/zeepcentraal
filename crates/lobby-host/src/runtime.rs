@@ -95,6 +95,7 @@ pub struct RoomContext {
     remote_clock: zc_core::zeepnet::RemoteClock,
     round_clock: Arc<std::sync::Mutex<round::RoundClock>>,
     round_changed: Arc<Notify>,
+    overlay_send: Arc<Mutex<()>>,
     pub local_steam_id: u64,
 }
 
@@ -136,6 +137,7 @@ impl RoomContext {
             remote_clock: zc_core::zeepnet::RemoteClock::default(),
             round_clock: Arc::default(),
             round_changed: Arc::default(),
+            overlay_send: Arc::default(),
             local_steam_id,
         })
     }
@@ -276,6 +278,92 @@ impl RoomContext {
             clock.last_message = Some(tokio::time::Instant::now());
         }
         self.chat().command(message).await
+    }
+
+    pub(crate) async fn send_tournament_overlay(
+        &self,
+        key: &RoundKey,
+        interval: Duration,
+        duration: Duration,
+        message: &str,
+    ) -> Result<()> {
+        let Ok(_pending) = self.overlay_send.try_lock() else {
+            return Ok(());
+        };
+        let now = tokio::time::Instant::now();
+        let generation = self.generation.load(Ordering::Acquire);
+        let (joins, revision) = {
+            let mut clock = self.round_clock.lock().unwrap();
+            if !self.is_host()
+                || !clock.round.as_ref().is_some_and(|round| round.key == *key)
+                || !clock
+                    .message_deadline(interval)
+                    .is_some_and(|deadline| deadline <= now)
+            {
+                return Ok(());
+            }
+            clock.overlay.evaluated = Some(now);
+            if let Some(sent) = &clock.overlay.submitted {
+                let unchanged = sent.content == message;
+                if unchanged && now < sent.refresh && clock.overlay.joins == sent.joins {
+                    tracing::debug!("Duplicate tournament overlay suppressed");
+                    return Ok(());
+                }
+                tracing::debug!(
+                    expiry = now >= sent.refresh,
+                    player_joined = clock.overlay.joins != sent.joins,
+                    content_changed = !unchanged,
+                    "Tournament overlay evaluated"
+                );
+            }
+            (clock.overlay.joins, clock.overlay.revision)
+        };
+        let packet = zc_core::zeepnet::chat_message_packet(message)?;
+        let bytes = packet.len();
+        let written = if let Some(publisher) = &self.publisher {
+            let clock = self.round_clock.clone();
+            let key = key.clone();
+            let Some(written) = publisher
+                .send_confirmed(packet, move || {
+                    let clock = clock.lock().unwrap();
+                    clock.overlay.revision == revision
+                        && clock.round.as_ref().is_some_and(|round| round.key == key)
+                })
+                .await?
+            else {
+                return Ok(());
+            };
+            written
+        } else {
+            self.sender.send_timed(packet).await?
+        };
+        let mut clock = self.round_clock.lock().unwrap();
+        if self.is_host()
+            && self.generation.load(Ordering::Acquire) == generation
+            && clock.overlay.revision == revision
+            && clock.round.as_ref().is_some_and(|round| round.key == *key)
+        {
+            clock.overlay.submitted = Some(round::OverlaySubmission {
+                content: message.to_owned(),
+                written,
+                refresh: written + duration - (duration / 10).min(Duration::from_secs(30)),
+                joins,
+            });
+        }
+        tracing::debug!(
+            bytes,
+            fragmented = bytes > 1195,
+            "Tournament overlay acknowledged"
+        );
+        Ok(())
+    }
+
+    pub(crate) fn invalidate_tournament_overlay(&self) {
+        let mut clock = self.round_clock.lock().unwrap();
+        clock.overlay.revision = clock.overlay.revision.wrapping_add(1);
+        clock.overlay.evaluated = None;
+        clock.overlay.submitted = None;
+        self.round_changed.notify_one();
     }
 
     pub fn chat(&self) -> RoomChat {
@@ -525,12 +613,37 @@ impl RoomContext {
     }
 }
 
+#[derive(Debug)]
+pub(crate) enum ConnectionFailure {
+    InitialStateTimeout,
+    HostAuthorityLost,
+}
+
+impl std::fmt::Display for ConnectionFailure {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(match self {
+            Self::InitialStateTimeout => "Lobby initial state timed out",
+            Self::HostAuthorityLost => "Managed account lost lobby ownership",
+        })
+    }
+}
+
+impl std::error::Error for ConnectionFailure {}
+
+struct ConnectionTermination {
+    connection: Arc<GameConnection>,
+    lobby: String,
+    result: Result<()>,
+}
+
 pub struct ManagedLobbyHost {
     config: ManagedRoomConfig,
     database: zc_database::Database,
     broker: RoomBrokerClient,
     profile: Arc<dyn LobbyProfile>,
     stopped: AtomicBool,
+    owner: Mutex<()>,
+    last_packet_dump: Mutex<Option<tokio::time::Instant>>,
     wake: Notify,
 }
 
@@ -547,6 +660,8 @@ impl ManagedLobbyHost {
             broker,
             profile,
             stopped: AtomicBool::new(false),
+            owner: Mutex::new(()),
+            last_packet_dump: Mutex::new(None),
             wake: Notify::new(),
         }
     }
@@ -555,6 +670,9 @@ impl ManagedLobbyHost {
         if !self.config.enabled {
             return Ok(());
         }
+        let Ok(_owner) = self.owner.try_lock() else {
+            return Ok(());
+        };
         let mut retry = RetryBackoff::new(self.config.reconnect_max_ms);
         while !self.stopped.load(Ordering::Acquire) {
             let prepared = tokio::select! {
@@ -562,15 +680,14 @@ impl ManagedLobbyHost {
                 _ = wait_for_stop(&self.stopped, &self.wake) => break,
                 prepared = self.profile.prepare() => prepared,
             };
+            let mut termination = None;
             let poll_only = match prepared {
                 Ok(Some(_)) => {
-                    if let Err(error) = zc_telemetry::observe_operation(
-                        "lobby.connect",
-                        self.connect_once(&mut retry),
-                    )
-                    .await
-                    {
-                        tracing::warn!(room = %self.config.key, profile = self.profile.name(), %error, "Managed room attempt failed");
+                    match self.connect_once(&mut retry).await {
+                        Ok(ended) => termination = ended,
+                        Err(error) => {
+                            tracing::warn!(room = %self.config.key, profile = self.profile.name(), error = %zc_core::zeepnet::sanitize_lidgren_disconnect_reason(&format!("{error:#}")), "Managed room setup failed")
+                        }
                     }
                     false
                 }
@@ -580,10 +697,35 @@ impl ManagedLobbyHost {
                     false
                 }
             };
-            if self.stopped.load(Ordering::Acquire) {
+            let stopping = self.stopped.load(Ordering::Acquire);
+            let mut delay = retry.wait_delay(poll_only.then_some(self.config.asset_poll_ms));
+            if !poll_only {
+                delay = retry.jitter(delay, uuid::Uuid::new_v4().as_u128() as u64);
+            }
+            if let Some(ConnectionTermination {
+                connection,
+                lobby,
+                result,
+            }) = termination
+            {
+                let now = tokio::time::Instant::now();
+                let mut last = self.last_packet_dump.lock().await;
+                let dump = result.is_err()
+                    && last.is_none_or(|last| now - last >= Duration::from_secs(60));
+                if dump {
+                    *last = Some(now);
+                }
+                connection.log_termination(
+                    &lobby,
+                    self.profile.name(),
+                    &result,
+                    dump,
+                    (!stopping).then_some(delay),
+                );
+            }
+            if stopping {
                 break;
             }
-            let delay = retry.wait_delay(poll_only.then_some(self.config.asset_poll_ms));
             if !poll_only {
                 tracing::info!(room = %self.config.key, profile = self.profile.name(), delay_ms = delay.as_millis() as u64, "Managed room reconnect scheduled");
             }
@@ -595,14 +737,29 @@ impl ManagedLobbyHost {
         Ok(())
     }
 
-    async fn connect_once(&self, retry: &mut RetryBackoff) -> Result<()> {
+    async fn connect_once(
+        &self,
+        retry: &mut RetryBackoff,
+    ) -> Result<Option<ConnectionTermination>> {
+        let mut join = tokio::select! {
+            lock = self.broker.join.lock() => lock,
+            _ = wait_for_stop(&self.stopped, &self.wake) => return Ok(None),
+        };
+        if let Some(deadline) = *join {
+            tokio::select! {
+                _ = tokio::time::sleep_until(deadline) => {},
+                _ = wait_for_stop(&self.stopped, &self.wake) => return Ok(None),
+            }
+        }
+        // An incomplete handoff can leave membership stale for the next room.
+        *join = Some(tokio::time::Instant::now() + Duration::from_secs(30));
         let join_id = self
             .database
             .managed_lobby_join_id(&self.config.key)
             .await?;
         let mut resolved_config = self.config.clone();
         if self.stopped.load(Ordering::Acquire) {
-            return Ok(());
+            return Ok(None);
         }
         if let Some(name) = self.profile.room_name() {
             resolved_config.room.name = name;
@@ -610,27 +767,51 @@ impl ManagedLobbyHost {
         resolved_config.room.is_public = false;
         // Assignment may already have created a room. Complete the handoff even
         // after disable, then retire that room through the normal connection path.
+        tracing::debug!(room = %self.config.key, "Requesting master room assignment");
         let assignment = self
             .broker
             .assign(&resolved_config, join_id.as_deref())
-            .await?;
-        if join_id.as_deref() != Some(&assignment.join_id) {
+            .await;
+        *join = Some(tokio::time::Instant::now() + Duration::from_secs(30));
+        let assignment = assignment?;
+        let persistence = if join_id.as_deref() != Some(&assignment.join_id) {
             self.database
                 .set_managed_lobby_join_id(&self.config.key, &assignment.join_id)
-                .await?;
+                .await
+        } else {
+            Ok(())
+        };
+        let connection = GameConnection::connect(&assignment).await;
+        if let Err(error) = persistence {
+            if let Ok(connection) = connection {
+                let _ = tokio::time::timeout(
+                    Duration::from_secs(2),
+                    connection.close("Managed room join ID could not be stored"),
+                )
+                .await;
+            }
+            *join = Some(tokio::time::Instant::now() + Duration::from_secs(30));
+            return Err(error.context("Store managed room join ID"));
         }
-        let connection = Arc::new(GameConnection::connect(&assignment).await?);
-        ConnectedRoom {
+        *join = Some(tokio::time::Instant::now() + Duration::from_secs(30));
+        let connection = Arc::new(connection?);
+        *join = None;
+        drop(join);
+        let room = ConnectedRoom {
             config: &self.config,
             profile: self.profile.as_ref(),
-            connection,
+            connection: connection.clone(),
             local_steam_id: assignment.steam_id()?,
             player_uid: assignment.player_uid,
             stopped: &self.stopped,
             wake: &self.wake,
-        }
-        .run(retry)
-        .await
+        };
+        let result = zc_telemetry::observe_operation("lobby.connect", room.run(retry)).await;
+        Ok(Some(ConnectionTermination {
+            connection,
+            lobby: assignment.join_id,
+            result,
+        }))
     }
 }
 

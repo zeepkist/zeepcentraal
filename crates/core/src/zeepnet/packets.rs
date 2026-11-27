@@ -753,6 +753,41 @@ fn write_packet(id: u16, write: impl FnOnce(&mut BitWriter) -> Result<()>) -> Re
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn chat_matches_independent_wire_fixtures() -> Result<()> {
+        let samples = [
+            ("ascii", "hello"),
+            ("unicode", "é"),
+            ("emoji", "🧼"),
+            ("japanese", "日本語"),
+            ("rich", "<b>Race</b>"),
+            ("escaped", "<noparse><</noparse>name>"),
+        ];
+        assert!(chat_message_packet("").is_err());
+        for fixture in include_str!("../../tests/fixtures/chat-wire.hex").lines() {
+            let (name, expected) = fixture.split_once(' ').unwrap();
+            let message = if let Some(length) = name.strip_prefix("bytes-") {
+                "x".repeat(length.parse()?)
+            } else {
+                samples
+                    .iter()
+                    .find(|sample| sample.0 == name)
+                    .unwrap()
+                    .1
+                    .to_owned()
+            };
+            let packet = chat_message_packet(&message)?;
+            assert_eq!(hex::encode(&packet), expected, "{name}");
+            let mut reader = BitReader::new(&packet);
+            assert_eq!(reader.read_u16()?, 48137);
+            assert_eq!(reader.read_u32()?, 0);
+            assert_eq!(reader.read_string(4096)?, message);
+            assert_eq!(reader.read_i32()?, 0);
+            assert_eq!(reader.remaining_bits(), 0);
+        }
+        Ok(())
+    }
+
     use super::*;
 
     fn level(

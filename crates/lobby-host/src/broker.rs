@@ -2,7 +2,8 @@ use crate::config::ManagedRoomConfig;
 use anyhow::{Context, Result, ensure};
 use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
+use tokio::{sync::Mutex, time::Instant};
 use zc_core::telemetry::TracedRequest;
 
 #[derive(Clone)]
@@ -10,6 +11,7 @@ pub struct RoomBrokerClient {
     client: Client,
     url: Url,
     token: String,
+    pub(crate) join: Arc<Mutex<Option<Instant>>>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -50,7 +52,12 @@ impl RoomBrokerClient {
         url.set_path("/v1/rooms/assignment");
         url.set_query(None);
         url.set_fragment(None);
-        Ok(Self { client, url, token })
+        Ok(Self {
+            client,
+            url,
+            token,
+            join: Arc::default(),
+        })
     }
 
     pub async fn assign(
@@ -69,6 +76,13 @@ impl RoomBrokerClient {
             })
             .send_traced()
             .await?;
+        if response.status() == reqwest::StatusCode::CONFLICT {
+            let rejection: JoinRejection = response
+                .json()
+                .await
+                .context("Invalid room join rejection")?;
+            return Err(rejection.into());
+        }
         ensure!(
             response.status().is_success(),
             "Room broker returned HTTP {}",
@@ -86,6 +100,25 @@ impl RoomBrokerClient {
         Ok(assignment)
     }
 }
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct JoinRejection {
+    result: Option<u16>,
+    reason: Option<String>,
+}
+
+impl std::fmt::Display for JoinRejection {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match (self.result, self.reason.as_deref()) {
+            (Some(result), _) => write!(formatter, "Master rejected room join (result {result})"),
+            (_, Some(reason)) => write!(formatter, "Master rejected room membership: {reason}"),
+            _ => formatter.write_str("Master rejected room join"),
+        }
+    }
+}
+
+impl std::error::Error for JoinRejection {}
 
 impl RoomAssignment {
     pub fn validate(&self) -> Result<()> {

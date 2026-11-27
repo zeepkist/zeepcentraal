@@ -46,6 +46,9 @@ pub(super) trait RoomConnection: PacketSender {
         }))
     }
     async fn close(&self, reason: &str) -> Result<()>;
+    fn terminal_error(&self) -> Option<zc_core::zeepnet::LidgrenError> {
+        None
+    }
     fn remote_clock(&self) -> RemoteClock;
 }
 
@@ -53,6 +56,9 @@ pub(super) trait RoomConnection: PacketSender {
 impl PacketSender for GameConnection {
     async fn send(&self, packet: Vec<u8>) -> Result<()> {
         GameConnection::send(self, packet).await
+    }
+    async fn send_timed(&self, packet: Vec<u8>) -> Result<Instant> {
+        GameConnection::send_timed(self, packet).await
     }
 }
 
@@ -66,6 +72,9 @@ impl RoomConnection for GameConnection {
     }
     async fn close(&self, reason: &str) -> Result<()> {
         GameConnection::close(self, reason).await
+    }
+    fn terminal_error(&self) -> Option<zc_core::zeepnet::LidgrenError> {
+        GameConnection::terminal_error(self)
     }
     fn remote_clock(&self) -> RemoteClock {
         GameConnection::remote_clock(self)
@@ -87,6 +96,13 @@ impl PacketSender for HostSender {
             "Room host authority unavailable"
         );
         self.connection.send(packet).await
+    }
+    async fn send_timed(&self, packet: Vec<u8>) -> Result<Instant> {
+        ensure!(
+            self.authority.load(Ordering::Acquire),
+            "Room host authority unavailable"
+        );
+        self.connection.send_timed(packet).await
     }
 }
 
@@ -363,6 +379,12 @@ impl ConnectedRoom<'_> {
         if let Some(mut active) = state.active.take() {
             active.stop().await;
         }
+        if let Some(error) = self.connection.terminal_error() {
+            if scheduled && let Err(cleanup) = self.profile.scheduled_closed().await {
+                tracing::warn!(error = %cleanup, "Scheduled room cleanup failed");
+            }
+            return Err(error.into());
+        }
         if (scheduled || self.stopped.load(Ordering::Acquire)) && !state.host {
             // Covers disable during assignment/connection and host recovery.
             state.host = self.recover_shutdown_authority(&state.roster).await;
@@ -375,14 +397,14 @@ impl ConnectedRoom<'_> {
                 .send(change_lobby_visibility_packet(false)?)
                 .await
         {
-            tracing::warn!(%error, "Could not make retiring room private");
+            tracing::warn!(error = %zc_core::zeepnet::sanitize_lidgren_disconnect_reason(&error.to_string()), "Could not make retiring room private");
         }
         if scheduled
             && self.profile.kick_on_close()
             && state.host
             && let Err(error) = self.kick_guests(&state.roster).await
         {
-            tracing::warn!(%error, "Scheduled room kicks failed");
+            tracing::warn!(error = %zc_core::zeepnet::sanitize_lidgren_disconnect_reason(&error.to_string()), "Scheduled room kicks failed");
         }
         let reason = if scheduled {
             "ZSL practice closed for tournament"
@@ -391,11 +413,19 @@ impl ConnectedRoom<'_> {
         } else {
             "Managed room reconnecting"
         };
-        let _ = self.connection.close(reason).await;
-        if scheduled {
-            self.profile.scheduled_closed().await?;
+        let close =
+            tokio::time::timeout(Duration::from_secs(2), self.connection.close(reason)).await;
+        let cleanup = if scheduled {
+            self.profile.scheduled_closed().await
+        } else {
+            Ok(())
+        };
+        if let Some(error) = self.connection.terminal_error() {
+            return Err(error.into());
         }
-        result
+        result?;
+        close.context("Game connection close timed out")??;
+        cleanup
     }
 
     // Separate future remains live while session packet handling awaits assets or DB.
@@ -505,6 +535,7 @@ impl ConnectedRoom<'_> {
             remote_clock: self.connection.remote_clock(),
             round_clock: Arc::default(),
             round_changed: Arc::default(),
+            overlay_send: Arc::default(),
             local_steam_id: self.local_steam_id,
         };
         let profile = self.profile.create_session(context.clone()).await?;
@@ -623,8 +654,11 @@ impl ConnectedRoom<'_> {
                 result = &mut *receipt => { *receipt = tokio::spawn(std::future::pending()); return result.map_err(anyhow::Error::from)?; }
                 error = async { publisher.as_ref().unwrap().failed().await }, if publisher.is_some() => bail!("{error}"),
                 _ = sleep_until(state.timeout_deadline()) => {
-                    tracing::warn!(room = %self.config.key, profile = self.profile.name(), "Managed room host recovery timed out");
-                    bail!(if state.timing.is_none() { "Lobby initial state timed out" } else { "Managed account lost lobby ownership" });
+                    return Err(if state.timing.is_none() {
+                        super::ConnectionFailure::InitialStateTimeout
+                    } else {
+                        super::ConnectionFailure::HostAuthorityLost
+                    }.into());
                 }
                 _ = sleep_until(state.chat_deadline()) => {
                     state.recovery.as_mut().expect("chat requires recovery").chat_sent = true;
@@ -636,7 +670,7 @@ impl ConnectedRoom<'_> {
                 _ = sleep_until(settle) => {},
                 result = state.controls.join_next(), if !state.controls.is_empty() => {
                     match result {
-                        Some(Ok(Err(error))) => tracing::warn!(room = %self.config.key, profile = self.profile.name(), %error, "Managed room recovery packet failed"),
+                        Some(Ok(Err(error))) => tracing::warn!(room = %self.config.key, profile = self.profile.name(), error = %zc_core::zeepnet::sanitize_lidgren_disconnect_reason(&error.to_string()), "Managed room recovery packet failed"),
                         Some(Err(error)) if !error.is_cancelled() => tracing::warn!(room = %self.config.key, %error, "Managed room recovery task failed"),
                         _ => {}
                     }
@@ -694,6 +728,11 @@ impl ConnectedRoom<'_> {
             log_chat_audit_line(&self.config.key, self.profile.name(), &line);
         }
         state.observe_timing(packet);
+        if let GameHostPacket::PlayerConnected { .. } = packet
+            && let Some(active) = &state.active
+        {
+            active.context.round_clock.lock().unwrap().overlay.joins += 1;
+        }
         if let Some(host) = ownership {
             state.host = host;
             if host {

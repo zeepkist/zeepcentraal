@@ -320,3 +320,58 @@ async fn queue_overflow_is_terminal_and_unknown_traffic_is_skipped() -> Result<(
     assert_eq!(h.connection.closes.load(Ordering::Acquire), 1);
     Ok(())
 }
+
+#[tokio::test(start_paused = true)]
+async fn tournament_overlay_suppresses_duplicates_and_refreshes_before_expiry() -> Result<()> {
+    let mut h = Harness::with_clock(RemoteClock::from_sample(491.0, Duration::ZERO));
+    h.packet(initial(true));
+    flush().await;
+    advance(4).await;
+    let context = h.stats.contexts.lock().unwrap()[0].clone();
+    context.observe_round(
+        &GameHostPacket::Timer("6:59".into()),
+        jiff::Timestamp::now(),
+    );
+    let interval = Duration::from_secs(60);
+    let display = Duration::from_secs(120);
+    let key = context.round_message_due(interval).context("Overlay due")?;
+    let content = "/servermessage white 120 Race";
+    context
+        .send_tournament_overlay(&key, interval, display, content)
+        .await?;
+    let sent = h.count(zc_core::zeepnet::CHAT_MESSAGE);
+    advance(60).await;
+    context
+        .send_tournament_overlay(&key, interval, display, content)
+        .await?;
+    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent);
+    assert!(context.round_message_due(interval).is_none());
+    advance(48).await;
+    assert!(context.round_message_due(interval).is_some());
+    context
+        .send_tournament_overlay(&key, interval, display, content)
+        .await?;
+    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent + 1);
+    for uid in [50, 51] {
+        h.packet(GameHostPacket::PlayerConnected {
+            player: player(uid),
+            is_host: false,
+            has_host_powers: false,
+        });
+    }
+    flush().await;
+    assert!(context.round_message_due(interval).is_none());
+    advance(60).await;
+    context
+        .send_tournament_overlay(&key, interval, display, content)
+        .await?;
+    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent + 2);
+
+    context.invalidate_tournament_overlay();
+    context
+        .send_tournament_overlay(&key, interval, display, content)
+        .await?;
+    assert_eq!(h.count(zc_core::zeepnet::CHAT_MESSAGE), sent + 3);
+    h.shutdown().await?;
+    Ok(())
+}
