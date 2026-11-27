@@ -11,7 +11,6 @@ use zc_core::zeepnet::{LobbyOperation, LobbyPacket, WireLobby};
 
 const STATS_LOCK_KEY: &str = "zeepcentraal:lobby:stats";
 const LOBBY_LOCK_KEY: &str = "zeepcentraal:lobby:rooms";
-const PRIVATE_ROOM_NAME: &str = "Private room";
 
 #[derive(QueryableByName)]
 struct ExistingLobby {
@@ -228,11 +227,7 @@ impl Database {
                         lobby_id: row.id,
                         host_id: row.host_id,
                         change_type: "closed",
-                        room_name: if row.is_public {
-                            &row.room_name
-                        } else {
-                            PRIVATE_ROOM_NAME
-                        },
+                        room_name: &row.room_name,
                         players: row.players,
                         player_limit: row.player_limit,
                         is_public: row.is_public,
@@ -271,11 +266,7 @@ impl Database {
                             lobby_id: row.id,
                             host_id: row.host_id,
                             change_type: "closed",
-                            room_name: if row.is_public {
-                                &row.room_name
-                            } else {
-                                PRIVATE_ROOM_NAME
-                            },
+                            room_name: &row.room_name,
                             players: row.players,
                             player_limit: row.player_limit,
                             is_public: row.is_public,

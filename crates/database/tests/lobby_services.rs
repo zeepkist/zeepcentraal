@@ -98,64 +98,74 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
         .get(0);
     assert_eq!(stats, 1);
 
-    let mut private = WireLobby {
-        id: format!("{master_id}-private"),
-        title: "Private removal fixture".into(),
+    let explicit = WireLobby {
+        id: format!("{master_id}-explicit"),
+        title: "Explicit closure fixture".into(),
         is_public: false,
         ..lobby.clone()
     };
     let inferred = WireLobby {
         id: format!("{master_id}-inferred"),
         title: "Inferred closure fixture".into(),
-        ..private.clone()
+        ..explicit.clone()
     };
+    let unknown_id = format!("{master_id}-unknown");
     database
         .persist_lobby_packet(
-            &LobbyPacket::List(vec![inferred.clone()]),
+            &LobbyPacket::List(vec![explicit.clone(), inferred.clone()]),
             "2026-09-20T12:05:00Z",
         )
         .await?;
-    for entry in [&private, &lobby] {
+    for (id, time) in [
+        (&unknown_id, "2026-09-20T12:06:00Z"),
+        (&explicit.id, "2026-09-20T12:07:00Z"),
+        (&explicit.id, "2026-09-20T12:08:00Z"),
+    ] {
         database
             .persist_lobby_packet(
                 &LobbyPacket::Update {
                     operation: LobbyOperation::Removed,
-                    lobby: entry.clone(),
+                    lobby: WireLobby {
+                        id: id.clone(),
+                        title: "Untrusted removal name".into(),
+                        is_public: true,
+                        ..lobby.clone()
+                    },
                 },
-                "2026-09-20T12:06:00Z",
+                time,
             )
             .await?;
     }
-    private.title = "Duplicate removal fixture".into();
     database
-        .persist_lobby_packet(
-            &LobbyPacket::Update {
-                operation: LobbyOperation::Removed,
-                lobby: private.clone(),
-            },
-            "2026-09-20T12:07:00Z",
-        )
-        .await?;
-    database
-        .persist_lobby_packet(&LobbyPacket::List(Vec::new()), "2026-09-20T12:08:00Z")
+        .persist_lobby_packet(&LobbyPacket::List(Vec::new()), "2026-09-20T12:09:00Z")
         .await?;
 
-    let missing = client
-        .query(
-            include_str!("fixtures/lobby_services/select_room_name_lobby.sql"),
-            &[&private.id],
+    let unknown_exists: bool = client
+        .query_one(
+            "SELECT EXISTS (SELECT FROM public.lobby WHERE master_id = $1)",
+            &[&unknown_id],
         )
-        .await?;
-    assert!(missing.is_empty(), "Unknown removal must not invent a room");
-    let rows = client
-        .query(
-            include_str!("fixtures/lobby_services/select_room_name_lobby.sql"),
-            &[&inferred.id],
-        )
-        .await?;
-    assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].get::<_, &str>(0), "Inferred closure fixture");
-    assert_eq!(rows[1].get::<_, &str>(1), "Private room");
+        .await?
+        .get(0);
+    assert!(!unknown_exists, "Unknown removal must not invent a room");
+
+    for entry in [&explicit, &inferred] {
+        let rows = client
+            .query(
+                include_str!("fixtures/lobby_services/select_room_name_lobby.sql"),
+                &[&entry.id],
+            )
+            .await?;
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].get::<_, &str>(2), "opened");
+        assert_eq!(rows[1].get::<_, &str>(2), "closed");
+        for row in rows {
+            assert_eq!(row.get::<_, &str>(0), entry.title);
+            assert_eq!(row.get::<_, &str>(1), entry.title);
+            assert!(!row.get::<_, bool>(3));
+            assert!(!row.get::<_, bool>(4));
+        }
+    }
     client
         .execute(
             include_str!("fixtures/lobby_services/delete_lobby_stats.sql"),
@@ -165,7 +175,7 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
     client
         .execute(
             include_str!("fixtures/lobby_services/delete_lobby.sql"),
-            &[&vec![master_id, private.id, inferred.id]],
+            &[&vec![master_id, explicit.id, inferred.id]],
         )
         .await?;
     client
