@@ -195,6 +195,23 @@ diesel::table! {
         closed_at -> Nullable<Timestamptz>,
         date_created -> Timestamptz,
         date_updated -> Timestamptz,
+        current_level_uid -> Nullable<Text>,
+        level_name -> Nullable<Text>,
+        level_author -> Nullable<Text>,
+        level_workshop_id -> Nullable<BigInt>,
+        level_author_steam_id -> Nullable<BigInt>,
+        round_time -> Nullable<Double>,
+        game_state -> Nullable<Integer>,
+    }
+}
+
+diesel::table! {
+    lobby_level (lobby_id, level_uid, workshop_id) {
+        lobby_id -> BigInt,
+        level_uid -> Text,
+        workshop_id -> BigInt,
+        level_item_id -> Nullable<Integer>,
+        scan_requested_at -> Nullable<Timestamptz>,
     }
 }
 

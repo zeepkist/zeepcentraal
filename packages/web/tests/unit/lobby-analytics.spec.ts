@@ -9,6 +9,7 @@ import {
 	lobbyObservationIsStale,
 	lobbyOrderBy,
 	lobbyRatio,
+	lobbyRoundLength,
 	lobbyStatisticsFilters,
 	mapLobbyPage,
 	normalizeLobbyRange,
@@ -16,6 +17,15 @@ import {
 } from '../../app/utils/lobbyAnalytics'
 
 describe('lobby analytics semantics', () => {
+	it('formats configured round lengths without displaying unknown time as zero', () => {
+		expect(lobbyRoundLength(60, 'en')).toBe('1m')
+		expect(lobbyRoundLength(360, 'en')).toBe('6m')
+		expect(lobbyRoundLength(89.5, 'en')).toBe('1m 30s')
+		expect(lobbyRoundLength(3661, 'en')).toBe('1h 1m 1s')
+		for (const value of [0, null, undefined, Number.NaN, -1]) {
+			expect(lobbyRoundLength(value, 'en')).toBeNull()
+		}
+	})
 	it('warns only beyond one hour with a valid observation timestamp', () => {
 		const observed = '2026-11-10T20:00:00Z'
 		const now = Date.parse(observed)

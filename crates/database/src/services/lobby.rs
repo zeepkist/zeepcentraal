@@ -158,6 +158,7 @@ impl Database {
             .into_values()
             .collect::<Vec<_>>();
         let values = lobby_values(&entries)?;
+        let levels = lobby_level_values(&entries)?;
         let ids = serde_json::Value::Array(
             entries
                 .iter()
@@ -182,6 +183,11 @@ impl Database {
                 .bind::<Text, _>(observed_at)
                 .load(connection)
                 .await?;
+
+                sql_query(include_str!("../queries/lobby/upsert_lobby_levels.sql"))
+                    .bind::<Jsonb, _>(&levels)
+                    .execute(connection)
+                    .await?;
 
                 let existing_by_id = existing
                     .iter()
@@ -247,44 +253,87 @@ impl Database {
     }
 
     async fn persist_closed_lobby(&self, entry: &WireLobby, observed_at: &str) -> Result<()> {
-        let redacted;
-        let entry = if entry.is_public {
-            entry
-        } else {
-            redacted = WireLobby {
-                title: PRIVATE_ROOM_NAME.to_owned(),
-                ..entry.clone()
-            };
-            &redacted
-        };
-        let values = lobby_values(std::slice::from_ref(entry))?;
         let ids = serde_json::json!([entry.id]);
         let mut connection = self.connection().await?;
         connection
             .transaction::<(), anyhow::Error, _>(async move |connection| {
                 advisory_lock(connection, LOBBY_LOCK_KEY).await?;
-                upsert_hosts(connection, &values, observed_at).await?;
                 let previous: Option<ExistingLobby> =
                     sql_query(include_str!("../queries/lobby/read_last_lobby.sql"))
                         .bind::<Jsonb, _>(&ids)
                         .get_result(connection)
                         .await
                         .optional()?;
-                let row: LobbyId = sql_query(include_str!(
-                    "../queries/lobby/persist_closed_lobby_insert_lobby.sql"
-                ))
-                .bind::<Jsonb, _>(&values)
-                .bind::<Text, _>(observed_at)
-                .get_result(connection)
-                .await?;
-                if previous.as_ref().is_none_or(|value| !value.closed) {
+                if let Some(row) = previous.filter(|row| !row.closed) {
                     insert_history(
                         connection,
-                        &[history_value(row.id, entry, "closed")?],
+                        &[HistoryValue {
+                            lobby_id: row.id,
+                            host_id: row.host_id,
+                            change_type: "closed",
+                            room_name: if row.is_public {
+                                &row.room_name
+                            } else {
+                                PRIVATE_ROOM_NAME
+                            },
+                            players: row.players,
+                            player_limit: row.player_limit,
+                            is_public: row.is_public,
+                        }],
                         observed_at,
                     )
                     .await?;
+                    sql_query(include_str!("../queries/lobby/set_closed_at_lobby.sql"))
+                        .bind::<diesel::sql_types::Array<BigInt>, _>(vec![row.id])
+                        .bind::<Text, _>(observed_at)
+                        .execute(connection)
+                        .await?;
                 }
+                Ok(())
+            })
+            .await
+    }
+
+    pub async fn pending_lobby_workshop_scans(&self) -> Result<Vec<i64>> {
+        #[derive(QueryableByName)]
+        struct Pending {
+            #[diesel(sql_type = BigInt)]
+            workshop_id: i64,
+        }
+        let mut connection = self.connection().await?;
+        let pending: Vec<Pending> = sql_query(include_str!(
+            "../queries/lobby/pending_lobby_workshop_scans.sql"
+        ))
+        .load(&mut connection)
+        .await?;
+        Ok(pending
+            .into_iter()
+            .map(|pending| pending.workshop_id)
+            .collect())
+    }
+
+    pub async fn mark_lobby_workshop_scan(&self, workshop_id: i64) -> Result<()> {
+        let mut connection = self.connection().await?;
+        sql_query(include_str!(
+            "../queries/lobby/mark_lobby_workshop_scan.sql"
+        ))
+        .bind::<BigInt, _>(workshop_id)
+        .execute(&mut connection)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn resolve_lobby_workshop_levels(&self, workshop_id: i64) -> Result<()> {
+        let mut connection = self.connection().await?;
+        connection
+            .transaction::<(), anyhow::Error, _>(async move |connection| {
+                advisory_lock(connection, LOBBY_LOCK_KEY).await?;
+                sql_query(include_str!(
+                    "../queries/lobby/resolve_lobby_workshop_levels.sql"
+                ))
+                .bind::<BigInt, _>(workshop_id)
+                .execute(connection)
+                .await?;
                 Ok(())
             })
             .await
@@ -297,6 +346,27 @@ async fn advisory_lock(connection: &mut AsyncPgConnection, key: &str) -> Result<
         .execute(connection)
         .await?;
     Ok(())
+}
+
+fn lobby_level_values(entries: &[WireLobby]) -> Result<serde_json::Value> {
+    let values = entries.iter().map(|entry| {
+        let has_level = entry.is_public && !entry.level_uid.is_empty();
+        let workshop_id = has_level.then(|| i64::try_from(entry.level_workshop_id)).transpose()?;
+        let author_id = (has_level && entry.level_author_steam_id > 1)
+            .then(|| i64::try_from(entry.level_author_steam_id)).transpose()?;
+        anyhow::ensure!(!entry.is_public || (entry.round_time.is_finite() && entry.round_time >= 0.0), "Invalid lobby round time");
+        Ok(serde_json::json!({
+            "master_id": entry.id,
+            "level_uid": has_level.then_some(&entry.level_uid),
+            "workshop_id": workshop_id,
+            "level_name": (has_level && !entry.level_name.is_empty()).then_some(&entry.level_name),
+            "level_author": (has_level && !entry.level_author.is_empty()).then_some(&entry.level_author),
+            "author_id": author_id,
+            "round_time": (entry.is_public && entry.round_time > 0.0).then_some(entry.round_time),
+            "game_state": entry.is_public.then_some(entry.game_state),
+        }))
+    }).collect::<Result<Vec<_>>>()?;
+    Ok(serde_json::Value::Array(values))
 }
 
 fn lobby_values(entries: &[WireLobby]) -> Result<serde_json::Value> {
@@ -393,6 +463,7 @@ mod tests {
             players: 2,
             player_limit: 12,
             is_public: true,
+            ..Default::default()
         }
     }
 

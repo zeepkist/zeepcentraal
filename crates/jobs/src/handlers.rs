@@ -244,6 +244,9 @@ impl ServiceJobHandler {
         }
         let result = self.scanner().scan_workshop_item(workshop_id).await?;
         self.database
+            .resolve_lobby_workshop_levels(i64::try_from(workshop_id)?)
+            .await?;
+        self.database
             .release_level_request(i64::try_from(workshop_id)?)
             .await?;
         tracing::info!(

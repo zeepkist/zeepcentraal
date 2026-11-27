@@ -9,7 +9,7 @@ pub const LOBBY_UPDATE: u16 = 62_071;
 pub const SERVER_STATISTICS: u16 = 37_660;
 const MAX_LOBBIES: usize = 4_096;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct WireLobby {
     pub id: String,
     pub title: String,
@@ -18,6 +18,13 @@ pub struct WireLobby {
     pub players: u32,
     pub player_limit: u32,
     pub is_public: bool,
+    pub level_name: String,
+    pub level_author: String,
+    pub level_uid: String,
+    pub level_workshop_id: u64,
+    pub level_author_steam_id: u64,
+    pub round_time: f64,
+    pub game_state: i32,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -27,7 +34,7 @@ pub enum LobbyOperation {
     Updated,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum LobbyPacket {
     List(Vec<WireLobby>),
     Update {
@@ -97,8 +104,12 @@ pub fn parse_lobby_packet(payload: &[u8]) -> Result<Option<LobbyPacket>> {
             ensure!(count <= MAX_LOBBIES, "Lobby count exceeds {MAX_LOBBIES}");
             let mut lobbies = Vec::with_capacity(count);
             for _ in 0..count {
-                lobbies.push(read_lobby(&mut reader)?);
+                lobbies.push(read_lobby(&mut reader, false)?);
             }
+            ensure!(
+                reader.remaining_bits() < 8,
+                "Unexpected lobby snapshot data"
+            );
             Some(LobbyPacket::List(lobbies))
         }
         LOBBY_UPDATE => {
@@ -108,10 +119,9 @@ pub fn parse_lobby_packet(payload: &[u8]) -> Result<Option<LobbyPacket>> {
                 2 => LobbyOperation::Updated,
                 _ => anyhow::bail!("Unknown lobby update operation"),
             };
-            Some(LobbyPacket::Update {
-                operation,
-                lobby: read_lobby(&mut reader)?,
-            })
+            let lobby = read_lobby(&mut reader, operation == LobbyOperation::Removed)?;
+            ensure!(reader.remaining_bits() < 8, "Unexpected lobby update data");
+            Some(LobbyPacket::Update { operation, lobby })
         }
         SERVER_STATISTICS => Some(LobbyPacket::Statistics {
             online_players: non_negative(reader.read_i32()?, "online player count")?,
@@ -127,21 +137,103 @@ fn non_negative(value: i32, label: &str) -> Result<u32> {
     Ok(value as u32)
 }
 
-fn read_lobby(reader: &mut BitReader<'_>) -> Result<WireLobby> {
-    Ok(WireLobby {
+fn read_lobby(reader: &mut BitReader<'_>, removed: bool) -> Result<WireLobby> {
+    let lobby = WireLobby {
         id: reader.read_string(1_024)?,
         title: reader.read_string(4_096)?,
         host_name: reader.read_string(1_024)?,
         host_steam_id: reader.read_u64()?,
-        players: non_negative(reader.read_i32()?, "lobby player count")?,
-        player_limit: non_negative(reader.read_i32()?, "lobby player limit")?,
+        players: read_lobby_count(reader, removed, "lobby player count")?,
+        player_limit: read_lobby_count(reader, removed, "lobby player limit")?,
         is_public: reader.read_bool()?,
-    })
+        level_name: reader.read_string(4096)?,
+        level_author: reader.read_string(4096)?,
+        level_uid: reader.read_string(1024)?,
+        level_workshop_id: reader.read_u64()?,
+        level_author_steam_id: reader.read_u64()?,
+        round_time: reader.read_f64()?,
+        game_state: reader.read_i32()?,
+    };
+    ensure!(
+        removed || (lobby.round_time.is_finite() && lobby.round_time >= 0.0),
+        "Invalid lobby round time"
+    );
+    Ok(lobby)
+}
+
+fn read_lobby_count(reader: &mut BitReader<'_>, removed: bool, label: &str) -> Result<u32> {
+    let value = reader.read_i32()?;
+    if removed {
+        Ok(0)
+    } else {
+        non_negative(value, label)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_extended_lobby_fixtures_and_rejects_truncation() -> Result<()> {
+        let packets = include_str!("../../tests/fixtures/lobby-levels.hex")
+            .lines()
+            .map(hex::decode)
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let Some(LobbyPacket::List(rooms)) = parse_lobby_packet(&packets[0])? else {
+            anyhow::bail!("Expected lobby snapshot");
+        };
+        assert_eq!(rooms.len(), 2);
+        assert_eq!(rooms[0].host_name, "Host one");
+        assert_eq!(rooms[0].level_name, "日本語");
+        assert_eq!(rooms[0].level_author, "Original & Collaborator");
+        assert_eq!(
+            (
+                rooms[0].level_workshop_id,
+                rooms[0].round_time,
+                rooms[0].game_state
+            ),
+            (123, 360.25, 2)
+        );
+        assert_eq!(
+            (rooms[1].id.as_str(), rooms[1].level_uid.as_str()),
+            ("two", "builtin-uid")
+        );
+        assert_eq!(
+            (rooms[1].level_workshop_id, rooms[1].level_author_steam_id),
+            (0, 1)
+        );
+        let Some(LobbyPacket::Update {
+            operation: LobbyOperation::Updated,
+            lobby,
+        }) = parse_lobby_packet(&packets[1])?
+        else {
+            anyhow::bail!("Expected lobby update");
+        };
+        assert_eq!((lobby.round_time, lobby.game_state), (60.0, 1));
+        assert!(matches!(
+            parse_lobby_packet(&packets[2])?,
+            Some(LobbyPacket::Update {
+                operation: LobbyOperation::Removed,
+                ..
+            })
+        ));
+        for packet in &packets {
+            assert!(parse_lobby_packet(&packet[..packet.len() - 1]).is_err());
+        }
+        let mut legacy = BitWriter::new();
+        legacy.write_u16(LOBBY_LIST);
+        legacy.write_i32(1);
+        for value in ["one", "Room", "Host"] {
+            legacy.write_string(value)?;
+        }
+        legacy.write_u64(76561198000000000);
+        legacy.write_i32(2);
+        legacy.write_i32(16);
+        legacy.write_bool(true);
+        assert!(parse_lobby_packet(&legacy.into_bytes()).is_err());
+        Ok(())
+    }
 
     #[test]
     fn parses_lobby_list_and_room_responses() {
@@ -155,6 +247,13 @@ mod tests {
         packet.write_i32(2);
         packet.write_i32(12);
         packet.write_bool(true);
+        packet.write_string("Level").unwrap();
+        packet.write_string("Author").unwrap();
+        packet.write_string("UID").unwrap();
+        packet.write_u64(12);
+        packet.write_u64(1);
+        packet.write_f64(360.0);
+        packet.write_i32(2);
         let parsed = parse_lobby_packet(&packet.into_bytes()).unwrap().unwrap();
         let LobbyPacket::List(lobbies) = parsed else {
             panic!("expected list")

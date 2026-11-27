@@ -25,6 +25,20 @@ assert.equal(url.hostname, '127.0.0.1')
 assert.equal(url.pathname, '/zc_lobby_dashboard_test')
 const sql = new SQL(databaseUrl, { prepare: false })
 try {
+	if (process.argv.includes('--migrate')) {
+		await sql.unsafe(`GRANT USAGE ON SCHEMA public TO zeepcentraal_graphql;
+		GRANT SELECT(id,steam_id,steam_name) ON public."user" TO zeepcentraal_graphql;
+		GRANT SELECT(id,room_name,host_id,players,player_limit,is_public,peak_players,peak_time,first_seen,last_seen,closed_at,date_created,date_updated) ON public.lobby TO zeepcentraal_graphql;
+		GRANT SELECT ON public.lobby_history,public.lobby_stats TO zeepcentraal_graphql;`)
+		for (const migration of ['20261108040000_lobby_dashboard', '20261127000000_lobby_levels']) {
+			const path = new URL(
+				`../../../crates/database/migrations/${migration}/up.sql`,
+				import.meta.url,
+			)
+			const source = await readFile(path, 'utf8')
+			await sql.begin(async (tx) => tx.unsafe(source))
+		}
+	}
 	if (process.argv.includes('--seed')) {
 		await sql.begin(async (tx) => {
 			await tx.unsafe('TRUNCATE public.lobby_history,public.lobby_stats,public.lobby CASCADE')
@@ -37,26 +51,13 @@ try {
 					'utf8',
 				),
 			)
+			await tx.unsafe(`UPDATE public.lobby SET level_name = 'Fixture level',
+                level_author = 'Original & Collaborator', level_workshop_id = 123,
+                level_author_steam_id = 76561198000000001, round_time = 360, game_state = 0
+                WHERE id = 1001`)
 		})
 		await sql.unsafe(
 			'GRANT SELECT,DELETE ON public.live_query_invalidations TO zeepcentraal_graphql',
-		)
-	}
-	if (process.argv.includes('--migrate')) {
-		await sql.unsafe(`GRANT USAGE ON SCHEMA public TO zeepcentraal_graphql;
-		GRANT SELECT(id,steam_id,steam_name) ON public."user" TO zeepcentraal_graphql;
-		GRANT SELECT(id,room_name,host_id,players,player_limit,is_public,peak_players,peak_time,first_seen,last_seen,closed_at,date_created,date_updated) ON public.lobby TO zeepcentraal_graphql;
-		GRANT SELECT ON public.lobby_history,public.lobby_stats TO zeepcentraal_graphql;`)
-		await sql.begin(async (tx) =>
-			tx.unsafe(
-				await readFile(
-					new URL(
-						'../../../crates/database/migrations/20261108040000_lobby_dashboard/up.sql',
-						import.meta.url,
-					),
-					'utf8',
-				),
-			),
 		)
 	}
 	url.username = 'zeepcentraal_graphql'
@@ -187,6 +188,24 @@ try {
 				orderBy: ['ID_ASC'],
 			})
 			assert.equal(rooms.lobbyListings?.nodes[0]?.roomName, 'Private midnight room')
+			assert.equal(rooms.lobbyListings?.nodes[0]?.levelName, null)
+			await sql.unsafe(`UPDATE public.lobby SET level_name = 'Fixture level',
+                level_author = 'Original & Collaborator', level_workshop_id = 123,
+                level_author_steam_id = 76561198000000001, round_time = 360, game_state = 2
+                WHERE id = 1001`)
+			const observed = await query<Zc_LobbyRoomsQuery>('ZC_LobbyRooms', {
+				first: 25,
+				filter: { id: { equalTo: '1001' } },
+				orderBy: ['ID_ASC'],
+			})
+			const level = observed.lobbyListings?.nodes[0]
+			assert.equal(level?.levelName, 'Fixture level')
+			assert.equal(level.levelAuthor, 'Original & Collaborator')
+			assert.equal(level.levelWorkshopId, '123')
+			assert.equal(level.levelAuthorSteamId, '76561198000000001')
+			assert.equal(level.roundTime, 360)
+			assert.equal(level.gameState, 2)
+
 			const occupancy = await query<Zc_LobbyRoomsQuery>('ZC_LobbyRooms', {
 				first: 25,
 				filter: { id: { greaterThan: '0' } },
@@ -284,6 +303,10 @@ try {
 				.get('/healthz', () => 'ok')
 				.post('/__test/update', async () => {
 					await sql`UPDATE public.lobby SET players=CASE WHEN players=3 THEN 2 ELSE 3 END,last_seen=now() WHERE id=1001`
+					return 'ok'
+				})
+				.post('/__test/advance-round', async () => {
+					await sql`UPDATE public.lobby SET game_state = (game_state + 1) % 3 WHERE id = 1001`
 					return 'ok'
 				})
 				.listen({ port: 55440, hostname: '127.0.0.1' })

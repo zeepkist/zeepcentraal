@@ -43,6 +43,12 @@ export const lobbyListing = pgView('lobby_listing', {
 	durationSeconds: doublePrecision('duration_seconds').notNull(),
 	occupancy: doublePrecision(),
 	availableCapacity: boolean('available_capacity').notNull(),
+	levelName: text('level_name'),
+	levelAuthor: text('level_author'),
+	levelWorkshopId: bigint('level_workshop_id', { mode: 'bigint' }),
+	levelAuthorSteamId: bigint('level_author_steam_id', { mode: 'bigint' }),
+	roundTime: doublePrecision('round_time'),
+	gameState: integer('game_state'),
 }).existing()
 
 // Read-only views managed by the Adventure Diesel migration.
@@ -1746,6 +1752,13 @@ export const lobby = pgTable(
 			minValue: 1,
 			cache: 100,
 		}),
+		currentLevelUid: text('current_level_uid'),
+		levelName: text('level_name'),
+		levelAuthor: text('level_author'),
+		levelWorkshopId: bigint('level_workshop_id', { mode: 'bigint' }),
+		levelAuthorSteamId: bigint('level_author_steam_id', { mode: 'bigint' }),
+		roundTime: doublePrecision('round_time'),
+		gameState: integer('game_state'),
 		masterId: text('master_id').notNull(),
 		roomName: text('room_name').notNull(),
 		hostId: bigint('host_id', { mode: 'bigint' }).notNull(),
@@ -1771,6 +1784,11 @@ export const lobby = pgTable(
 			foreignColumns: [user.steamId],
 			name: 'lobby_host_fkey',
 		}),
+		foreignKey({
+			columns: [table.id, table.currentLevelUid, table.levelWorkshopId],
+			foreignColumns: [lobbyLevel.lobbyId, lobbyLevel.levelUid, lobbyLevel.workshopId],
+			name: 'lobby_current_level_fkey',
+		}),
 		unique('UQ_lobby_master_id').on(table.masterId),
 		check('CK_lobby_players_nonnegative', sql`${table.players} >= 0`),
 		check('CK_lobby_player_limit_nonnegative', sql`${table.playerLimit} >= 0`),
@@ -1794,6 +1812,29 @@ export const lobby = pgTable(
 		}),
 	],
 ).enableRLS()
+
+export const lobbyLevel = pgTable(
+	'lobby_level',
+	{
+		lobbyId: bigint('lobby_id', { mode: 'bigint' })
+			.notNull()
+			.references((): AnyPgColumn => lobby.id, { onDelete: 'cascade' }),
+		levelUid: text('level_uid').notNull(),
+		workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
+		levelItemId: integer('level_item_id').references(() => levelItem.id, {
+			onDelete: 'set null',
+		}),
+		scanRequestedAt: timestamp('scan_requested_at', { withTimezone: true, mode: 'string' }),
+	},
+	(table) => [
+		primaryKey({ columns: [table.lobbyId, table.levelUid, table.workshopId] }),
+		check('lobby_level_workshop_id_check', sql`${table.workshopId} >= 0`),
+		index('lobby_level_level_item_id').on(table.levelItemId),
+		index('lobby_level_pending_workshop')
+			.on(table.workshopId, table.scanRequestedAt)
+			.where(sql`${table.levelItemId} IS NULL AND ${table.workshopId} > 0`),
+	],
+)
 
 export const lobbyHistory = pgTable(
 	'lobby_history',

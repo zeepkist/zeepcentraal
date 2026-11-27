@@ -44645,6 +44645,12 @@ type Lobby implements Node {
     """The method to use when ordering `LobbyHistory`."""
     orderBy: [LobbyHistoriesOrderBy!] = [PRIMARY_KEY_ASC]
   ): LobbyHistoriesConnection!
+  levelName: String
+  levelAuthor: String
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: Float
+  gameState: Int
 }
 
 """
@@ -45217,6 +45223,12 @@ input LobbyFilter {
   or: [LobbyFilter!]
   """Negates the expression."""
   not: LobbyFilter
+  levelName: StringFilter
+  levelAuthor: StringFilter
+  levelWorkshopId: BigIntFilter
+  levelAuthorSteamId: BigIntFilter
+  roundTime: FloatFilter
+  gameState: IntFilter
 }
 
 """
@@ -45378,6 +45390,10 @@ input LobbySumAggregateFilter {
   players: BigIntFilter
   playerLimit: BigIntFilter
   peakPlayers: BigIntFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigIntFilter
 }
 
 input LobbyDistinctCountAggregateFilter {
@@ -45394,6 +45410,12 @@ input LobbyDistinctCountAggregateFilter {
   closedAt: BigIntFilter
   dateCreated: BigIntFilter
   dateUpdated: BigIntFilter
+  levelName: BigIntFilter
+  levelAuthor: BigIntFilter
+  levelWorkshopId: BigIntFilter
+  levelAuthorSteamId: BigIntFilter
+  roundTime: BigIntFilter
+  gameState: BigIntFilter
 }
 
 input LobbyMinAggregateFilter {
@@ -45402,6 +45424,10 @@ input LobbyMinAggregateFilter {
   players: IntFilter
   playerLimit: IntFilter
   peakPlayers: IntFilter
+  levelWorkshopId: BigIntFilter
+  levelAuthorSteamId: BigIntFilter
+  roundTime: FloatFilter
+  gameState: IntFilter
 }
 
 input LobbyMaxAggregateFilter {
@@ -45410,6 +45436,10 @@ input LobbyMaxAggregateFilter {
   players: IntFilter
   playerLimit: IntFilter
   peakPlayers: IntFilter
+  levelWorkshopId: BigIntFilter
+  levelAuthorSteamId: BigIntFilter
+  roundTime: FloatFilter
+  gameState: IntFilter
 }
 
 input LobbyAverageAggregateFilter {
@@ -45418,6 +45448,10 @@ input LobbyAverageAggregateFilter {
   players: BigFloatFilter
   playerLimit: BigFloatFilter
   peakPlayers: BigFloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 input LobbyStddevSampleAggregateFilter {
@@ -45426,6 +45460,10 @@ input LobbyStddevSampleAggregateFilter {
   players: BigFloatFilter
   playerLimit: BigFloatFilter
   peakPlayers: BigFloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 input LobbyStddevPopulationAggregateFilter {
@@ -45434,6 +45472,10 @@ input LobbyStddevPopulationAggregateFilter {
   players: BigFloatFilter
   playerLimit: BigFloatFilter
   peakPlayers: BigFloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 input LobbyVarianceSampleAggregateFilter {
@@ -45442,6 +45484,10 @@ input LobbyVarianceSampleAggregateFilter {
   players: BigFloatFilter
   playerLimit: BigFloatFilter
   peakPlayers: BigFloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 input LobbyVariancePopulationAggregateFilter {
@@ -45450,6 +45496,10 @@ input LobbyVariancePopulationAggregateFilter {
   players: BigFloatFilter
   playerLimit: BigFloatFilter
   peakPlayers: BigFloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 """
@@ -45534,6 +45584,12 @@ input LobbyListingFilter {
   or: [LobbyListingFilter!]
   """Negates the expression."""
   not: LobbyListingFilter
+  levelName: StringFilter
+  levelAuthor: StringFilter
+  levelWorkshopId: BigIntFilter
+  levelAuthorSteamId: BigIntFilter
+  roundTime: FloatFilter
+  gameState: IntFilter
 }
 
 """A filter to be used against aggregates of `LobbyListing` object types."""
@@ -45574,6 +45630,10 @@ input LobbyListingSumAggregateFilter {
   peakPlayers: BigIntFilter
   durationSeconds: FloatFilter
   occupancy: FloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigIntFilter
 }
 
 input LobbyListingDistinctCountAggregateFilter {
@@ -45591,6 +45651,12 @@ input LobbyListingDistinctCountAggregateFilter {
   durationSeconds: BigIntFilter
   occupancy: BigIntFilter
   availableCapacity: BigIntFilter
+  levelName: BigIntFilter
+  levelAuthor: BigIntFilter
+  levelWorkshopId: BigIntFilter
+  levelAuthorSteamId: BigIntFilter
+  roundTime: BigIntFilter
+  gameState: BigIntFilter
 }
 
 input LobbyListingMinAggregateFilter {
@@ -45601,6 +45667,10 @@ input LobbyListingMinAggregateFilter {
   peakPlayers: IntFilter
   durationSeconds: FloatFilter
   occupancy: FloatFilter
+  levelWorkshopId: BigIntFilter
+  levelAuthorSteamId: BigIntFilter
+  roundTime: FloatFilter
+  gameState: IntFilter
 }
 
 input LobbyListingMaxAggregateFilter {
@@ -45611,6 +45681,10 @@ input LobbyListingMaxAggregateFilter {
   peakPlayers: IntFilter
   durationSeconds: FloatFilter
   occupancy: FloatFilter
+  levelWorkshopId: BigIntFilter
+  levelAuthorSteamId: BigIntFilter
+  roundTime: FloatFilter
+  gameState: IntFilter
 }
 
 input LobbyListingAverageAggregateFilter {
@@ -45621,6 +45695,10 @@ input LobbyListingAverageAggregateFilter {
   peakPlayers: BigFloatFilter
   durationSeconds: FloatFilter
   occupancy: FloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 input LobbyListingStddevSampleAggregateFilter {
@@ -45631,6 +45709,10 @@ input LobbyListingStddevSampleAggregateFilter {
   peakPlayers: BigFloatFilter
   durationSeconds: FloatFilter
   occupancy: FloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 input LobbyListingStddevPopulationAggregateFilter {
@@ -45641,6 +45723,10 @@ input LobbyListingStddevPopulationAggregateFilter {
   peakPlayers: BigFloatFilter
   durationSeconds: FloatFilter
   occupancy: FloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 input LobbyListingVarianceSampleAggregateFilter {
@@ -45651,6 +45737,10 @@ input LobbyListingVarianceSampleAggregateFilter {
   peakPlayers: BigFloatFilter
   durationSeconds: FloatFilter
   occupancy: FloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 input LobbyListingVariancePopulationAggregateFilter {
@@ -45661,6 +45751,10 @@ input LobbyListingVariancePopulationAggregateFilter {
   peakPlayers: BigFloatFilter
   durationSeconds: FloatFilter
   occupancy: FloatFilter
+  levelWorkshopId: BigFloatFilter
+  levelAuthorSteamId: BigFloatFilter
+  roundTime: FloatFilter
+  gameState: BigFloatFilter
 }
 
 """Methods to use when ordering `LobbyHistory`."""
@@ -45741,6 +45835,10 @@ type LobbySumAggregates {
   playerLimit: BigInt!
   """Sum of peakPlayers across the matching connection"""
   peakPlayers: BigInt!
+  levelWorkshopId: BigFloat!
+  levelAuthorSteamId: BigFloat!
+  roundTime: Float!
+  gameState: BigInt!
 }
 
 type LobbyDistinctCountAggregates {
@@ -45770,6 +45868,12 @@ type LobbyDistinctCountAggregates {
   dateCreated: BigInt
   """Distinct count of dateUpdated across the matching connection"""
   dateUpdated: BigInt
+  levelName: BigInt
+  levelAuthor: BigInt
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: BigInt
+  gameState: BigInt
 }
 
 type LobbyMinAggregates {
@@ -45783,6 +45887,10 @@ type LobbyMinAggregates {
   playerLimit: Int
   """Minimum of peakPlayers across the matching connection"""
   peakPlayers: Int
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: Float
+  gameState: Int
 }
 
 type LobbyMaxAggregates {
@@ -45796,6 +45904,10 @@ type LobbyMaxAggregates {
   playerLimit: Int
   """Maximum of peakPlayers across the matching connection"""
   peakPlayers: Int
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: Float
+  gameState: Int
 }
 
 type LobbyAverageAggregates {
@@ -45809,6 +45921,10 @@ type LobbyAverageAggregates {
   playerLimit: BigFloat
   """Mean average of peakPlayers across the matching connection"""
   peakPlayers: BigFloat
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 type LobbyStddevSampleAggregates {
@@ -45826,6 +45942,10 @@ type LobbyStddevSampleAggregates {
   Sample standard deviation of peakPlayers across the matching connection
   """
   peakPlayers: BigFloat
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 type LobbyStddevPopulationAggregates {
@@ -45845,6 +45965,10 @@ type LobbyStddevPopulationAggregates {
   Population standard deviation of peakPlayers across the matching connection
   """
   peakPlayers: BigFloat
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 type LobbyVarianceSampleAggregates {
@@ -45858,6 +45982,10 @@ type LobbyVarianceSampleAggregates {
   playerLimit: BigFloat
   """Sample variance of peakPlayers across the matching connection"""
   peakPlayers: BigFloat
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 type LobbyVariancePopulationAggregates {
@@ -45871,6 +45999,10 @@ type LobbyVariancePopulationAggregates {
   playerLimit: BigFloat
   """Population variance of peakPlayers across the matching connection"""
   peakPlayers: BigFloat
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 """Grouping methods for `Lobby` for usage during aggregation."""
@@ -45928,6 +46060,10 @@ input LobbyHavingSumInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyHavingDistinctCountInput {
@@ -45942,6 +46078,10 @@ input LobbyHavingDistinctCountInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyHavingMinInput {
@@ -45956,6 +46096,10 @@ input LobbyHavingMinInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyHavingMaxInput {
@@ -45970,6 +46114,10 @@ input LobbyHavingMaxInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyHavingAverageInput {
@@ -45984,6 +46132,10 @@ input LobbyHavingAverageInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyHavingStddevSampleInput {
@@ -45998,6 +46150,10 @@ input LobbyHavingStddevSampleInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyHavingStddevPopulationInput {
@@ -46012,6 +46168,10 @@ input LobbyHavingStddevPopulationInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyHavingVarianceSampleInput {
@@ -46026,6 +46186,10 @@ input LobbyHavingVarianceSampleInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyHavingVariancePopulationInput {
@@ -46040,6 +46204,10 @@ input LobbyHavingVariancePopulationInput {
   closedAt: HavingDatetimeFilter
   dateCreated: HavingDatetimeFilter
   dateUpdated: HavingDatetimeFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 """
@@ -46072,6 +46240,12 @@ input LobbyCondition {
   dateCreated: Datetime
   """Checks for equality with the object’s `dateUpdated` field."""
   dateUpdated: Datetime
+  levelName: String
+  levelAuthor: String
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: Float
+  gameState: Int
 }
 
 """Methods to use when ordering `Lobby`."""
@@ -46207,6 +46381,18 @@ enum LobbiesOrderBy {
   HISTORY_VARIANCE_POPULATION_PLAYERS_DESC
   HISTORY_VARIANCE_POPULATION_PLAYER_LIMIT_ASC
   HISTORY_VARIANCE_POPULATION_PLAYER_LIMIT_DESC
+  LEVEL_NAME_ASC
+  LEVEL_NAME_DESC
+  LEVEL_AUTHOR_ASC
+  LEVEL_AUTHOR_DESC
+  LEVEL_WORKSHOP_ID_ASC
+  LEVEL_WORKSHOP_ID_DESC
+  LEVEL_AUTHOR_STEAM_ID_ASC
+  LEVEL_AUTHOR_STEAM_ID_DESC
+  ROUND_TIME_ASC
+  ROUND_TIME_DESC
+  GAME_STATE_ASC
+  GAME_STATE_DESC
 }
 
 """A connection to a list of `Lobby` values."""
@@ -46292,6 +46478,12 @@ type LobbyListing implements Node {
   availableCapacity: Boolean
   """Reads a single `User` that is related to this `LobbyListing`."""
   host: User
+  levelName: String
+  levelAuthor: String
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: Float
+  gameState: Int
 }
 
 """A `LobbyListing` edge in the connection."""
@@ -46357,6 +46549,10 @@ type LobbyListingSumAggregates {
   durationSeconds: Float!
   """Sum of occupancy across the matching connection"""
   occupancy: Float!
+  levelWorkshopId: BigFloat!
+  levelAuthorSteamId: BigFloat!
+  roundTime: Float!
+  gameState: BigInt!
 }
 
 type LobbyListingDistinctCountAggregates {
@@ -46388,6 +46584,12 @@ type LobbyListingDistinctCountAggregates {
   occupancy: BigInt
   """Distinct count of availableCapacity across the matching connection"""
   availableCapacity: BigInt
+  levelName: BigInt
+  levelAuthor: BigInt
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: BigInt
+  gameState: BigInt
 }
 
 type LobbyListingMinAggregates {
@@ -46405,6 +46607,10 @@ type LobbyListingMinAggregates {
   durationSeconds: Float
   """Minimum of occupancy across the matching connection"""
   occupancy: Float
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: Float
+  gameState: Int
 }
 
 type LobbyListingMaxAggregates {
@@ -46422,6 +46628,10 @@ type LobbyListingMaxAggregates {
   durationSeconds: Float
   """Maximum of occupancy across the matching connection"""
   occupancy: Float
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: Float
+  gameState: Int
 }
 
 type LobbyListingAverageAggregates {
@@ -46439,6 +46649,10 @@ type LobbyListingAverageAggregates {
   durationSeconds: Float
   """Mean average of occupancy across the matching connection"""
   occupancy: Float
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 type LobbyListingStddevSampleAggregates {
@@ -46462,6 +46676,10 @@ type LobbyListingStddevSampleAggregates {
   durationSeconds: Float
   """Sample standard deviation of occupancy across the matching connection"""
   occupancy: Float
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 type LobbyListingStddevPopulationAggregates {
@@ -46489,6 +46707,10 @@ type LobbyListingStddevPopulationAggregates {
   Population standard deviation of occupancy across the matching connection
   """
   occupancy: Float
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 type LobbyListingVarianceSampleAggregates {
@@ -46506,6 +46728,10 @@ type LobbyListingVarianceSampleAggregates {
   durationSeconds: Float
   """Sample variance of occupancy across the matching connection"""
   occupancy: Float
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 type LobbyListingVariancePopulationAggregates {
@@ -46523,6 +46749,10 @@ type LobbyListingVariancePopulationAggregates {
   durationSeconds: Float
   """Population variance of occupancy across the matching connection"""
   occupancy: Float
+  levelWorkshopId: BigFloat
+  levelAuthorSteamId: BigFloat
+  roundTime: Float
+  gameState: BigFloat
 }
 
 """Grouping methods for `LobbyListing` for usage during aggregation."""
@@ -46577,6 +46807,10 @@ input LobbyListingHavingSumInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyListingHavingDistinctCountInput {
@@ -46591,6 +46825,10 @@ input LobbyListingHavingDistinctCountInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyListingHavingMinInput {
@@ -46605,6 +46843,10 @@ input LobbyListingHavingMinInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyListingHavingMaxInput {
@@ -46619,6 +46861,10 @@ input LobbyListingHavingMaxInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyListingHavingAverageInput {
@@ -46633,6 +46879,10 @@ input LobbyListingHavingAverageInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyListingHavingStddevSampleInput {
@@ -46647,6 +46897,10 @@ input LobbyListingHavingStddevSampleInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyListingHavingStddevPopulationInput {
@@ -46661,6 +46915,10 @@ input LobbyListingHavingStddevPopulationInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyListingHavingVarianceSampleInput {
@@ -46675,6 +46933,10 @@ input LobbyListingHavingVarianceSampleInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 input LobbyListingHavingVariancePopulationInput {
@@ -46689,6 +46951,10 @@ input LobbyListingHavingVariancePopulationInput {
   closedAt: HavingDatetimeFilter
   durationSeconds: HavingFloatFilter
   occupancy: HavingFloatFilter
+  levelWorkshopId: HavingBigintFilter
+  levelAuthorSteamId: HavingBigintFilter
+  roundTime: HavingFloatFilter
+  gameState: HavingIntFilter
 }
 
 """
@@ -46724,6 +46990,12 @@ input LobbyListingCondition {
   occupancy: Float
   """Checks for equality with the object’s `availableCapacity` field."""
   availableCapacity: Boolean
+  levelName: String
+  levelAuthor: String
+  levelWorkshopId: BigInt
+  levelAuthorSteamId: BigInt
+  roundTime: Float
+  gameState: Int
 }
 
 """Methods to use when ordering `LobbyListing`."""
@@ -46759,6 +47031,18 @@ enum LobbyListingsOrderBy {
   OCCUPANCY_DESC
   AVAILABLE_CAPACITY_ASC
   AVAILABLE_CAPACITY_DESC
+  LEVEL_NAME_ASC
+  LEVEL_NAME_DESC
+  LEVEL_AUTHOR_ASC
+  LEVEL_AUTHOR_DESC
+  LEVEL_WORKSHOP_ID_ASC
+  LEVEL_WORKSHOP_ID_DESC
+  LEVEL_AUTHOR_STEAM_ID_ASC
+  LEVEL_AUTHOR_STEAM_ID_DESC
+  ROUND_TIME_ASC
+  ROUND_TIME_DESC
+  GAME_STATE_ASC
+  GAME_STATE_DESC
 }
 
 """A `User` edge in the connection, with data from `LobbyHistory`."""

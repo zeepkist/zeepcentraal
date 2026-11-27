@@ -13,6 +13,12 @@ fragment ZC_LobbyRoom on LobbyListing {
 	durationSeconds
 	occupancy
 	availableCapacity
+	levelName
+	levelAuthor
+	levelWorkshopId
+	levelAuthorSteamId
+	roundTime
+	gameState
 	host {
 		steamId
 		steamName

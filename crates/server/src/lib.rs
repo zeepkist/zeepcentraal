@@ -87,6 +87,7 @@ pub async fn run() -> anyhow::Result<()> {
         lobby_config,
         state.lobby.clone(),
         state.database.clone(),
+        state.queue.clone(),
     )
     .await?;
     let listener = tokio::net::TcpListener::bind(address).await?;

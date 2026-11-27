@@ -64,6 +64,7 @@ const eventLabel = (value: string) => ['opened','updated','closed','reopened'].i
 		<div v-if="room" class="space-y-6">
 			<h2 class="break-words text-2xl font-bold">{{ room.roomName }}</h2>
 			<p>{{ t('lobby.table.host') }}: <NuxtLink v-if="room.host" :to="`/user/${room.host.steamId}`" class="text-primary hover:underline">{{ room.host.steamName || t('lobby.analytics.unknownHost') }}</NuxtLink><span v-else>{{ t('lobby.analytics.unknownHost') }}</span></p>
+			<LobbyRoomLevel :room="room" />
 			<LobbyFreshness v-if="!room.closedAt" :observed-at="room.lastSeen" :error="error?.message" />
 			<UAlert v-else-if="error" color="warning" :title="t('lobby.analytics.connectionError')" :description="error.message" />
 			<UCard><dl class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"><div v-for="[key,value] in fields" :key="key"><dt class="text-sm text-muted-foreground">{{ t(lobbyLabel(key)) }}</dt><dd class="mt-1 font-medium"><NuxtTime v-if="dateFields.has(key) && value" :datetime="value" :locale="locale" date-style="short" time-style="short" :hour12="false" /><span v-else>{{ dateFields.has(key) ? t('common.unavailable') : value }}</span></dd></div></dl></UCard>

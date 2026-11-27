@@ -17,6 +17,41 @@ test.beforeAll(async ({ request }) => {
 	}
 })
 
+test('room metadata links and phase-only live updates', async ({ page, request }) => {
+	let initialListingReceived = false
+	page.on('websocket', (socket) => {
+		socket.on('framereceived', (frame) => {
+			if (String(frame.payload).includes('"lobbyListings"')) initialListingReceived = true
+		})
+	})
+	await page.goto('/lobby')
+	const row = page
+		.getByRole('row')
+		.filter({ has: page.getByRole('link', { name: 'Test active room', exact: true }) })
+	await expect(row.getByRole('link', { name: 'Fixture level' })).toHaveAttribute(
+		'href',
+		'/workshop/123',
+	)
+	await expect(row.getByRole('link', { name: 'Original & Collaborator' })).toHaveAttribute(
+		'href',
+		'/user/76561198000000001',
+	)
+	await expect(row.getByText('6m', { exact: true })).toBeVisible()
+	await expect(row.getByText('Racing', { exact: true })).toBeVisible()
+	await expect.poll(() => initialListingReceived).toBe(true)
+	for (const phase of ['End of Round', 'Podium', 'Racing']) {
+		const response = await request.post('http://127.0.0.1:55440/__test/advance-round')
+		expect(response.ok()).toBe(true)
+		await expect(row.getByText(phase, { exact: true })).toBeVisible()
+	}
+	await page.getByRole('link', { name: 'Test active room', exact: true }).click()
+	await expect(page.getByRole('link', { name: 'Fixture level' })).toHaveAttribute(
+		'href',
+		'/workshop/123',
+	)
+	await expect(page.getByText('Racing', { exact: true })).toBeVisible()
+})
+
 test('live lobby subscriptions update without HTTP polling and pause when hidden', async ({
 	page,
 	request,

@@ -33,6 +33,8 @@ export type LobbyRoom = Omit<
 	| 'durationSeconds'
 	| 'occupancy'
 	| 'host'
+	| 'levelWorkshopId'
+	| 'levelAuthorSteamId'
 > & {
 	id: string
 	hostId: string
@@ -42,6 +44,8 @@ export type LobbyRoom = Omit<
 	closedAt: string | null
 	durationSeconds: number
 	occupancy: number | null
+	levelWorkshopId: string | null
+	levelAuthorSteamId: string | null
 	host: { steamId: string; steamName?: string | null } | null
 }
 export function mapLobbyRoom(room: Zc_LobbyRoomFragment): LobbyRoom {
@@ -55,6 +59,14 @@ export function mapLobbyRoom(room: Zc_LobbyRoomFragment): LobbyRoom {
 		closedAt: room.closedAt == null ? null : String(room.closedAt),
 		durationSeconds: Number(room.durationSeconds ?? 0),
 		occupancy: lobbyNumber(room.occupancy),
+		levelWorkshopId:
+			room.levelWorkshopId == null || String(room.levelWorkshopId) === '0'
+				? null
+				: String(room.levelWorkshopId),
+		levelAuthorSteamId:
+			room.levelAuthorSteamId == null || ['0', '1'].includes(String(room.levelAuthorSteamId))
+				? null
+				: String(room.levelAuthorSteamId),
 		host: room.host
 			? { steamId: String(room.host.steamId), steamName: room.host.steamName }
 			: null,
@@ -263,4 +275,23 @@ export function lobbyDuration(start: string, end: string | null | undefined, now
 		hours: Math.floor((seconds % 86400) / 3600),
 		minutes: Math.floor((seconds % 3600) / 60),
 	}
+}
+
+export function lobbyRoundLength(
+	seconds: number | null | undefined,
+	locale: string,
+): string | null {
+	if (seconds == null || !Number.isFinite(seconds) || seconds <= 0) return null
+	const total = Math.ceil(seconds)
+	const hours = Math.floor(total / 3600)
+	const minutes = Math.floor(total / 60) % 60
+	const remainder = total % 60
+	const number = new Intl.NumberFormat(locale, { useGrouping: false })
+	return [
+		hours ? `${number.format(hours)}h` : '',
+		minutes ? `${number.format(minutes)}m` : '',
+		remainder ? `${number.format(remainder)}s` : '',
+	]
+		.filter(Boolean)
+		.join(' ')
 }

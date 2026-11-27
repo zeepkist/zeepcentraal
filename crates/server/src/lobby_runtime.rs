@@ -151,6 +151,7 @@ impl LobbyRuntime {
         config: LobbyRuntimeConfig,
         store: LobbySnapshotStore,
         database: zc_database::Database,
+        queue: zc_jobs::queue::Queue,
     ) -> Result<Self> {
         let (shutdown, shutdown_rx) = watch::channel(false);
         if !config.enabled {
@@ -181,6 +182,11 @@ impl LobbyRuntime {
                 store,
                 receiver,
                 persistence,
+                shutdown_rx.clone(),
+            )),
+            tokio::spawn(run_lobby_workshop_scans(
+                database.clone(),
+                queue,
                 shutdown_rx.clone(),
             )),
             tokio::spawn(run_persistence(database, persistence_rx)),
@@ -958,6 +964,43 @@ async fn persist_refresh_token(
     tokio::fs::rename(&temporary, refresh_token_file)
         .await
         .context("replace Steam refresh token")?;
+    Ok(())
+}
+
+async fn run_lobby_workshop_scans(
+    database: zc_database::Database,
+    queue: zc_jobs::queue::Queue,
+    mut shutdown: watch::Receiver<bool>,
+) {
+    let mut tick = tokio::time::interval(Duration::from_secs(60));
+    tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    while !*shutdown.borrow() {
+        tokio::select! {
+            _ = shutdown.changed() => break,
+            _ = tick.tick() => {
+                if let Err(error) = enqueue_lobby_workshop_scans(&database, &queue).await {
+                    tracing::warn!(%error, "Lobby Workshop scan scheduling failed");
+                }
+            }
+        }
+    }
+}
+
+async fn enqueue_lobby_workshop_scans(
+    database: &zc_database::Database,
+    queue: &zc_jobs::queue::Queue,
+) -> Result<()> {
+    for workshop_id in database.pending_lobby_workshop_scans().await? {
+        queue
+            .enqueue(
+                zc_jobs::TaskIdentifier::ScanWorkshopItem,
+                serde_json::json!({"workshopId": workshop_id.to_string()}),
+                zc_jobs::queue::JobLane::Bulk,
+                Some(&format!("scanWorkshopItem:{workshop_id}")),
+            )
+            .await?;
+        database.mark_lobby_workshop_scan(workshop_id).await?;
+    }
     Ok(())
 }
 
