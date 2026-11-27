@@ -18,8 +18,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  rust-quality:
+  # GitHub cancels sibling jobs only within a fail-fast matrix.
+  quality:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        name: [rust-quality, ts-quality, release-tooling]
     env:
       CARGO_INCREMENTAL: '0'
       CARGO_BUILD_JOBS: '2'
@@ -28,53 +34,70 @@ jobs:
       RUSTC_WRAPPER: kache
     steps:
       - uses: actions/checkout@v7
-      - uses: Swatinem/rust-cache@v2
+      - if: ${{ matrix.name == 'rust-quality' }}
+        uses: Swatinem/rust-cache@v2
         with:
           cache-targets: false
-      - uses: ./.github/actions/setup-rust-cache
+      - if: ${{ matrix.name == 'rust-quality' }}
+        uses: ./.github/actions/setup-rust-cache
         id: kache
         with:
           scope: quality
-      - run: cargo fmt --all --check
-      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
-      - run: cargo test --locked --workspace
-      - uses: ./.github/actions/setup-bun-deps
-      - uses: ./.github/actions/verify-telemetry
+      - if: ${{ matrix.name == 'rust-quality' }}
+        run: cargo fmt --all --check
+      - if: ${{ matrix.name == 'rust-quality' }}
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - if: ${{ matrix.name == 'rust-quality' }}
+        run: cargo test --locked --workspace
+      - if: ${{ matrix.name == 'rust-quality' }}
+        uses: ./.github/actions/setup-bun-deps
+      - if: ${{ matrix.name == 'rust-quality' }}
+        uses: ./.github/actions/verify-telemetry
       # The standalone vendor lockfile can resolve versions absent from the workspace cache.
-      - run: cargo fetch --manifest-path vendor/steam-client-rs/Cargo.toml --locked
-      - run: cargo clippy --manifest-path vendor/steam-client-rs/Cargo.toml --frozen --all-targets -- -D warnings
-      - run: cargo test --manifest-path vendor/steam-client-rs/Cargo.toml --frozen --lib ticket_request
-
-  ts-quality:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-bun-deps
-      - name: Typecheck PostGraphile
+      - if: ${{ matrix.name == 'rust-quality' }}
+        run: cargo fetch --manifest-path vendor/steam-client-rs/Cargo.toml --locked
+      - if: ${{ matrix.name == 'rust-quality' }}
+        run: cargo clippy --manifest-path vendor/steam-client-rs/Cargo.toml --frozen --all-targets -- -D warnings
+      - if: ${{ matrix.name == 'rust-quality' }}
+        run: cargo test --manifest-path vendor/steam-client-rs/Cargo.toml --frozen --lib ticket_request
+      - if: ${{ matrix.name == 'ts-quality' }}
+        uses: ./.github/actions/setup-bun-deps
+      - if: ${{ matrix.name == 'ts-quality' }}
+        name: Typecheck PostGraphile
         run: bunx --no-install golar -p packages/postgraphile/tsconfig.json
-      - name: Typecheck web
+      - if: ${{ matrix.name == 'ts-quality' }}
+        name: Typecheck web
         run: bun run typecheck:web
-      - name: Test PostGraphile
+      - if: ${{ matrix.name == 'ts-quality' }}
+        name: Test PostGraphile
         run: bun --no-env-file test --isolate packages/telemetry/src packages/postgraphile/src packages/database/src/telemetry.spec.ts
-      - name: Test web
+      - if: ${{ matrix.name == 'ts-quality' }}
+        name: Test web
         run: bun --bun run test:web
-      - name: Lint and format retained TypeScript services
+      - if: ${{ matrix.name == 'ts-quality' }}
+        name: Lint and format retained TypeScript services
         run: bunx --no-install biome check packages/postgraphile packages/web packages/telemetry packages/database/src/telemetry.ts
-
-  release-tooling:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/setup-bun-deps
-      - uses: actions/setup-node@v7
+      - if: ${{ matrix.name == 'release-tooling' }}
+        uses: ./.github/actions/setup-bun-deps
+      - if: ${{ matrix.name == 'release-tooling' }}
+        uses: actions/setup-node@v7
         with:
           node-version: '26'
           package-manager-cache: false
-      - run: node --test scripts/release/release.test.mjs
+      - if: ${{ matrix.name == 'release-tooling' }}
+        run: node --test scripts/release/release.test.mjs
 
-  rust-binaries:
-    needs: rust-quality
-    runs-on: ubuntu-22.04
+  binaries:
+    name: ${{ matrix.name }}
+    needs: quality
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { name: rust-binaries, runner: ubuntu-22.04 }
+          - { name: 'ts-binaries (postgraphile)', runner: ubuntu-latest, package: postgraphile, script: 'build:postgraphile', path: 'dist/zeepcentraal-postgraphile', hidden: false }
+          - { name: 'ts-binaries (web)', runner: ubuntu-latest, package: web, script: 'build:web', path: 'packages/web/.output/', hidden: true }
     env:
       CARGO_INCREMENTAL: '0'
       CARGO_BUILD_JOBS: '2'
@@ -82,51 +105,48 @@ jobs:
       RUSTC_WRAPPER: kache
     steps:
       - uses: actions/checkout@v7
-      - uses: Swatinem/rust-cache@v2
+      - if: ${{ matrix.name == 'rust-binaries' }}
+        uses: Swatinem/rust-cache@v2
         with:
           cache-targets: false
-      - uses: ./.github/actions/setup-rust-cache
+      - if: ${{ matrix.name == 'rust-binaries' }}
+        uses: ./.github/actions/setup-rust-cache
         id: kache
         with:
           scope: release-glibc-2.35
-      - name: Verify Rust build glibc baseline
+      - if: ${{ matrix.name == 'rust-binaries' }}
+        name: Verify Rust build glibc baseline
         run: test "$(getconf GNU_LIBC_VERSION)" = 'glibc 2.35'
-      - name: Build Rust service binaries
+      - if: ${{ matrix.name == 'rust-binaries' }}
+        name: Build Rust service binaries
         run: cargo build --locked --release -p zc-server -p zc-jobs -p zc-migrate -p zc-lobby-host -p zc-discord -p zc-streamkist -p zc-inspector-zeep -p zc-import-zsl --bins
-      - name: Stage Rust binaries
+      - if: ${{ matrix.name == 'rust-binaries' }}
+        name: Stage Rust binaries
         run: |
           mkdir -p dist
           cp "$CARGO_TARGET_DIR"/release/zeepcentraal-{server,jobs,migrate,lobby-host,discord,streamkist,inspector-zeep,import-zsl} dist/
-      - name: Check Rust runtime ABI
+      - if: ${{ matrix.name == 'rust-binaries' }}
+        name: Check Rust runtime ABI
         run: node scripts/release/check-rust-abi.mjs dist/zeepcentraal-{server,jobs,migrate,lobby-host,discord,streamkist,inspector-zeep,import-zsl}
-      - uses: actions/upload-artifact@v7
+      - if: ${{ matrix.name == 'rust-binaries' }}
+        uses: actions/upload-artifact@v7
         with:
           name: rust-binaries
           if-no-files-found: error
           path: dist/zeepcentraal-*
-
-  ts-binaries:
-    needs: ts-quality
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        package:
-          - { name: postgraphile, script: 'build:postgraphile', path: 'dist/zeepcentraal-postgraphile', hidden: false }
-          - { name: web, script: 'build:web', path: 'packages/web/.output/', hidden: true }
-    steps:
-      - uses: actions/checkout@v7
-      - uses: ./.github/actions/build-package-output
+      - if: ${{ matrix.name != 'rust-binaries' }}
+        uses: ./.github/actions/build-package-output
         with:
-          name: ${{ matrix.package.name }}
-          build-script: ${{ matrix.package.script }}
-          artifact-path: ${{ matrix.package.path }}
-          include-hidden-files: ${{ matrix.package.hidden }}
+          name: ${{ matrix.package }}
+          build-script: ${{ matrix.script }}
+          artifact-path: ${{ matrix.path }}
+          include-hidden-files: ${{ matrix.hidden }}
 
   build-images:
-    needs: [rust-binaries, ts-binaries]
+    needs: binaries
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         include:
           - { name: zc-server, file: docker/Dockerfile.server, artifact: rust-binaries, path: dist, expected: dist/zeepcentraal-server, super_league: false }
@@ -156,10 +176,10 @@ jobs:
   can-merge:
     name: can-merge
     runs-on: ubuntu-latest
-    needs: [rust-quality, ts-quality, release-tooling, rust-binaries, ts-binaries, build-images]
+    needs: [quality, binaries, build-images]
     if: ${{ always() }}
     steps:
       - name: Require successful validation
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: test "$RESULTS" = 'success success success success success success'
+        run: test "$RESULTS" = 'success success success'
