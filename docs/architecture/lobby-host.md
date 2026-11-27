@@ -51,7 +51,7 @@ sanitize remote text and error chains.
 
 ```text
 Game connection terminated connection=<id> lobby=<join-id> profile=totd origin="remote" classification="remote_disconnect" retry_ms=Some(31800)
-Recent outbound game packet connection=<id> packet_type="CHAT_MESSAGE" payload_bytes=1196 sha256=<digest> fragmented=true outcome="acknowledged" raw_status="omitted"
+Recent outbound game packet connection=<id> packet_type="CHAT_MESSAGE" payload_bytes=1404 sha256=<digest> fragmented=true outcome="acknowledged" raw_status="omitted"
 ```
 
 An ACK confirms that Lidgren acknowledged every chunk. Compare captured raw bytes

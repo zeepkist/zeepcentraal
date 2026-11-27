@@ -352,7 +352,7 @@ impl RoomContext {
         }
         tracing::debug!(
             bytes,
-            fragmented = bytes > 1195,
+            fragmented = bytes > zc_core::zeepnet::lidgren::DEFAULT_UNFRAGMENTED_PAYLOAD_BYTES,
             "Tournament overlay acknowledged"
         );
         Ok(())

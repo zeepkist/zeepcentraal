@@ -620,8 +620,8 @@ mod tests {
             ("twelve", Some(12), "Player"),
             ("unicode", Some(12), "日本語🧼"),
             ("escaped", Some(12), "<<<<<<<<<"),
-            ("boundary-1195", Some(12), "日本語🧼"),
-            ("boundary-1196", Some(12), "日本語🧼"),
+            ("boundary-1403", Some(12), "日本語🧼"),
+            ("boundary-1404", Some(12), "日本語🧼"),
         ] {
             let snapshot = count.map(|count| TournamentLobbySnapshot {
                 entries: 42,
@@ -631,7 +631,7 @@ mod tests {
                         record_id: rank + 10,
                         steam_id: i64::from(rank),
                         steam_name: Some(if label.starts_with("boundary-") {
-                            let extra = if label == "boundary-1195" { 49 } else { 50 };
+                            let extra = if label == "boundary-1403" { 49 } else { 50 };
                             format!(
                                 "{name}{}",
                                 "x".repeat((extra - 5 * (rank - 1)).clamp(0, 5) as usize)
@@ -664,10 +664,10 @@ mod tests {
             }
             let packet = zc_core::zeepnet::chat_message_packet(&command)?;
             if label == "one" {
-                assert!(packet.len() <= 1195);
+                assert!(packet.len() <= 1403);
             }
             if label == "escaped" {
-                assert!(packet.len() > 1195);
+                assert!(packet.len() > 1403);
             }
             if let Some(boundary) = label.strip_prefix("boundary-") {
                 assert_eq!(packet.len(), boundary.parse::<usize>()?, "{label}");

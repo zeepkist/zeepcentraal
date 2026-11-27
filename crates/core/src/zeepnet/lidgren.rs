@@ -37,7 +37,9 @@ const MAX_OUTGOING_TRANSFERS: usize = 128;
 const SEQUENCE_MODULUS: u16 = 1024;
 const RECEIVE_WINDOW: i16 = 64;
 const SEND_WINDOW: usize = 64;
-const DEFAULT_MTU: usize = 1200;
+const DEFAULT_MTU: usize = 1408;
+const MESSAGE_HEADER_BYTES: usize = 5;
+pub const DEFAULT_UNFRAGMENTED_PAYLOAD_BYTES: usize = DEFAULT_MTU - MESSAGE_HEADER_BYTES;
 const RESEND_DELAY: Duration = Duration::from_millis(500);
 const MAX_SEND_ATTEMPTS: u8 = 20;
 const DISCONNECT_FLUSH_TIMEOUT: Duration = Duration::from_millis(500);
@@ -805,6 +807,30 @@ fn expire_fragments(state: &mut State, now: Instant) {
     });
 }
 
+fn best_fragment_chunk_size(group: u32, total_bytes: usize, mtu: usize) -> usize {
+    let varint_bytes = |value: usize| {
+        ((usize::BITS - value.leading_zeros()) as usize)
+            .div_ceil(7)
+            .max(1)
+    };
+    let header_bytes = |chunk_bytes, chunk_count| {
+        varint_bytes(group as usize)
+            + varint_bytes(total_bytes * 8)
+            + varint_bytes(chunk_bytes)
+            + varint_bytes(chunk_count)
+    };
+    let initial = mtu - MESSAGE_HEADER_BYTES - 4;
+    let mut chunk_bytes = mtu - MESSAGE_HEADER_BYTES - header_bytes(initial, total_bytes / initial);
+    // Match Lidgren GetBestChunkSize, including its strict one-byte margin.
+    loop {
+        chunk_bytes -= 1;
+        let chunks = total_bytes.div_ceil(chunk_bytes);
+        if chunk_bytes + header_bytes(chunk_bytes, chunks) + MESSAGE_HEADER_BYTES + 1 < mtu {
+            return chunk_bytes;
+        }
+    }
+}
+
 fn enqueue_transfer(
     state: &mut State,
     payload: Vec<u8>,
@@ -830,22 +856,19 @@ fn enqueue_transfer(
     {
         return Err((LidgrenError::OutgoingLimit, complete));
     }
-    let (chunk_byte_size, chunk_count) = if payload.len() + 5 <= state.options.mtu {
-        // The fragment chunk budget includes metadata. A single datagram does not need it.
-        (payload.len(), 1)
-    } else {
-        let chunk_byte_size = state.options.mtu - 32;
-        (chunk_byte_size, payload.len().div_ceil(chunk_byte_size))
-    };
+    let (chunk_byte_size, chunk_count) =
+        if payload.len() + MESSAGE_HEADER_BYTES <= state.options.mtu {
+            (payload.len(), 1)
+        } else {
+            let chunk_byte_size =
+                best_fragment_chunk_size(state.fragment_group, payload.len(), state.options.mtu);
+            (chunk_byte_size, payload.len().div_ceil(chunk_byte_size))
+        };
     let group_id = if chunk_count == 1 {
         0
     } else {
         let current = state.fragment_group;
-        state.fragment_group = if current >= 0x7fff_ffff {
-            1
-        } else {
-            current + 1
-        };
+        state.fragment_group = if current >= 65_533 { 1 } else { current + 1 };
         current
     };
     let transfer_id = state.next_transfer_id;
@@ -1309,6 +1332,13 @@ mod tests {
         }
     }
 
+    #[test]
+    fn fragment_chunk_size_accounts_for_lidgren_header_width() {
+        assert_eq!(best_fragment_chunk_size(127, 1_404, DEFAULT_MTU), 1_395);
+        assert_eq!(best_fragment_chunk_size(128, 1_404, DEFAULT_MTU), 1_394);
+        assert_eq!(best_fragment_chunk_size(128, 3_295, DEFAULT_MTU), 1_393);
+    }
+
     #[tokio::test]
     async fn chat_fragments_match_independent_datagrams() {
         let server = UdpSocket::bind("127.0.0.1:0").await.unwrap();
@@ -1323,7 +1353,7 @@ mod tests {
             .map(|line| hex::decode(line).unwrap())
             .collect();
         let send = async {
-            for message in ["x".repeat(1183), "x".repeat(1184), "hello".into()] {
+            for message in ["x".repeat(1391), "x".repeat(1392), "hello".into()] {
                 let packet = super::super::chat_message_packet(&message).unwrap();
                 client.send_reliable_ordered(packet, 0).await.unwrap();
             }
@@ -1381,7 +1411,7 @@ mod tests {
                 .await
                 .unwrap();
         }
-        for message in ["x".repeat(1183), "x".repeat(1184), "hello".into()] {
+        for message in ["x".repeat(1391), "x".repeat(1392), "hello".into()] {
             assert_eq!(
                 received.try_recv().unwrap(),
                 super::super::chat_message_packet(&message).unwrap()
