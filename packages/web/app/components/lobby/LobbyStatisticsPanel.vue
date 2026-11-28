@@ -20,7 +20,7 @@ const cards = computed<StatisticMetric[]>(() => [
 	{ key: 'online', label: t('lobby.summary.onlinePlayers'), value: number(latest.value?.players), icon: 'users' },
 	{ key: 'rooms', label: t('lobby.summary.playersInLobbies'), value: number(latest.value?.playersInRooms), icon: 'users-group' },
 	{ key: 'active', label: t('lobby.summary.lobbies'), value: number(latest.value?.rooms), icon: 'server' },
-	{ key: 'outside', label: t('lobby.analytics.outside'), value: number(latest.value ? latest.value.players-latest.value.playersInRooms : null), icon: 'user' },
+	{ key: 'outside', label: t('lobby.analytics.outside'), value: number(latest.value ? Math.max(0, latest.value.players - latest.value.playersInRooms) : null), icon: 'user' },
 ])
 const timestamp = (value: unknown) => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null
 const clock = useLobbyClock(() => Boolean(timestamp(latest.value?.dateCreated) || displayed.value?.popularMaps?.nodes.length || displayed.value?.popularMappers?.nodes.length))

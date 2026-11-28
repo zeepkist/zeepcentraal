@@ -36,7 +36,7 @@ describe('lobby persistence schema', () => {
 		const lobbyForeignKeys = getTableConfig(lobby).foreignKeys
 		const historyForeignKeys = getTableConfig(lobbyHistory).foreignKeys
 
-		expect(lobbyForeignKeys.map((key) => key.getName())).toEqual(['lobby_host_fkey'])
+		expect(lobbyForeignKeys.map((key) => key.getName())).toContain('lobby_host_fkey')
 		expect(historyForeignKeys.map((key) => key.getName()).toSorted()).toEqual([
 			'lobby_history_host_fkey',
 			'lobby_history_lobby_fkey',

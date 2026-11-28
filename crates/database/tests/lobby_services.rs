@@ -166,6 +166,80 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
             assert!(!row.get::<_, bool>(4));
         }
     }
+
+    let bot_room = WireLobby {
+        id: format!("{master_id}-bot"),
+        title: "Bot fixture".into(),
+        host_name: "zeepcentraal".into(),
+        host_steam_id: 76_561_198_679_467_221,
+        players: 1,
+        player_limit: 64,
+        ..lobby.clone()
+    };
+    let private_bot_room = WireLobby {
+        id: format!("{master_id}-private-bot"),
+        players: 0,
+        player_limit: 0,
+        is_public: false,
+        ..bot_room.clone()
+    };
+    let rooms = || LobbyPacket::List(vec![bot_room.clone(), private_bot_room.clone()]);
+    assert!(
+        database
+            .persist_lobby_packet(&rooms(), "2026-09-20T12:10:00Z")
+            .await?
+    );
+    let occupied_bot_room = WireLobby {
+        players: 2,
+        ..bot_room.clone()
+    };
+    assert!(
+        !database
+            .persist_lobby_packet(
+                &LobbyPacket::Update {
+                    operation: LobbyOperation::Updated,
+                    lobby: occupied_bot_room
+                },
+                "2026-09-20T12:10:30Z",
+            )
+            .await?
+    );
+    assert!(
+        !database
+            .persist_lobby_packet(&rooms(), "2026-09-20T12:11:00Z")
+            .await?
+    );
+    for (online_players, players_in_lobbies, date) in [
+        (7, 5, "2026-09-20T12:11:00Z"),
+        (0, 1, "2026-09-20T12:12:00Z"),
+    ] {
+        database
+            .persist_lobby_packet(
+                &LobbyPacket::Statistics {
+                    online_players,
+                    lobby_count: 2,
+                    players_in_lobbies,
+                },
+                date,
+            )
+            .await?;
+    }
+    let counts = client
+        .query_one(
+            include_str!("fixtures/lobby_services/check_saved_bot_counts.sql"),
+            &[&bot_room.id, &private_bot_room.id],
+        )
+        .await?;
+    for (column, expected) in [0, 63, 1, 0, 0, 0].into_iter().enumerate() {
+        assert_eq!(counts.get::<_, i32>(column), expected);
+    }
+    assert_eq!(counts.get::<_, &str>("stats"), "{{6,3},{0,0}}");
+    assert_eq!(counts.get::<_, &str>("history"), "{{0,63},{1,63},{0,63}}");
+    assert!(
+        database
+            .persist_lobby_packet(&LobbyPacket::List(vec![]), "2026-09-20T12:13:00Z")
+            .await?
+    );
     client
         .execute(
             include_str!("fixtures/lobby_services/delete_lobby_stats.sql"),
@@ -175,7 +249,13 @@ async fn lobby_packets_preserve_drizzle_history_semantics() -> anyhow::Result<()
     client
         .execute(
             include_str!("fixtures/lobby_services/delete_lobby.sql"),
-            &[&vec![master_id, explicit.id, inferred.id]],
+            &[&vec![
+                master_id,
+                explicit.id,
+                inferred.id,
+                bot_room.id,
+                private_bot_room.id,
+            ]],
         )
         .await?;
     client

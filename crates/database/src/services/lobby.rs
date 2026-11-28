@@ -9,8 +9,8 @@ use serde::Serialize;
 use std::collections::HashMap;
 use zc_core::zeepnet::{LobbyOperation, LobbyPacket, WireLobby};
 
-const STATS_LOCK_KEY: &str = "zeepcentraal:lobby:stats";
 const LOBBY_LOCK_KEY: &str = "zeepcentraal:lobby:rooms";
+const ZEEPCENTRAAL_STEAM_ID: u64 = 76_561_198_679_467_221;
 
 #[derive(QueryableByName)]
 struct ExistingLobby {
@@ -50,6 +50,12 @@ struct Statistics {
     players_in_rooms: i32,
 }
 
+#[derive(QueryableByName)]
+struct HostedRoomCount {
+    #[diesel(sql_type = BigInt)]
+    count: i64,
+}
+
 #[derive(Serialize)]
 struct LobbyValue<'a> {
     master_id: &'a str,
@@ -72,12 +78,27 @@ struct HistoryValue<'a> {
     is_public: bool,
 }
 
+impl ExistingLobby {
+    fn closure(&self) -> HistoryValue<'_> {
+        HistoryValue {
+            lobby_id: self.id,
+            host_id: self.host_id,
+            change_type: "closed",
+            room_name: &self.room_name,
+            players: self.players,
+            player_limit: self.player_limit,
+            is_public: self.is_public,
+        }
+    }
+}
+
 impl Database {
+    /// Returns whether the packet changed which zeepcentraal rooms are open.
     pub async fn persist_lobby_packet(
         &self,
         packet: &LobbyPacket,
         observed_at: &str,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         match packet {
             LobbyPacket::Statistics {
                 online_players,
@@ -90,7 +111,8 @@ impl Database {
                     (*players_in_lobbies).try_into()?,
                     observed_at,
                 )
-                .await
+                .await?;
+                Ok(false)
             }
             LobbyPacket::List(entries) => {
                 self.persist_active_lobbies(entries, observed_at, true)
@@ -117,7 +139,16 @@ impl Database {
         let mut connection = self.connection().await?;
         connection
             .transaction::<(), anyhow::Error, _>(async move |connection| {
-                advisory_lock(connection, STATS_LOCK_KEY).await?;
+                advisory_lock(connection, LOBBY_LOCK_KEY).await?;
+                let hosted: HostedRoomCount = sql_query(include_str!(
+                    "../queries/lobby/count_open_hosted_lobbies.sql"
+                ))
+                .bind::<BigInt, _>(ZEEPCENTRAAL_STEAM_ID as i64)
+                .get_result(connection)
+                .await?;
+                let players = (players - 1).max(0);
+                let players_in_rooms =
+                    i32::try_from((i64::from(players_in_rooms) - hosted.count).max(0))?;
                 let previous: Option<Statistics> = sql_query(include_str!(
                     "../queries/lobby/select_players_lobby_stats.sql"
                 ))
@@ -148,7 +179,7 @@ impl Database {
         entries: &[WireLobby],
         observed_at: &str,
         authoritative: bool,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         let entries = entries
             .iter()
             .cloned()
@@ -166,7 +197,7 @@ impl Database {
         );
         let mut connection = self.connection().await?;
         connection
-            .transaction::<(), anyhow::Error, _>(async move |connection| {
+            .transaction::<bool, anyhow::Error, _>(async move |connection| {
                 advisory_lock(connection, LOBBY_LOCK_KEY).await?;
                 upsert_hosts(connection, &values, observed_at).await?;
                 let existing: Vec<ExistingLobby> =
@@ -197,8 +228,14 @@ impl Database {
                     .map(|row| (row.master_id.as_str(), row.id))
                     .collect::<HashMap<_, _>>();
                 let mut history = Vec::new();
+                let mut hosted_rooms_changed = false;
                 for entry in &entries {
                     let previous = existing_by_id.get(entry.id.as_str()).copied();
+                    let was_hosted = previous.is_some_and(|room| {
+                        !room.closed && room.host_id == ZEEPCENTRAAL_STEAM_ID as i64
+                    });
+                    hosted_rooms_changed |=
+                        was_hosted != (entry.host_steam_id == ZEEPCENTRAAL_STEAM_ID);
                     let change_type = match previous {
                         None => Some("opened"),
                         Some(value) if value.closed => Some("reopened"),
@@ -223,15 +260,8 @@ impl Database {
                     })
                     .collect::<Vec<_>>();
                 for row in &missing {
-                    history.push(HistoryValue {
-                        lobby_id: row.id,
-                        host_id: row.host_id,
-                        change_type: "closed",
-                        room_name: &row.room_name,
-                        players: row.players,
-                        player_limit: row.player_limit,
-                        is_public: row.is_public,
-                    });
+                    hosted_rooms_changed |= row.host_id == ZEEPCENTRAAL_STEAM_ID as i64;
+                    history.push(row.closure());
                 }
                 insert_history(connection, &history, observed_at).await?;
                 if !missing.is_empty() {
@@ -242,16 +272,16 @@ impl Database {
                         .execute(connection)
                         .await?;
                 }
-                Ok(())
+                Ok(hosted_rooms_changed)
             })
             .await
     }
 
-    async fn persist_closed_lobby(&self, entry: &WireLobby, observed_at: &str) -> Result<()> {
+    async fn persist_closed_lobby(&self, entry: &WireLobby, observed_at: &str) -> Result<bool> {
         let ids = serde_json::json!([entry.id]);
         let mut connection = self.connection().await?;
         connection
-            .transaction::<(), anyhow::Error, _>(async move |connection| {
+            .transaction::<bool, anyhow::Error, _>(async move |connection| {
                 advisory_lock(connection, LOBBY_LOCK_KEY).await?;
                 let previous: Option<ExistingLobby> =
                     sql_query(include_str!("../queries/lobby/read_last_lobby.sql"))
@@ -260,27 +290,15 @@ impl Database {
                         .await
                         .optional()?;
                 if let Some(row) = previous.filter(|row| !row.closed) {
-                    insert_history(
-                        connection,
-                        &[HistoryValue {
-                            lobby_id: row.id,
-                            host_id: row.host_id,
-                            change_type: "closed",
-                            room_name: &row.room_name,
-                            players: row.players,
-                            player_limit: row.player_limit,
-                            is_public: row.is_public,
-                        }],
-                        observed_at,
-                    )
-                    .await?;
+                    insert_history(connection, &[row.closure()], observed_at).await?;
                     sql_query(include_str!("../queries/lobby/set_closed_at_lobby.sql"))
                         .bind::<diesel::sql_types::Array<BigInt>, _>(vec![row.id])
                         .bind::<Text, _>(observed_at)
                         .execute(connection)
                         .await?;
+                    return Ok(row.host_id == ZEEPCENTRAAL_STEAM_ID as i64);
                 }
-                Ok(())
+                Ok(false)
             })
             .await
     }
@@ -365,6 +383,7 @@ fn lobby_values(entries: &[WireLobby]) -> Result<serde_json::Value> {
         entries
             .iter()
             .map(|entry| {
+                let (players, player_limit) = room_player_counts(entry)?;
                 Ok(LobbyValue {
                     master_id: &entry.id,
                     room_name: &entry.title,
@@ -373,19 +392,22 @@ fn lobby_values(entries: &[WireLobby]) -> Result<serde_json::Value> {
                         .try_into()
                         .context("Lobby host Steam ID exceeds PostgreSQL bigint")?,
                     host_name: &entry.host_name,
-                    players: entry
-                        .players
-                        .try_into()
-                        .context("Lobby player count exceeds PostgreSQL integer")?,
-                    player_limit: entry
-                        .player_limit
-                        .try_into()
-                        .context("Lobby player limit exceeds PostgreSQL integer")?,
+                    players,
+                    player_limit,
                     is_public: entry.is_public,
                 })
             })
             .collect::<Result<Vec<_>>>()?,
     )?)
+}
+
+fn room_player_counts(entry: &WireLobby) -> Result<(i32, i32)> {
+    let bots = i32::from(entry.host_steam_id == ZEEPCENTRAAL_STEAM_ID);
+    let players =
+        i32::try_from(entry.players).context("Lobby player count exceeds PostgreSQL integer")?;
+    let player_limit = i32::try_from(entry.player_limit)
+        .context("Lobby player limit exceeds PostgreSQL integer")?;
+    Ok(((players - bots).max(0), (player_limit - bots).max(0)))
 }
 
 async fn upsert_hosts(
@@ -402,10 +424,11 @@ async fn upsert_hosts(
 }
 
 fn materially_changed(previous: &ExistingLobby, entry: &WireLobby) -> Result<bool> {
+    let (players, player_limit) = room_player_counts(entry)?;
     Ok(previous.room_name != entry.title
         || previous.host_id != i64::try_from(entry.host_steam_id)?
-        || previous.players != i32::try_from(entry.players)?
-        || previous.player_limit != i32::try_from(entry.player_limit)?
+        || previous.players != players
+        || previous.player_limit != player_limit
         || previous.is_public != entry.is_public)
 }
 
@@ -414,13 +437,14 @@ fn history_value<'a>(
     entry: &'a WireLobby,
     change_type: &'a str,
 ) -> Result<HistoryValue<'a>> {
+    let (players, player_limit) = room_player_counts(entry)?;
     Ok(HistoryValue {
         lobby_id,
         host_id: entry.host_steam_id.try_into()?,
         change_type,
         room_name: &entry.title,
-        players: entry.players.try_into()?,
-        player_limit: entry.player_limit.try_into()?,
+        players,
+        player_limit,
         is_public: entry.is_public,
     })
 }

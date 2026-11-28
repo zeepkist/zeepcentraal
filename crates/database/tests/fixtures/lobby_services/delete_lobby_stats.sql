@@ -1,1 +1,2 @@
-DELETE FROM public.lobby_stats WHERE players=5 AND rooms=1 AND players_in_rooms=3
+DELETE FROM public.lobby_stats
+WHERE date_created IN ('2026-09-20T12:02:00Z', '2026-09-20T12:11:00Z', '2026-09-20T12:12:00Z')

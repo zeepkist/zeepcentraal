@@ -1008,9 +1008,25 @@ async fn run_persistence(
     database: zc_database::Database,
     mut packets: mpsc::UnboundedReceiver<(LobbyPacket, String)>,
 ) {
+    let mut latest_statistics = None;
     while let Some((packet, observed_at)) = packets.recv().await {
-        if let Err(error) = database.persist_lobby_packet(&packet, &observed_at).await {
-            tracing::warn!(%error, "Zeepkist lobby persistence failed; live feed continuing");
+        if matches!(packet, LobbyPacket::Statistics { .. }) {
+            latest_statistics = Some(packet.clone());
+        }
+        match database.persist_lobby_packet(&packet, &observed_at).await {
+            Ok(true) => {
+                if let Some(statistics) = &latest_statistics
+                    && let Err(error) = database
+                        .persist_lobby_packet(statistics, &observed_at)
+                        .await
+                {
+                    tracing::warn!(%error, "Zeepkist lobby statistics refresh failed");
+                }
+            }
+            Ok(false) => {}
+            Err(error) => {
+                tracing::warn!(%error, "Zeepkist lobby persistence failed; live feed continuing");
+            }
         }
     }
 }
