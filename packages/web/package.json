@@ -50,7 +50,7 @@
 		"meshoptimizer": "~1.3.0",
 		"nuxt": "~4.6.1",
 		"nuxt-charts": "~3.3.0",
-		"nuxt-og-image": "~7.0.0",
+		"nuxt-og-image": "~7.2.0",
 		"pinia": "~4.1.0",
 		"sanitize-html": "~2.18.2",
 		"sortablejs": "~1.15.6",
