@@ -3015,9 +3015,9 @@ dependencies = [
 
 [[package]]
 name = "scalar_api_reference"
-version = "0.2.30"
+version = "0.2.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71e375dd8e3ea0b861ba808d80a0aa72ad0d0d20d5a47a54f925b24b57f386d7"
+checksum = "28e54dd23f0d49b215a4627a4fc3125d1267539a9b610c844349747aa2f25bfe"
 dependencies = [
  "rust-embed",
  "serde",
