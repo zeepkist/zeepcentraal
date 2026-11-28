@@ -20,6 +20,9 @@ export function useLobbyFormat() {
 				...(!mounted.value ? { timeZone: 'UTC' } : {}),
 			}),
 	)
+	const durationFormatter = computed(
+		() => new Intl.NumberFormat(locale.value, { useGrouping: false }),
+	)
 	const number = (value: unknown) =>
 		value == null ? t('common.unavailable') : numberFormatter.value.format(Number(value))
 	const date = (value: unknown) =>
@@ -27,6 +30,6 @@ export function useLobbyFormat() {
 			? dateFormatter.value.format(new Date(value))
 			: t('common.unavailable')
 	const duration = (start: string, end: string | null | undefined, now: number) =>
-		t('lobby.analytics.durationValue', lobbyDuration(start, end, now))
+		lobbyDuration(start, end, now, durationFormatter.value)
 	return { number, date, duration, mounted }
 }

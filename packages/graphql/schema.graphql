@@ -12441,6 +12441,32 @@ type Query implements Node {
     steamId: BigInt
     userId: Int
   ): MedalCountsConnection
+  lobbyPlayedLevel(lobbyId: BigInt!, levelUid: String!, workshopId: BigInt!): LobbyPlayedLevel
+  lobbyPlayedLevels(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyPlayedLevelCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyPlayedLevelFilter
+    """The method to use when ordering `LobbyPlayedLevel`."""
+    orderBy: [LobbyPlayedLevelsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyPlayedLevelsConnection
 }
 
 type Record implements Node {
@@ -23979,6 +24005,32 @@ type Subscription {
     steamId: BigInt
     userId: Int
   ): MedalCountsConnection
+  lobbyPlayedLevel(lobbyId: BigInt!, levelUid: String!, workshopId: BigInt!): LobbyPlayedLevel
+  lobbyPlayedLevels(
+    """Only read the first `n` values of the set."""
+    first: Int
+    """Only read the last `n` values of the set."""
+    last: Int
+    """
+    Skip the first `n` values from our `after` cursor, an alternative to cursor
+    based pagination. May not be used with `last`.
+    """
+    offset: Int
+    """Read all values in the set before (above) this cursor."""
+    before: Cursor
+    """Read all values in the set after (below) this cursor."""
+    after: Cursor
+    """
+    A condition to be used in determining which values should be returned by the collection.
+    """
+    condition: LobbyPlayedLevelCondition
+    """
+    A filter to be used in determining which values should be returned by the collection.
+    """
+    filter: LobbyPlayedLevelFilter
+    """The method to use when ordering `LobbyPlayedLevel`."""
+    orderBy: [LobbyPlayedLevelsOrderBy!] = [PRIMARY_KEY_ASC]
+  ): LobbyPlayedLevelsConnection
 }
 
 type TrackTournament implements Node {
@@ -45590,6 +45642,7 @@ input LobbyListingFilter {
   levelAuthorSteamId: BigIntFilter
   roundTime: FloatFilter
   gameState: IntFilter
+  levelsPlayed: BigIntFilter
 }
 
 """A filter to be used against aggregates of `LobbyListing` object types."""
@@ -45634,6 +45687,7 @@ input LobbyListingSumAggregateFilter {
   levelAuthorSteamId: BigFloatFilter
   roundTime: FloatFilter
   gameState: BigIntFilter
+  levelsPlayed: BigFloatFilter
 }
 
 input LobbyListingDistinctCountAggregateFilter {
@@ -45657,6 +45711,7 @@ input LobbyListingDistinctCountAggregateFilter {
   levelAuthorSteamId: BigIntFilter
   roundTime: BigIntFilter
   gameState: BigIntFilter
+  levelsPlayed: BigIntFilter
 }
 
 input LobbyListingMinAggregateFilter {
@@ -45671,6 +45726,7 @@ input LobbyListingMinAggregateFilter {
   levelAuthorSteamId: BigIntFilter
   roundTime: FloatFilter
   gameState: IntFilter
+  levelsPlayed: BigIntFilter
 }
 
 input LobbyListingMaxAggregateFilter {
@@ -45685,6 +45741,7 @@ input LobbyListingMaxAggregateFilter {
   levelAuthorSteamId: BigIntFilter
   roundTime: FloatFilter
   gameState: IntFilter
+  levelsPlayed: BigIntFilter
 }
 
 input LobbyListingAverageAggregateFilter {
@@ -45699,6 +45756,7 @@ input LobbyListingAverageAggregateFilter {
   levelAuthorSteamId: BigFloatFilter
   roundTime: FloatFilter
   gameState: BigFloatFilter
+  levelsPlayed: BigFloatFilter
 }
 
 input LobbyListingStddevSampleAggregateFilter {
@@ -45713,6 +45771,7 @@ input LobbyListingStddevSampleAggregateFilter {
   levelAuthorSteamId: BigFloatFilter
   roundTime: FloatFilter
   gameState: BigFloatFilter
+  levelsPlayed: BigFloatFilter
 }
 
 input LobbyListingStddevPopulationAggregateFilter {
@@ -45727,6 +45786,7 @@ input LobbyListingStddevPopulationAggregateFilter {
   levelAuthorSteamId: BigFloatFilter
   roundTime: FloatFilter
   gameState: BigFloatFilter
+  levelsPlayed: BigFloatFilter
 }
 
 input LobbyListingVarianceSampleAggregateFilter {
@@ -45741,6 +45801,7 @@ input LobbyListingVarianceSampleAggregateFilter {
   levelAuthorSteamId: BigFloatFilter
   roundTime: FloatFilter
   gameState: BigFloatFilter
+  levelsPlayed: BigFloatFilter
 }
 
 input LobbyListingVariancePopulationAggregateFilter {
@@ -45755,6 +45816,7 @@ input LobbyListingVariancePopulationAggregateFilter {
   levelAuthorSteamId: BigFloatFilter
   roundTime: FloatFilter
   gameState: BigFloatFilter
+  levelsPlayed: BigFloatFilter
 }
 
 """Methods to use when ordering `LobbyHistory`."""
@@ -46484,6 +46546,7 @@ type LobbyListing implements Node {
   levelAuthorSteamId: BigInt
   roundTime: Float
   gameState: Int
+  levelsPlayed: BigInt
 }
 
 """A `LobbyListing` edge in the connection."""
@@ -46553,6 +46616,7 @@ type LobbyListingSumAggregates {
   levelAuthorSteamId: BigFloat!
   roundTime: Float!
   gameState: BigInt!
+  levelsPlayed: BigFloat!
 }
 
 type LobbyListingDistinctCountAggregates {
@@ -46590,6 +46654,7 @@ type LobbyListingDistinctCountAggregates {
   levelAuthorSteamId: BigInt
   roundTime: BigInt
   gameState: BigInt
+  levelsPlayed: BigInt
 }
 
 type LobbyListingMinAggregates {
@@ -46611,6 +46676,7 @@ type LobbyListingMinAggregates {
   levelAuthorSteamId: BigInt
   roundTime: Float
   gameState: Int
+  levelsPlayed: BigInt
 }
 
 type LobbyListingMaxAggregates {
@@ -46632,6 +46698,7 @@ type LobbyListingMaxAggregates {
   levelAuthorSteamId: BigInt
   roundTime: Float
   gameState: Int
+  levelsPlayed: BigInt
 }
 
 type LobbyListingAverageAggregates {
@@ -46653,6 +46720,7 @@ type LobbyListingAverageAggregates {
   levelAuthorSteamId: BigFloat
   roundTime: Float
   gameState: BigFloat
+  levelsPlayed: BigFloat
 }
 
 type LobbyListingStddevSampleAggregates {
@@ -46680,6 +46748,7 @@ type LobbyListingStddevSampleAggregates {
   levelAuthorSteamId: BigFloat
   roundTime: Float
   gameState: BigFloat
+  levelsPlayed: BigFloat
 }
 
 type LobbyListingStddevPopulationAggregates {
@@ -46711,6 +46780,7 @@ type LobbyListingStddevPopulationAggregates {
   levelAuthorSteamId: BigFloat
   roundTime: Float
   gameState: BigFloat
+  levelsPlayed: BigFloat
 }
 
 type LobbyListingVarianceSampleAggregates {
@@ -46732,6 +46802,7 @@ type LobbyListingVarianceSampleAggregates {
   levelAuthorSteamId: BigFloat
   roundTime: Float
   gameState: BigFloat
+  levelsPlayed: BigFloat
 }
 
 type LobbyListingVariancePopulationAggregates {
@@ -46753,6 +46824,7 @@ type LobbyListingVariancePopulationAggregates {
   levelAuthorSteamId: BigFloat
   roundTime: Float
   gameState: BigFloat
+  levelsPlayed: BigFloat
 }
 
 """Grouping methods for `LobbyListing` for usage during aggregation."""
@@ -46778,6 +46850,7 @@ enum LobbyListingGroupBy {
   DURATION_SECONDS
   OCCUPANCY
   AVAILABLE_CAPACITY
+  LEVELS_PLAYED
 }
 
 """Conditions for `LobbyListing` aggregates."""
@@ -46811,6 +46884,7 @@ input LobbyListingHavingSumInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 input LobbyListingHavingDistinctCountInput {
@@ -46829,6 +46903,7 @@ input LobbyListingHavingDistinctCountInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 input LobbyListingHavingMinInput {
@@ -46847,6 +46922,7 @@ input LobbyListingHavingMinInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 input LobbyListingHavingMaxInput {
@@ -46865,6 +46941,7 @@ input LobbyListingHavingMaxInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 input LobbyListingHavingAverageInput {
@@ -46883,6 +46960,7 @@ input LobbyListingHavingAverageInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 input LobbyListingHavingStddevSampleInput {
@@ -46901,6 +46979,7 @@ input LobbyListingHavingStddevSampleInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 input LobbyListingHavingStddevPopulationInput {
@@ -46919,6 +46998,7 @@ input LobbyListingHavingStddevPopulationInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 input LobbyListingHavingVarianceSampleInput {
@@ -46937,6 +47017,7 @@ input LobbyListingHavingVarianceSampleInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 input LobbyListingHavingVariancePopulationInput {
@@ -46955,6 +47036,7 @@ input LobbyListingHavingVariancePopulationInput {
   levelAuthorSteamId: HavingBigintFilter
   roundTime: HavingFloatFilter
   gameState: HavingIntFilter
+  levelsPlayed: HavingBigintFilter
 }
 
 """
@@ -46996,6 +47078,7 @@ input LobbyListingCondition {
   levelAuthorSteamId: BigInt
   roundTime: Float
   gameState: Int
+  levelsPlayed: BigInt
 }
 
 """Methods to use when ordering `LobbyListing`."""
@@ -47043,6 +47126,8 @@ enum LobbyListingsOrderBy {
   ROUND_TIME_DESC
   GAME_STATE_ASC
   GAME_STATE_DESC
+  LEVELS_PLAYED_ASC
+  LEVELS_PLAYED_DESC
 }
 
 """A `User` edge in the connection, with data from `LobbyHistory`."""
@@ -47638,4 +47723,346 @@ input UserToManyAdventureLeaderboardEntryFilter {
   Some related `AdventureLeaderboardEntry` matches the filter criteria. All fields are combined with a logical ‘and.’
   """
   some: AdventureLeaderboardEntryFilter
+}
+
+type LobbyPlayedLevel implements Node {
+  """
+  A globally unique identifier. Can be used in various places throughout the system to identify this single value.
+  """
+  nodeId: ID!
+  lobbyId: BigInt!
+  levelUid: String!
+  workshopId: BigInt!
+  xxHash: String
+  name: String
+  imageUrl: String
+  authorName: String
+}
+
+type LobbyPlayedLevelsConnection {
+  """A list of `LobbyPlayedLevel` objects."""
+  nodes: [LobbyPlayedLevel!]!
+
+  """
+  A list of edges which contains the `LobbyPlayedLevel` and cursor to aid in pagination.
+  """
+  edges: [LobbyPlayedLevelsEdge!]!
+
+  """Information to aid in pagination."""
+  pageInfo: PageInfo!
+
+  """
+  The count of *all* `LobbyPlayedLevel` you could get from the connection.
+  """
+  totalCount: Int!
+
+  """
+  Aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  aggregates: LobbyPlayedLevelAggregates
+
+  """
+  Grouped aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  groupedAggregates(
+    """
+    The method to use when grouping `LobbyPlayedLevel` for these aggregates.
+    """
+    groupBy: [LobbyPlayedLevelGroupBy!]!
+
+    """Conditions on the grouped aggregates."""
+    having: LobbyPlayedLevelHavingInput
+  ): [LobbyPlayedLevelAggregates!]
+}
+
+type LobbyPlayedLevelsEdge {
+  """A cursor for use in pagination."""
+  cursor: Cursor
+
+  """The `LobbyPlayedLevel` at the end of the edge."""
+  node: LobbyPlayedLevel!
+}
+
+type LobbyPlayedLevelAggregates {
+  keys: [String]
+
+  """
+  Sum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  sum: LobbyPlayedLevelSumAggregates
+
+  """
+  Distinct count aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  distinctCount: LobbyPlayedLevelDistinctCountAggregates
+
+  """
+  Minimum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  min: LobbyPlayedLevelMinAggregates
+
+  """
+  Maximum aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  max: LobbyPlayedLevelMaxAggregates
+
+  """
+  Mean average aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  average: LobbyPlayedLevelAverageAggregates
+
+  """
+  Sample standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevSample: LobbyPlayedLevelStddevSampleAggregates
+
+  """
+  Population standard deviation aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  stddevPopulation: LobbyPlayedLevelStddevPopulationAggregates
+
+  """
+  Sample variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  varianceSample: LobbyPlayedLevelVarianceSampleAggregates
+
+  """
+  Population variance aggregates across the matching connection (ignoring before/after/first/last/offset)
+  """
+  variancePopulation: LobbyPlayedLevelVariancePopulationAggregates
+}
+
+type LobbyPlayedLevelSumAggregates {
+  """Sum of lobbyId across the matching connection"""
+  lobbyId: BigFloat!
+
+  """Sum of workshopId across the matching connection"""
+  workshopId: BigFloat!
+}
+
+type LobbyPlayedLevelDistinctCountAggregates {
+  """Distinct count of lobbyId across the matching connection"""
+  lobbyId: BigInt
+
+  """Distinct count of levelUid across the matching connection"""
+  levelUid: BigInt
+
+  """Distinct count of workshopId across the matching connection"""
+  workshopId: BigInt
+
+  """Distinct count of xxHash across the matching connection"""
+  xxHash: BigInt
+
+  """Distinct count of name across the matching connection"""
+  name: BigInt
+
+  """Distinct count of imageUrl across the matching connection"""
+  imageUrl: BigInt
+
+  """Distinct count of authorName across the matching connection"""
+  authorName: BigInt
+}
+
+type LobbyPlayedLevelMinAggregates {
+  """Minimum of lobbyId across the matching connection"""
+  lobbyId: BigInt
+
+  """Minimum of workshopId across the matching connection"""
+  workshopId: BigInt
+}
+
+type LobbyPlayedLevelMaxAggregates {
+  """Maximum of lobbyId across the matching connection"""
+  lobbyId: BigInt
+
+  """Maximum of workshopId across the matching connection"""
+  workshopId: BigInt
+}
+
+type LobbyPlayedLevelAverageAggregates {
+  """Mean average of lobbyId across the matching connection"""
+  lobbyId: BigFloat
+
+  """Mean average of workshopId across the matching connection"""
+  workshopId: BigFloat
+}
+
+type LobbyPlayedLevelStddevSampleAggregates {
+  """Sample standard deviation of lobbyId across the matching connection"""
+  lobbyId: BigFloat
+
+  """Sample standard deviation of workshopId across the matching connection"""
+  workshopId: BigFloat
+}
+
+type LobbyPlayedLevelStddevPopulationAggregates {
+  """
+  Population standard deviation of lobbyId across the matching connection
+  """
+  lobbyId: BigFloat
+
+  """
+  Population standard deviation of workshopId across the matching connection
+  """
+  workshopId: BigFloat
+}
+
+type LobbyPlayedLevelVarianceSampleAggregates {
+  """Sample variance of lobbyId across the matching connection"""
+  lobbyId: BigFloat
+
+  """Sample variance of workshopId across the matching connection"""
+  workshopId: BigFloat
+}
+
+type LobbyPlayedLevelVariancePopulationAggregates {
+  """Population variance of lobbyId across the matching connection"""
+  lobbyId: BigFloat
+
+  """Population variance of workshopId across the matching connection"""
+  workshopId: BigFloat
+}
+
+enum LobbyPlayedLevelGroupBy {
+  LOBBY_ID
+  LEVEL_UID
+  WORKSHOP_ID
+  XX_HASH
+  NAME
+  IMAGE_URL
+  AUTHOR_NAME
+}
+
+input LobbyPlayedLevelHavingInput {
+  AND: [LobbyPlayedLevelHavingInput!]
+  OR: [LobbyPlayedLevelHavingInput!]
+  sum: LobbyPlayedLevelHavingSumInput
+  distinctCount: LobbyPlayedLevelHavingDistinctCountInput
+  min: LobbyPlayedLevelHavingMinInput
+  max: LobbyPlayedLevelHavingMaxInput
+  average: LobbyPlayedLevelHavingAverageInput
+  stddevSample: LobbyPlayedLevelHavingStddevSampleInput
+  stddevPopulation: LobbyPlayedLevelHavingStddevPopulationInput
+  varianceSample: LobbyPlayedLevelHavingVarianceSampleInput
+  variancePopulation: LobbyPlayedLevelHavingVariancePopulationInput
+}
+
+input LobbyPlayedLevelHavingSumInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelHavingDistinctCountInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelHavingMinInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelHavingMaxInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelHavingAverageInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelHavingStddevSampleInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelHavingStddevPopulationInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelHavingVarianceSampleInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelHavingVariancePopulationInput {
+  lobbyId: HavingBigintFilter
+  workshopId: HavingBigintFilter
+}
+
+input LobbyPlayedLevelCondition {
+  """Checks for equality with the object’s `lobbyId` field."""
+  lobbyId: BigInt
+
+  """Checks for equality with the object’s `levelUid` field."""
+  levelUid: String
+
+  """Checks for equality with the object’s `workshopId` field."""
+  workshopId: BigInt
+
+  """Checks for equality with the object’s `xxHash` field."""
+  xxHash: String
+
+  """Checks for equality with the object’s `name` field."""
+  name: String
+
+  """Checks for equality with the object’s `imageUrl` field."""
+  imageUrl: String
+
+  """Checks for equality with the object’s `authorName` field."""
+  authorName: String
+}
+
+input LobbyPlayedLevelFilter {
+  """Filter by the object’s `lobbyId` field."""
+  lobbyId: BigIntFilter
+
+  """Filter by the object’s `levelUid` field."""
+  levelUid: StringFilter
+
+  """Filter by the object’s `workshopId` field."""
+  workshopId: BigIntFilter
+
+  """Filter by the object’s `xxHash` field."""
+  xxHash: StringFilter
+
+  """Filter by the object’s `name` field."""
+  name: StringFilter
+
+  """Filter by the object’s `imageUrl` field."""
+  imageUrl: StringFilter
+
+  """Filter by the object’s `authorName` field."""
+  authorName: StringFilter
+
+  """Checks for all expressions in this list."""
+  and: [LobbyPlayedLevelFilter!]
+
+  """Checks for any expressions in this list."""
+  or: [LobbyPlayedLevelFilter!]
+
+  """Negates the expression."""
+  not: LobbyPlayedLevelFilter
+}
+
+enum LobbyPlayedLevelsOrderBy {
+  NATURAL
+  PRIMARY_KEY_ASC
+  PRIMARY_KEY_DESC
+  LOBBY_ID_ASC
+  LOBBY_ID_DESC
+  LEVEL_UID_ASC
+  LEVEL_UID_DESC
+  WORKSHOP_ID_ASC
+  WORKSHOP_ID_DESC
+  XX_HASH_ASC
+  XX_HASH_DESC
+  NAME_ASC
+  NAME_DESC
+  IMAGE_URL_ASC
+  IMAGE_URL_DESC
+  AUTHOR_NAME_ASC
+  AUTHOR_NAME_DESC
 }

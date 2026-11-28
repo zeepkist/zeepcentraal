@@ -119,7 +119,8 @@ describe('lobby analytics semantics', () => {
 		).toEqual(buildLobbyFilter({}, true))
 		expect(lobbyOrderBy('invalid')).toEqual(['PLAYERS_DESC', 'ID_DESC'])
 		expect(lobbyOrderBy('age')).toEqual(['FIRST_SEEN_ASC', 'ID_DESC'])
-		expect(normalizeLobbyRange('bad')).toBe('24h')
+		expect(normalizeLobbyRange('bad')).toBe('7d')
+		expect(normalizeLobbyRange(undefined, true)).toBe('24h')
 	})
 	it('defaults history to a one-minute minimum and enforces it for URL filters', () => {
 		for (const duration of [undefined, '', '0', '-1', '0.5', ['2']]) {
@@ -141,15 +142,20 @@ describe('lobby analytics semantics', () => {
 		expect(lobbyNumber('NaN')).toBeNull()
 	})
 	it('uses UTC calendar boundaries, equal preceding periods, and supported grouping', () => {
-		const filters = lobbyStatisticsFilters('7d', 'today', Date.parse('2026-11-08T12:00:00Z'))
+		const filters = lobbyStatisticsFilters('7d', Date.parse('2026-11-08T12:00:00Z'))
 		expect(filters.filter.dateCreated?.greaterThanOrEqualTo).toBe('2026-11-01T12:00:00.000Z')
 		expect(filters.previousFilter.dateCreated).toEqual({
 			greaterThanOrEqualTo: '2026-10-25T12:00:00.000Z',
 			lessThan: '2026-11-01T12:00:00.000Z',
 		})
-		expect(filters.peakFilter.dateCreated?.greaterThanOrEqualTo).toBe(
-			'2026-11-08T00:00:00.000Z',
-		)
+		expect(filters.roomPeakFilter).toEqual({
+			changeType: { notEqualTo: 'closed' },
+			observedAt: filters.filter.dateCreated,
+		})
+		expect(filters.roomSnapshotFilter.lastSeen).toEqual(filters.filter.dateCreated)
+		expect(lobbyStatisticsFilters('all', Date.now()).roomSnapshotFilter).toEqual({
+			id: { greaterThan: '0' },
+		})
 		expect(lobbyGrouping('all')).toBe('DATE_CREATED_TRUNCATED_TO_MONTH')
 	})
 	it('keeps stable cursors and distinguishes observed closed spans from active clocks', () => {
@@ -166,15 +172,25 @@ describe('lobby analytics semantics', () => {
 			hasNextPage: true,
 			hasPreviousPage: false,
 		})
-		expect(lobbyDuration('2001-01-01T00:00Z', '2001-01-02T01:30Z', Date.now())).toEqual({
-			days: 1,
-			hours: 1,
-			minutes: 30,
-		})
-		expect(lobbyDuration('2001-01-01T00:00Z', null, Date.parse('2001-01-01T01:00Z'))).toEqual({
-			days: 0,
-			hours: 1,
-			minutes: 0,
-		})
+		expect(lobbyDuration('2001-01-01T00:00Z', '2001-01-02T01:30Z', Date.now())).toBe(
+			'1d 1h 30m',
+		)
+	})
+	it.each([
+		[0, '0s'],
+		[4.9, '4s'],
+		[59, '59s'],
+		[60, '1m'],
+		[37 * 60 + 59, '37m'],
+		[3600, '1h'],
+		[22 * 3600 + 48 * 60, '22h 48m'],
+		[86_400, '1d'],
+		[7 * 86_400 - 1, '6d 23h 59m'],
+		[7 * 86_400, '1w'],
+		[(3 * 7 * 24 + 21) * 3600 + 59 * 60, '3w 21h'],
+		[((483 * 7 + 6) * 24 + 3) * 3600, '483w 6d 3h'],
+	])('formats %d elapsed seconds as %s', (seconds, expected) => {
+		const start = '2001-01-01T00:00:00Z'
+		expect(lobbyDuration(start, null, Date.parse(start) + seconds * 1000)).toBe(expected)
 	})
 })

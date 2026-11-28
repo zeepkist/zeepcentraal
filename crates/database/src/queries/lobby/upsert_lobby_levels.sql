@@ -25,6 +25,10 @@ UPDATE public.lobby room
 SET current_level_uid = observation.level_uid, level_name = observation.level_name,
     level_author = observation.level_author, level_workshop_id = observation.workshop_id,
     level_author_steam_id = observation.author_id, round_time = observation.round_time,
+    levels_played = room.levels_played + CASE
+        WHEN observation.game_state = 2 AND room.game_state IS DISTINCT FROM 2 THEN 1
+        ELSE 0
+    END,
     game_state = observation.game_state
 FROM observations observation
 WHERE room.id = observation.lobby_id

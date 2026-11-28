@@ -18,7 +18,7 @@ fragment ZC_LobbyRoom on LobbyListing {
 	levelWorkshopId
 	levelAuthorSteamId
 	roundTime
-	gameState
+	levelsPlayed
 	host {
 		steamId
 		steamName
@@ -79,6 +79,54 @@ fragment ZC_LobbyStatisticsValues on LobbyStatAggregates {
 	}
 }
 
+fragment ZC_LobbyLevelActivityRoom on LobbyListing {
+	id
+	lastSeen
+	closedAt
+	players
+	levelName
+	levelAuthor
+	levelWorkshopId
+	levelAuthorSteamId
+}
+
+fragment ZC_LobbyLevelActivity on Query {
+	popularMaps: lobbyListings(
+		first: 1000
+		filter: {
+			and: [
+				$roomSnapshotFilter
+				{ isPublic: { equalTo: true }, levelWorkshopId: { greaterThan: "0" } }
+			]
+		}
+		orderBy: [LAST_SEEN_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_LobbyLevelActivityRoom
+		}
+		pageInfo {
+			hasNextPage
+		}
+	}
+	popularMappers: lobbyListings(
+		first: 1000
+		filter: {
+			and: [
+				$roomSnapshotFilter
+				{ isPublic: { equalTo: true }, levelAuthorSteamId: { greaterThan: "1" } }
+			]
+		}
+		orderBy: [LAST_SEEN_DESC, ID_DESC]
+	) {
+		nodes {
+			...ZC_LobbyLevelActivityRoom
+		}
+		pageInfo {
+			hasNextPage
+		}
+	}
+}
+
 fragment ZC_LobbyStatistics on Query {
 	latest: lobbyStats(first: 1, orderBy: [DATE_CREATED_DESC, ID_DESC]) {
 		nodes {
@@ -124,7 +172,7 @@ fragment ZC_LobbyStatistics on Query {
 	}
 	onlinePeak: lobbyStats(
 		first: 1
-		filter: $peakFilter
+		filter: $filter
 		orderBy: [PLAYERS_DESC, DATE_CREATED_ASC, ID_ASC]
 	) {
 		nodes {
@@ -134,7 +182,7 @@ fragment ZC_LobbyStatistics on Query {
 	}
 	participationPeak: lobbyStats(
 		first: 1
-		filter: $peakFilter
+		filter: $filter
 		orderBy: [PLAYERS_IN_ROOMS_DESC, DATE_CREATED_ASC, ID_ASC]
 	) {
 		nodes {
@@ -144,7 +192,7 @@ fragment ZC_LobbyStatistics on Query {
 	}
 	roomsPeak: lobbyStats(
 		first: 1
-		filter: $peakFilter
+		filter: $filter
 		orderBy: [ROOMS_DESC, DATE_CREATED_ASC, ID_ASC]
 	) {
 		nodes {
@@ -152,20 +200,39 @@ fragment ZC_LobbyStatistics on Query {
 			dateCreated
 		}
 	}
-	roomPeak: lobbyListings(first: 1, orderBy: [PEAK_PLAYERS_DESC, PEAK_TIME_ASC, ID_ASC]) {
+	roomPeak: lobbyHistories(
+		first: 1
+		filter: $roomPeakFilter
+		orderBy: [PLAYERS_DESC, OBSERVED_AT_ASC, ID_ASC]
+	) @include(if: $showRoomDetails) {
 		nodes {
-			id
+			lobbyId
 			roomName
-			peakPlayers
-			peakTime
+			players
+			observedAt
 		}
 	}
+	roomSnapshotPeak: lobbyListings(
+		first: 1
+		filter: $roomSnapshotFilter
+		orderBy: [PLAYERS_DESC, LAST_SEEN_ASC, ID_ASC]
+	) @include(if: $showRoomDetails) {
+		nodes {
+			lobbyId: id
+			roomName
+			players
+			observedAt: lastSeen
+		}
+	}
+	...ZC_LobbyLevelActivity @include(if: $showRoomDetails)
 }
 
 query ZC_LobbyStatistics(
 	$filter: LobbyStatFilter!
 	$previousFilter: LobbyStatFilter!
-	$peakFilter: LobbyStatFilter!
+	$roomPeakFilter: LobbyHistoryFilter!
+	$roomSnapshotFilter: LobbyListingFilter!
+	$showRoomDetails: Boolean!
 	$groupBy: [LobbyStatGroupBy!]!
 ) {
 	...ZC_LobbyStatistics
@@ -227,4 +294,34 @@ fragment ZC_LobbyDetail on Query {
 
 query ZC_LobbyDetail($id: BigInt!, $first: Int, $last: Int, $after: Cursor, $before: Cursor) {
 	...ZC_LobbyDetail
+}
+
+fragment ZC_LobbyPlayedLevels on Query {
+	lobbyPlayedLevels(
+		first: $first
+		last: $last
+		after: $after
+		before: $before
+		filter: { lobbyId: { equalTo: $id } }
+		orderBy: [NAME_ASC, PRIMARY_KEY_ASC]
+	) {
+		nodes {
+			levelUid
+			workshopId
+			xxHash
+			name
+			imageUrl
+			authorName
+		}
+		pageInfo {
+			startCursor
+			endCursor
+			hasNextPage
+			hasPreviousPage
+		}
+	}
+}
+
+query ZC_LobbyPlayedLevels($id: BigInt!, $first: Int, $last: Int, $after: Cursor, $before: Cursor) {
+	...ZC_LobbyPlayedLevels
 }

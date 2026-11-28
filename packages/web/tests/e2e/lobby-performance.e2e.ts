@@ -97,7 +97,9 @@ test('sparse charts keep bounded series, correct domains and disposable subscrip
 		})
 	})
 	await page.goto('/lobby/history?active=0')
-	await expect(page.getByRole('heading', { name: 'Lobby History', exact: true })).toBeVisible()
+	await expect(
+		page.getByRole('checkbox', { name: 'Include Active Rooms', exact: true }),
+	).toBeVisible()
 	const countClocks = () =>
 		page.evaluate(
 			() =>
@@ -109,6 +111,7 @@ test('sparse charts keep bounded series, correct domains and disposable subscrip
 	const countSeries = () => page.locator('.lobby-chart').first().locator('.v-charts-line')
 	for (let visit = 0; visit < 3; visit++) {
 		await page.getByRole('link', { name: 'Statistics', exact: true }).click()
+		await page.getByLabel('Activity range', { exact: true }).selectOption('24h')
 		await expect.poll(() => active.size).toBe(1)
 		const chart = page.locator('.lobby-chart').first()
 		await expect(page.locator('.lobby-chart')).toHaveCount(3)

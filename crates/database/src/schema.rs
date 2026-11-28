@@ -202,6 +202,7 @@ diesel::table! {
         level_author_steam_id -> Nullable<BigInt>,
         round_time -> Nullable<Double>,
         game_state -> Nullable<Integer>,
+        levels_played -> BigInt,
     }
 }
 
@@ -257,6 +258,19 @@ diesel::table! {
         duration_seconds -> Double,
         occupancy -> Nullable<Double>,
         available_capacity -> Bool,
+        levels_played -> Nullable<BigInt>,
+    }
+}
+
+diesel::table! {
+    lobby_played_level (lobby_id, level_uid, workshop_id) {
+        lobby_id -> BigInt,
+        level_uid -> Text,
+        workshop_id -> BigInt,
+        xx_hash -> Text,
+        name -> Text,
+        image_url -> Text,
+        author_name -> Nullable<Text>,
     }
 }
 

@@ -17,7 +17,8 @@ test.beforeAll(async ({ request }) => {
 	}
 })
 
-test('room metadata links and phase-only live updates', async ({ page, request }) => {
+test('room metadata links and levels played update live', async ({ page, request }) => {
+	expect((await request.post('http://127.0.0.1:55440/__test/reset-level-count')).ok()).toBe(true)
 	let initialListingReceived = false
 	page.on('websocket', (socket) => {
 		socket.on('framereceived', (frame) => {
@@ -36,20 +37,103 @@ test('room metadata links and phase-only live updates', async ({ page, request }
 		'href',
 		'/user/76561198000000001',
 	)
-	await expect(row.getByText('6m', { exact: true })).toBeVisible()
-	await expect(row.getByText('Racing', { exact: true })).toBeVisible()
+	const roomCell = row.getByRole('cell').filter({
+		has: page.getByRole('link', { name: 'Test active room', exact: true }),
+	})
+	await expect(roomCell.getByText('6m', { exact: true })).toBeVisible()
+	await expect(roomCell.getByText('1 level played', { exact: true })).toBeVisible()
+	const meter = row.getByRole('meter', { name: 'Occupancy' })
+	await expect(meter).toBeVisible()
+	const lightTrack = await meter.evaluate((element) => {
+		document.documentElement.classList.remove('dark')
+		document.documentElement.classList.add('light')
+		return getComputedStyle(element).backgroundColor
+	})
+	const darkTrack = await meter.evaluate((element) => {
+		document.documentElement.classList.remove('light')
+		document.documentElement.classList.add('dark')
+		return getComputedStyle(element).backgroundColor
+	})
+	expect(darkTrack).not.toBe(lightTrack)
+	expect(darkTrack).not.toBe('rgb(255, 255, 255)')
 	await expect.poll(() => initialListingReceived).toBe(true)
-	for (const phase of ['End of Round', 'Podium', 'Racing']) {
-		const response = await request.post('http://127.0.0.1:55440/__test/advance-round')
+	for (let count = 1; count <= 2; count++) {
+		const response = await request.post('http://127.0.0.1:55440/__test/increment-level-count')
 		expect(response.ok()).toBe(true)
-		await expect(row.getByText(phase, { exact: true })).toBeVisible()
 	}
+	await expect(roomCell.getByText('2 levels played', { exact: true })).toBeVisible()
 	await page.getByRole('link', { name: 'Test active room', exact: true }).click()
-	await expect(page.getByRole('link', { name: 'Fixture level' })).toHaveAttribute(
+	await expect(page).toHaveURL(/\/lobby\/1001$/)
+	await expect(page.getByRole('link', { name: 'Fixture level', exact: true })).toHaveAttribute(
 		'href',
 		'/workshop/123',
 	)
-	await expect(page.getByText('Racing', { exact: true })).toBeVisible()
+	await expect(page.getByText('2 levels played', { exact: true })).toBeVisible()
+	const played = page.getByRole('region', { name: 'Levels played' })
+	await expect(played.getByRole('link', { name: /Alpha track Alpha mapper/ })).toHaveAttribute(
+		'href',
+		'/level/0000000000000011',
+	)
+	await expect(played.getByRole('link', { name: /Beta track Lobby Test Host/ })).toBeVisible()
+	await expect(played.locator('dl')).toHaveCount(0)
+})
+
+test('one range controls room peak and level rankings', async ({ page, request }) => {
+	const fixture = 'http://127.0.0.1:55440/__test/level-activity'
+	expect((await request.post(`${fixture}/open`)).ok()).toBe(true)
+	try {
+		let subscribed = false
+		page.on('websocket', (socket) =>
+			socket.on('framereceived', (frame) => {
+				if (String(frame.payload).includes('"popularMappers":{"nodes"')) subscribed = true
+			}),
+		)
+		await page.goto('/lobby/stats')
+		const range = page.getByLabel('Activity range', { exact: true })
+		const peak = page.getByTestId('lobby-peak-cards').locator(':scope > div').last()
+		await expect(range).toHaveValue('7d')
+		await expect(page.getByLabel('Peak period')).toHaveCount(0)
+		await expect(peak.getByRole('link', { name: 'Test active room' })).toHaveAttribute(
+			'href',
+			'/lobby/1001',
+		)
+		await expect(
+			page.getByRole('heading', { name: 'Level activity', exact: true }),
+		).toHaveCount(0)
+		const maps = page.getByRole('table', { name: 'Popular Workshop items' })
+		const mappers = page.getByRole('table', { name: 'Popular mappers' })
+		await expect(maps.getByRole('link', { name: 'Fixture level' })).toHaveAttribute(
+			'href',
+			'/workshop/123',
+		)
+		await expect(
+			mappers.getByRole('link', { name: 'Original & Collaborator' }),
+		).toHaveAttribute('href', '/user/76561198000000001')
+		const values = maps.getByRole('row').nth(1).getByRole('cell')
+		await expect(values.nth(1)).toHaveText('1')
+		await expect(values.nth(2)).toHaveText('2')
+		await expect.poll(() => subscribed).toBe(true)
+		expect((await request.post(`${fixture}/closed`)).ok()).toBe(true)
+		await expect(values.nth(1)).toHaveText('1')
+		await expect(values.nth(2)).toHaveText('0')
+		await expect(mappers.getByRole('row').nth(1).getByRole('cell').nth(1)).toHaveText('1')
+		await expect(mappers.getByRole('link', { name: 'Older fixture mapper' })).toHaveCount(0)
+		await range.selectOption('all')
+		await expect(peak.getByRole('link', { name: 'Private midnight room' })).toHaveAttribute(
+			'href',
+			'/lobby/1002',
+		)
+		await expect(mappers.getByRole('link', { name: 'Older fixture mapper' })).toHaveAttribute(
+			'href',
+			'/user/76561198000000002',
+		)
+		await expect(maps.getByRole('link', { name: 'Older fixture level' })).toHaveAttribute(
+			'href',
+			'/workshop/456',
+		)
+	} finally {
+		await request.post(`${fixture}/reset`)
+	}
 })
 
 test('live lobby subscriptions update without HTTP polling and pause when hidden', async ({
@@ -57,6 +141,7 @@ test('live lobby subscriptions update without HTTP polling and pause when hidden
 	request,
 }, info) => {
 	test.skip(info.project.name !== 'chromium')
+	test.setTimeout(60_000)
 	const frames: string[] = []
 	const httpRequests: string[] = []
 	page.on('request', (request) => {
@@ -138,6 +223,14 @@ test('history filters, stable details, timeline and event pagination render', as
 	await expect(
 		page.getByRole('link', { name: 'Private midnight room', exact: true }),
 	).toBeVisible()
+	const privateRoom = page.getByRole('row').filter({
+		has: page.getByRole('link', { name: 'Private midnight room', exact: true }),
+	})
+	await expect(privateRoom.getByRole('cell', { name: 'Closed', exact: true })).toBeVisible()
+	await expect(privateRoom.getByRole('meter')).toHaveCount(0)
+	await expect(privateRoom.getByText('Last observed round')).toHaveCount(0)
+	await expect(privateRoom.getByRole('cell').first().locator('svg')).toBeVisible()
+	await expect(privateRoom.getByRole('cell').first().locator('.sr-only')).toHaveText('Private')
 	await page.getByLabel('Room name', { exact: true }).fill('MIDNIGHT')
 	await page.getByLabel('Active from', { exact: true }).fill('2001-01-02')
 	await page.getByLabel('Active through', { exact: true }).fill('2001-01-02')
@@ -145,13 +238,15 @@ test('history filters, stable details, timeline and event pagination render', as
 	await expect(page).toHaveURL(/q=MIDNIGHT/)
 	await page.getByRole('link', { name: 'Private midnight room', exact: true }).click()
 	await expect(page).toHaveURL(/\/lobby\/1002$/)
+	await expect(page.getByRole('region', { name: 'Levels played' })).toHaveCount(0)
 	await expect(
 		page.getByRole('heading', { name: 'Room occupancy history', exact: true }),
 	).toBeVisible()
 	await expect(page.getByRole('cell').filter({ hasText: 'Closure observed' })).toBeVisible()
 	await page.goto('/lobby/1001')
-	await expect(page.getByRole('heading', { name: 'Recorded changes', exact: true })).toBeVisible()
-	await page.getByRole('button', { name: 'Next', exact: true }).click()
+	const changes = page.getByRole('heading', { name: 'Recorded changes', exact: true })
+	await expect(changes).toBeVisible()
+	await changes.locator('..').getByRole('button', { name: 'Next', exact: true }).click()
 	await expect(page).toHaveURL(/after=/)
 	await expect(page.getByRole('heading', { name: 'Test active room', exact: true })).toBeVisible()
 	await page.screenshot({
@@ -200,6 +295,8 @@ test('cards and legends persist while selections load; gaps and themes render', 
 		})
 	}
 	const cards = page.getByTestId('lobby-peak-cards')
+	const range = page.getByLabel('Activity range', { exact: true })
+	await range.selectOption('all')
 	await expect(cards.locator('time')).toHaveCount(4)
 	await expect(cards.locator('[data-retained-card="true"]')).toHaveCount(4)
 	await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
@@ -211,8 +308,8 @@ test('cards and legends persist while selections load; gaps and themes render', 
 	await legend.click()
 	held = true
 	try {
-		await page.getByLabel('Activity range', { exact: true }).selectOption('all')
-		await expect(page.locator('[aria-busy="true"]')).toBeVisible()
+		await range.selectOption('30d')
+		await expect(page.locator('[aria-busy="true"]').filter({ has: cards })).toBeVisible()
 		await expect(cards).toHaveAttribute('data-retained', 'true')
 		expect(await cards.innerText()).toBe(before)
 		await expect(legend).toHaveAttribute('aria-pressed', 'false')
@@ -228,6 +325,7 @@ test('cards and legends persist while selections load; gaps and themes render', 
 	await expect(page.locator('[aria-busy="true"]')).toHaveCount(0)
 	await expect(cards).toHaveAttribute('data-retained', 'true')
 	await expect(legend).toHaveAttribute('aria-pressed', 'false')
+	await range.selectOption('all')
 	await expect(page.locator('path[stroke-dasharray="2 4"]').first()).toBeVisible()
 	await expect(page.locator('details')).toHaveCount(0)
 	await expect(
@@ -277,8 +375,8 @@ test('statistics and live charts render with local timestamps and responsive lay
 	page.on('pageerror', (error) => errors.push(error.message))
 	await page.goto('/lobby/stats')
 	await expect(page.getByRole('heading', { name: 'Player activity', exact: true })).toBeVisible()
-	await page.getByLabel('Activity range', { exact: true }).selectOption('7d')
-	await expect(page).toHaveURL(/range=7d/)
+	await page.getByLabel('Activity range', { exact: true }).selectOption('all')
+	await expect(page).toHaveURL(/range=all/)
 	await expect(page.getByRole('heading', { name: 'Room activity', exact: true })).toBeVisible()
 	await page.getByRole('button', { name: 'Peak online players', exact: true }).first().click()
 	await expect(

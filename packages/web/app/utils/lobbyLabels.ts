@@ -3,6 +3,7 @@ const labels = [
 	{ key: 'statistics', labelKey: 'lobby.analytics.statistics' },
 	{ key: 'status', labelKey: 'lobby.analytics.status' },
 	{ key: 'live', labelKey: 'lobby.analytics.live' },
+	{ key: 'history', labelKey: 'lobby.analytics.history' },
 	{ key: 'averageInRooms', labelKey: 'lobby.analytics.averageInRooms' },
 	{ key: 'averageOnline', labelKey: 'lobby.analytics.averageOnline' },
 	{ key: 'averageRooms', labelKey: 'lobby.analytics.averageRooms' },

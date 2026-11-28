@@ -8,15 +8,17 @@ const route = useRoute()
 const router = useRouter()
 const mounted=shallowRef(false)
 onMounted(()=> { mounted.value=true })
-const selected = computed(()=> {
-	const value=normalizeLobbyRange(route.query.range)
-	return props.live && !['24h','7d','30d'].includes(value) ? '24h' : value
-})
+const selected = computed(() => normalizeLobbyRange(route.query.range, props.live))
+function changeRange(event: Event) {
+	const range = (event.target as HTMLSelectElement).value
+	const { peak: _oldPeak, ...query } = route.query
+	void router.replace({ query: { ...query, range } })
+}
 </script>
 
 <template>
 	<label class="flex items-center gap-3 text-sm">{{ t('lobby.analytics.range') }}
-		<select :disabled="!mounted" :aria-label="t('lobby.analytics.range')" class="min-h-11 rounded-md border border-border bg-card p-2 text-base" :value="selected" @change="router.replace({ query: { ...route.query, range: ($event.target as HTMLSelectElement).value } })">
+		<select :disabled="!mounted" :aria-label="t('lobby.analytics.range')" class="min-h-11 rounded-md border border-border bg-card p-2 text-base" :value="selected" @change="changeRange">
 			<option v-for="range in live ? LOBBY_RANGES.slice(0,3) : LOBBY_RANGES" :key="range" :value="range">{{ t(lobbyLabel(`ranges.${range}`)) }}</option>
 		</select>
 	</label>

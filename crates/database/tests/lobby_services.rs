@@ -298,22 +298,25 @@ async fn lobby_levels_resolve_distinct_items_without_logging_room_state() -> any
     persist(&room).await?;
     let state = "SELECT level_item_id, l.round_time, l.game_state, l.level_author_steam_id,
       (SELECT count(*) FROM public.lobby_history WHERE lobby_id = l.id),
-      (SELECT count(*) FROM public.lobby_level WHERE lobby_id = l.id)
+      (SELECT count(*) FROM public.lobby_level WHERE lobby_id = l.id), l.levels_played
       FROM public.lobby l LEFT JOIN public.lobby_level m
         ON (m.lobby_id, m.level_uid, m.workshop_id) = (l.id, l.current_level_uid, l.level_workshop_id)
       WHERE l.master_id = $1";
-    assert_eq!(
-        client
-            .query_one(state, &[&room_id])
-            .await?
-            .get::<_, Option<i32>>(0),
-        Some(newest)
-    );
+    let result = client.query_one(state, &[&room_id]).await?;
+    assert_eq!(result.get::<_, Option<i32>>(0), Some(newest));
+    assert_eq!(result.get::<_, i64>(6), 0);
     room.level_uid = workshop_uid.clone();
     room.level_workshop_id = workshop as u64;
     room.level_name = "Workshop".into();
     room.level_author_steam_id = steam as u64;
     persist(&room).await?;
+    assert_eq!(
+        client
+            .query_one(state, &[&room_id])
+            .await?
+            .get::<_, Option<i64>>(3),
+        Some(steam)
+    );
     assert!(
         database
             .pending_lobby_workshop_scans()
@@ -357,6 +360,23 @@ async fn lobby_levels_resolve_distinct_items_without_logging_room_state() -> any
     assert_eq!(result.get::<_, Option<i64>>(3), None);
     assert_eq!(result.get::<_, i64>(4), 1);
     assert_eq!(result.get::<_, i64>(5), 2);
+    assert_eq!(result.get::<_, i64>(6), 1);
+    persist(&room).await?;
+    database
+        .persist_lobby_packet(&LobbyPacket::List(vec![room.clone()]), observed)
+        .await?;
+    assert_eq!(
+        client.query_one(state, &[&room_id]).await?.get::<_, i64>(6),
+        1
+    );
+    room.game_state = 0;
+    persist(&room).await?;
+    room.game_state = 2;
+    persist(&room).await?;
+    let result = client.query_one(state, &[&room_id]).await?;
+    assert_eq!(result.get::<_, i64>(4), 1);
+    assert_eq!(result.get::<_, i64>(5), 2);
+    assert_eq!(result.get::<_, i64>(6), 2);
     let linked: i32 = client
         .query_one(
             "SELECT level_item_id FROM public.lobby_level WHERE workshop_id = $1",
@@ -378,12 +398,18 @@ async fn lobby_levels_resolve_distinct_items_without_logging_room_state() -> any
             "2026-11-27T11:00:00Z",
         )
         .await?;
+    let result = client.query_one(state, &[&room_id]).await?;
+    assert_eq!(result.get::<_, Option<i32>>(0), Some(newest));
+    assert_eq!(result.get::<_, i64>(6), 2);
+    database
+        .persist_lobby_packet(
+            &LobbyPacket::List(vec![room.clone()]),
+            "2026-11-27T11:01:00Z",
+        )
+        .await?;
     assert_eq!(
-        client
-            .query_one(state, &[&room_id])
-            .await?
-            .get::<_, Option<i32>>(0),
-        Some(newest)
+        client.query_one(state, &[&room_id]).await?.get::<_, i64>(6),
+        2
     );
     room.is_public = false;
     room.level_uid = "private".into();
@@ -393,6 +419,16 @@ async fn lobby_levels_resolve_distinct_items_without_logging_room_state() -> any
     assert_eq!(result.get::<_, Option<f64>>(1), None);
     assert_eq!(result.get::<_, Option<i32>>(2), None);
     assert_eq!(result.get::<_, i64>(5), 2);
+    assert_eq!(result.get::<_, i64>(6), 2);
+    let public_count = client
+        .query_one(
+            "SELECT listing.levels_played FROM public.lobby_listing listing
+             JOIN public.lobby room USING (id) WHERE room.master_id = $1",
+            &[&room_id],
+        )
+        .await?
+        .get::<_, Option<i64>>(0);
+    assert_eq!(public_count, None);
     assert!(!client.query_one("SELECT has_table_privilege('zeepcentraal_graphql', 'public.lobby_level', 'SELECT')", &[]).await?.get::<_, bool>(0));
 
     client

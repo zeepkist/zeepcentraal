@@ -1,15 +1,22 @@
 <script setup lang="ts">
+import { NuxtLink } from '#components'
 import type { WorkshopSummary } from '~/types/app'
 import { formatWorkshopFileSize } from '~/utils/workshop'
 
-const props = defineProps<{ workshop: WorkshopSummary }>()
+const props = defineProps<{
+	workshop: Pick<WorkshopSummary, 'workshopId' | 'name' | 'imageUrl' | 'authorName'> &
+		Partial<Pick<WorkshopSummary, 'createdAt' | 'updatedAt' | 'fileSize'>>
+	compact?: boolean
+	to?: string
+}>()
 const { t, locale } = useAppI18n()
-const fileSize = computed(() => formatWorkshopFileSize(props.workshop.fileSize, locale.value))
+const target = computed(() => props.to ?? (props.workshop.workshopId === '0' ? undefined : `/workshop/${props.workshop.workshopId}`))
+const fileSize = computed(() => formatWorkshopFileSize(props.workshop.fileSize ?? 0, locale.value))
 </script>
 
 <template>
 	<article class="group h-full overflow-hidden rounded-xl border border-border bg-linear-to-br from-card to-primary/5 p-4 transition motion-hover motion-feedback hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 motion-safe:hover:-translate-y-1" :data-workshop-id="workshop.workshopId">
-		<NuxtLink :to="`/workshop/${workshop.workshopId}`" class="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+		<component :is="target ? NuxtLink : 'div'" :to="target" class="block rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
 			<div class="grid aspect-video place-items-center overflow-hidden rounded-lg bg-muted">
 				<NuxtImg v-if="workshop.imageUrl" :src="workshop.imageUrl" :alt="workshop.name" width="1600" height="900" sizes="100vw sm:50vw xl:33vw 2xl:25vw" class="size-full object-cover transition motion-hover motion-feedback motion-safe:group-hover:scale-105" loading="lazy" />
 				<TablerIcon v-else name="map" class="size-10 text-muted-foreground" />
@@ -19,9 +26,9 @@ const fileSize = computed(() => formatWorkshopFileSize(props.workshop.fileSize, 
 					<h3 class="truncate text-lg font-semibold text-highlighted" :title="workshop.name">{{ workshop.name }}</h3>
 					<p class="truncate text-sm text-muted-foreground">{{ workshop.authorName || t('common.unknownAuthor') }}</p>
 				</div>
-				<TablerIcon name="chevron-right" class="size-5 shrink-0 text-muted-foreground" />
+				<TablerIcon v-if="target" name="chevron-right" class="size-5 shrink-0 text-muted-foreground" />
 			</div>
-			<dl class="mt-4 space-y-2 text-sm">
+			<dl v-if="!compact && workshop.createdAt && workshop.updatedAt" class="mt-4 space-y-2 text-sm">
 				<div class="flex flex-wrap justify-between gap-x-3">
 					<dt class="text-muted-foreground">{{ t('workshop.published') }}</dt>
 					<dd><NuxtTime :datetime="workshop.createdAt" :locale="locale" day="numeric" month="short" year="numeric" /></dd>
@@ -35,6 +42,6 @@ const fileSize = computed(() => formatWorkshopFileSize(props.workshop.fileSize, 
 					<dd class="tabular-nums">{{ fileSize }}</dd>
 				</div>
 			</dl>
-		</NuxtLink>
+		</component>
 	</article>
 </template>

@@ -1,4 +1,5 @@
 import type {
+	LobbyHistoryFilter,
 	LobbyListingFilter,
 	LobbyListingsOrderBy,
 	LobbyStatFilter,
@@ -35,6 +36,7 @@ export type LobbyRoom = Omit<
 	| 'host'
 	| 'levelWorkshopId'
 	| 'levelAuthorSteamId'
+	| 'levelsPlayed'
 > & {
 	id: string
 	hostId: string
@@ -46,6 +48,7 @@ export type LobbyRoom = Omit<
 	occupancy: number | null
 	levelWorkshopId: string | null
 	levelAuthorSteamId: string | null
+	levelsPlayed: string | null
 	host: { steamId: string; steamName?: string | null } | null
 }
 export function mapLobbyRoom(room: Zc_LobbyRoomFragment): LobbyRoom {
@@ -67,6 +70,7 @@ export function mapLobbyRoom(room: Zc_LobbyRoomFragment): LobbyRoom {
 			room.levelAuthorSteamId == null || ['0', '1'].includes(String(room.levelAuthorSteamId))
 				? null
 				: String(room.levelAuthorSteamId),
+		levelsPlayed: room.levelsPlayed == null ? null : String(room.levelsPlayed),
 		host: room.host
 			? { steamId: String(room.host.steamId), steamName: room.host.steamName }
 			: null,
@@ -119,8 +123,9 @@ export const rangeDuration = (range: LobbyRange) =>
 		'1y': 31_536_000_000,
 		all: 0,
 	})[range]
-export function normalizeLobbyRange(value: unknown): LobbyRange {
-	return LOBBY_RANGES.includes(value as LobbyRange) ? (value as LobbyRange) : '24h'
+export function normalizeLobbyRange(value: unknown, live = false): LobbyRange {
+	const ranges = live ? LOBBY_RANGES.slice(0, 3) : LOBBY_RANGES
+	return ranges.includes(value as LobbyRange) ? (value as LobbyRange) : live ? '24h' : '7d'
 }
 export function lobbyGrouping(range: LobbyRange): LobbyStatGroupBy {
 	return (
@@ -134,7 +139,7 @@ export function lobbyGrouping(range: LobbyRange): LobbyStatGroupBy {
 		} as const
 	)[range]
 }
-export function lobbyStatisticsFilters(range: LobbyRange, peak: string, now: number) {
+export function lobbyStatisticsFilters(range: LobbyRange, now: number) {
 	const duration = rangeDuration(range)
 	const filter: LobbyStatFilter = duration
 		? {
@@ -149,19 +154,21 @@ export function lobbyStatisticsFilters(range: LobbyRange, peak: string, now: num
 				},
 			}
 		: { id: { equalTo: '0' } }
-	const peakStart =
-		peak === 'today'
-			? new Date(now).setUTCHours(0, 0, 0, 0)
-			: now - ({ '7d': 7, '30d': 30, '90d': 90 }[peak] ?? 0) * 86_400_000
-	const peakFilter: LobbyStatFilter =
-		peak === 'all'
-			? { id: { greaterThan: '0' } }
-			: {
-					dateCreated: {
-						greaterThanOrEqualTo: new Date(peakStart).toISOString(),
-					},
-				}
-	return { filter, previousFilter, peakFilter, groupBy: [lobbyGrouping(range)] }
+	const since = filter.dateCreated?.greaterThanOrEqualTo
+	const roomPeakFilter: LobbyHistoryFilter = {
+		changeType: { notEqualTo: 'closed' },
+		...(since ? { observedAt: { greaterThanOrEqualTo: since } } : {}),
+	}
+	const roomSnapshotFilter: LobbyListingFilter = since
+		? { lastSeen: { greaterThanOrEqualTo: since } }
+		: { id: { greaterThan: '0' } }
+	return {
+		filter,
+		previousFilter,
+		roomPeakFilter,
+		roomSnapshotFilter,
+		groupBy: [lobbyGrouping(range)],
+	}
 }
 export function lobbyOrderBy(sort: string): LobbyListingsOrderBy[] {
 	const primary =
@@ -265,16 +272,35 @@ export function lobbyChange(current: unknown, previous: unknown) {
 		before = lobbyNumber(previous)
 	return value != null && before != null && before !== 0 ? (value - before) / before : null
 }
-export function lobbyDuration(start: string, end: string | null | undefined, now: number) {
+export function lobbyDuration(
+	start: string,
+	end: string | null | undefined,
+	now: number,
+	number = new Intl.NumberFormat('en', { useGrouping: false }),
+) {
 	const seconds = Math.max(
 		0,
 		Math.floor(((end ? Date.parse(end) : now) - Date.parse(start)) / 1000),
 	)
-	return {
-		days: Math.floor(seconds / 86400),
-		hours: Math.floor((seconds % 86400) / 3600),
-		minutes: Math.floor((seconds % 3600) / 60),
-	}
+	if (seconds < 60) return `${number.format(seconds)}s`
+	const days = Math.floor(seconds / 86_400)
+	const hours = Math.floor(seconds / 3600) % 24
+	const units: Array<[number, string]> =
+		days >= 7
+			? [
+					[Math.floor(days / 7), 'w'],
+					[days % 7, 'd'],
+					[hours, 'h'],
+				]
+			: [
+					[days, 'd'],
+					[hours, 'h'],
+					[Math.floor(seconds / 60) % 60, 'm'],
+				]
+	return units
+		.filter(([value]) => value > 0)
+		.map(([value, unit]) => `${number.format(value)}${unit}`)
+		.join(' ')
 }
 
 export function lobbyRoundLength(

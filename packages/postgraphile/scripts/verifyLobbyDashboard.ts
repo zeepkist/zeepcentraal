@@ -4,6 +4,7 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { postgraphileConfig } from '@zeepkist/core/config/postgraphile'
 import type {
 	Zc_LobbyDetailQuery,
+	Zc_LobbyPlayedLevelsQuery,
 	Zc_LobbyRoomsQuery,
 	Zc_LobbyStatisticsQuery,
 } from '@zeepkist/graphql/generated'
@@ -30,7 +31,12 @@ try {
 		GRANT SELECT(id,steam_id,steam_name) ON public."user" TO zeepcentraal_graphql;
 		GRANT SELECT(id,room_name,host_id,players,player_limit,is_public,peak_players,peak_time,first_seen,last_seen,closed_at,date_created,date_updated) ON public.lobby TO zeepcentraal_graphql;
 		GRANT SELECT ON public.lobby_history,public.lobby_stats TO zeepcentraal_graphql;`)
-		for (const migration of ['20261108040000_lobby_dashboard', '20261127000000_lobby_levels']) {
+		for (const migration of [
+			'20261108040000_lobby_dashboard',
+			'20261127000000_lobby_levels',
+			'20261128000000_lobby_levels_played',
+			'20261128010000_lobby_played_level_listing',
+		]) {
 			const path = new URL(
 				`../../../crates/database/migrations/${migration}/up.sql`,
 				import.meta.url,
@@ -55,6 +61,41 @@ try {
                 level_author = 'Original & Collaborator', level_workshop_id = 123,
                 level_author_steam_id = 76561198000000001, round_time = 360, game_state = 0
                 WHERE id = 1001`)
+			await tx.unsafe(`UPDATE public.lobby SET level_name = 'Older fixture level',
+                level_author = 'Older fixture mapper', level_workshop_id = 456,
+                level_author_steam_id = 76561198000000002 WHERE id = 1003`)
+			await tx`UPDATE public.lobby SET levels_played = 7 WHERE id = 1002`
+			await tx.unsafe(`
+				INSERT INTO public.workshop_item (workshop_id, author_id, name, image_url, visibility)
+				VALUES (123, 76561198000000000, 'Room fixture workshop', '', 0),
+				       (124, 76561198000000000, 'Hidden fixture workshop', '', 2)
+				ON CONFLICT (workshop_id) DO NOTHING;
+				INSERT INTO public.level (hash, xx_hash, adventure)
+				SELECT fixture.hash, fixture.hash, false
+				FROM (VALUES ('0000000000000011'), ('0000000000000012'),
+				             ('0000000000000013'), ('0000000000000014')) fixture(hash)
+				WHERE NOT EXISTS (SELECT 1 FROM public.level WHERE xx_hash = fixture.hash);
+				INSERT INTO public.level_item (id_level, workshop_id, file_uid, author_id,
+					name, image_url, file_author, validation_time_author, validation_time_gold,
+					validation_time_silver, validation_time_bronze, created_at, updated_at, deleted)
+				SELECT level.id, fixture.workshop_id, fixture.uid, 76561198000000000,
+				       fixture.name, '', fixture.author_name, 0, 0, 0, 0, now(), now(), fixture.deleted
+				FROM (VALUES ('0000000000000011', 123, 'lobby-fixture-alpha', 'Alpha track', 'Alpha mapper', false),
+				             ('0000000000000012', 123, 'lobby-fixture-beta', 'Beta track', '', false),
+				             ('0000000000000013', 123, 'lobby-fixture-deleted', 'Deleted track', '', true),
+				             ('0000000000000014', 124, 'lobby-fixture-hidden', 'Hidden track', '', false))
+					AS fixture(hash, workshop_id, uid, name, author_name, deleted)
+				JOIN public.level ON level.xx_hash = fixture.hash
+				WHERE NOT EXISTS (
+					SELECT 1 FROM public.level_item WHERE file_uid = fixture.uid
+				);
+				INSERT INTO public.lobby_level (lobby_id, level_uid, workshop_id, level_item_id)
+				SELECT room.id, item.file_uid, item.workshop_id, item.id
+				FROM public.lobby room CROSS JOIN public.level_item item
+				WHERE room.id IN (1001, 1002) AND item.file_uid LIKE 'lobby-fixture-%';
+				INSERT INTO public.lobby_level (lobby_id, level_uid, workshop_id)
+				VALUES (1001, 'lobby-fixture-unresolved', 125)
+			`)
 		})
 		await sql.unsafe(
 			'GRANT SELECT,DELETE ON public.live_query_invalidations TO zeepcentraal_graphql',
@@ -83,6 +124,11 @@ try {
 		const types = Object.values(schema.getTypeMap()).filter((type) =>
 			type.name.includes('Lobb'),
 		)
+		for (const type of types) {
+			if (!type.name.startsWith('LobbyListing')) {
+				assert.doesNotMatch(printType(type), /levelsPlayed|LEVELS_PLAYED/)
+			}
+		}
 		if (process.argv.includes('--schema')) {
 			const path = new URL('../../graphql/schema.graphql', import.meta.url)
 			let source = await readFile(path, 'utf8')
@@ -160,7 +206,12 @@ try {
 			const statistics = await query<Zc_LobbyStatisticsQuery>('ZC_LobbyStatistics', {
 				filter: period,
 				previousFilter: period,
-				peakFilter: period,
+				roomPeakFilter: {
+					observedAt: period.dateCreated,
+					changeType: { notEqualTo: 'closed' },
+				},
+				roomSnapshotFilter: { lastSeen: period.dateCreated },
+				showRoomDetails: true,
 				groupBy: ['DATE_CREATED_TRUNCATED_TO_HOUR'],
 			})
 			assert.equal(statistics.onlinePeak?.nodes[0]?.players, 200)
@@ -169,11 +220,44 @@ try {
 			assert.equal(statistics.period?.groupedAggregates?.length, 3)
 			assert.equal(Number(statistics.period?.aggregates?.sum?.players), 440)
 			assert.equal(Number(statistics.period?.aggregates?.sum?.playersInRooms), 140)
+			const allTime = await query<Zc_LobbyStatisticsQuery>('ZC_LobbyStatistics', {
+				filter: { id: { greaterThan: '0' } },
+				previousFilter: { id: { equalTo: '0' } },
+				roomPeakFilter: { changeType: { notEqualTo: 'closed' } },
+				roomSnapshotFilter: { id: { greaterThan: '0' } },
+				showRoomDetails: true,
+				groupBy: ['DATE_CREATED_TRUNCATED_TO_MONTH'],
+			})
+			assert.equal(allTime.roomPeak?.nodes[0]?.lobbyId, '1002')
+			assert.equal(allTime.popularMappers?.nodes.length, 2)
 			const detail = await query<Zc_LobbyDetailQuery>('ZC_LobbyDetail', {
 				id: '1001',
 				first: 50,
 			})
 			assert.equal(detail.lobbyListing?.host?.steamName, 'Lobby Test Host')
+			assert.equal(detail.lobbyListing?.levelsPlayed, '0')
+			const played = await query<Zc_LobbyPlayedLevelsQuery>('ZC_LobbyPlayedLevels', {
+				id: '1001',
+				first: 1,
+			})
+			assert.equal(played.lobbyPlayedLevels?.nodes[0]?.name, 'Alpha track')
+			assert.equal(played.lobbyPlayedLevels.nodes[0]?.authorName, 'Alpha mapper')
+			assert.equal(played.lobbyPlayedLevels.pageInfo.hasNextPage, true)
+			const playedNext = await query<Zc_LobbyPlayedLevelsQuery>('ZC_LobbyPlayedLevels', {
+				id: '1001',
+				first: 24,
+				after: played.lobbyPlayedLevels.pageInfo.endCursor,
+			})
+			assert.deepEqual(
+				playedNext.lobbyPlayedLevels?.nodes.map((level) => [level.name, level.authorName]),
+				[['Beta track', 'Lobby Test Host']],
+			)
+			const privatePlayed = await query<Zc_LobbyPlayedLevelsQuery>('ZC_LobbyPlayedLevels', {
+				id: '1002',
+				first: 24,
+			})
+			assert.deepEqual(privatePlayed.lobbyPlayedLevels?.nodes, [])
+			assert.equal(schema.getType('LobbyLevel'), undefined)
 			assert.ok((detail.lobbyOccupancyTimeline?.nodes.length ?? Infinity) <= 201)
 			assert.equal(detail.lobbyHistories?.nodes.length, 50)
 			const next = await query<Zc_LobbyDetailQuery>('ZC_LobbyDetail', {
@@ -189,9 +273,10 @@ try {
 			})
 			assert.equal(rooms.lobbyListings?.nodes[0]?.roomName, 'Private midnight room')
 			assert.equal(rooms.lobbyListings?.nodes[0]?.levelName, null)
+			assert.equal(rooms.lobbyListings?.nodes[0]?.levelsPlayed, null)
 			await sql.unsafe(`UPDATE public.lobby SET level_name = 'Fixture level',
                 level_author = 'Original & Collaborator', level_workshop_id = 123,
-                level_author_steam_id = 76561198000000001, round_time = 360, game_state = 2
+                level_author_steam_id = 76561198000000001, round_time = 360, levels_played = 2
                 WHERE id = 1001`)
 			const observed = await query<Zc_LobbyRoomsQuery>('ZC_LobbyRooms', {
 				first: 25,
@@ -204,7 +289,7 @@ try {
 			assert.equal(level.levelWorkshopId, '123')
 			assert.equal(level.levelAuthorSteamId, '76561198000000001')
 			assert.equal(level.roundTime, 360)
-			assert.equal(level.gameState, 2)
+			assert.equal(level.levelsPlayed, '2')
 
 			const occupancy = await query<Zc_LobbyRoomsQuery>('ZC_LobbyRooms', {
 				first: 25,
@@ -224,7 +309,12 @@ try {
 				await query<Zc_LobbyStatisticsQuery>('ZC_LobbyStatistics', {
 					filter: period,
 					previousFilter: period,
-					peakFilter: period,
+					roomPeakFilter: {
+						observedAt: period.dateCreated,
+						changeType: { notEqualTo: 'closed' },
+					},
+					roomSnapshotFilter: { lastSeen: period.dateCreated },
+					showRoomDetails: true,
 					groupBy: [group],
 				})
 			console.log(
@@ -305,8 +395,28 @@ try {
 					await sql`UPDATE public.lobby SET players=CASE WHEN players=3 THEN 2 ELSE 3 END,last_seen=now() WHERE id=1001`
 					return 'ok'
 				})
-				.post('/__test/advance-round', async () => {
-					await sql`UPDATE public.lobby SET game_state = (game_state + 1) % 3 WHERE id = 1001`
+				.post('/__test/increment-level-count', async () => {
+					await sql`UPDATE public.lobby SET levels_played = levels_played + 1 WHERE id = 1001`
+					return 'ok'
+				})
+				.post('/__test/reset-level-count', async () => {
+					await sql`UPDATE public.lobby SET levels_played = 0 WHERE id = 1001`
+					return 'ok'
+				})
+				.post('/__test/level-activity/:state', async ({ params }) => {
+					switch (params.state) {
+						case 'open':
+							await sql`UPDATE public.lobby SET players = 2, last_seen = now(), closed_at = NULL WHERE id = 1001`
+							break
+						case 'closed':
+							await sql`UPDATE public.lobby SET closed_at = now() WHERE id = 1001`
+							break
+						case 'reset':
+							await sql`UPDATE public.lobby SET last_seen = '2001-01-02T00:00:00Z', closed_at = NULL WHERE id = 1001`
+							break
+						default:
+							throw new Error('Unknown lobby fixture state')
+					}
 					return 'ok'
 				})
 				.listen({ port: 55440, hostname: '127.0.0.1' })

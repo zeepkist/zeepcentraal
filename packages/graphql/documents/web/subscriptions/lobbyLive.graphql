@@ -13,7 +13,9 @@ subscription ZC_LobbyRoomsLive(
 subscription ZC_LobbyStatisticsLive(
 	$filter: LobbyStatFilter!
 	$previousFilter: LobbyStatFilter!
-	$peakFilter: LobbyStatFilter!
+	$roomPeakFilter: LobbyHistoryFilter!
+	$roomSnapshotFilter: LobbyListingFilter!
+	$showRoomDetails: Boolean!
 	$groupBy: [LobbyStatGroupBy!]!
 ) {
 	query {
@@ -29,5 +31,17 @@ subscription ZC_LobbyDetailLive(
 ) {
 	query {
 		...ZC_LobbyDetail
+	}
+}
+
+subscription ZC_LobbyPlayedLevelsLive(
+	$id: BigInt!
+	$first: Int
+	$last: Int
+	$after: Cursor
+	$before: Cursor
+) {
+	query {
+		...ZC_LobbyPlayedLevels
 	}
 }

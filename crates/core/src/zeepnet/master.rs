@@ -190,10 +190,11 @@ mod tests {
         assert_eq!(
             (
                 rooms[0].level_workshop_id,
+                rooms[0].level_author_steam_id,
                 rooms[0].round_time,
                 rooms[0].game_state
             ),
-            (123, 360.25, 2)
+            (123, 76_561_198_000_000_001, 360.25, 2)
         );
         assert_eq!(
             (rooms[1].id.as_str(), rooms[1].level_uid.as_str()),
@@ -210,7 +211,14 @@ mod tests {
         else {
             anyhow::bail!("Expected lobby update");
         };
-        assert_eq!((lobby.round_time, lobby.game_state), (60.0, 1));
+        assert_eq!(
+            (
+                lobby.level_author_steam_id,
+                lobby.round_time,
+                lobby.game_state
+            ),
+            (76_561_198_000_000_001, 60.0, 1)
+        );
         assert!(matches!(
             parse_lobby_packet(&packets[2])?,
             Some(LobbyPacket::Update {

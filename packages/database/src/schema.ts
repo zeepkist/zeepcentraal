@@ -49,6 +49,17 @@ export const lobbyListing = pgView('lobby_listing', {
 	levelAuthorSteamId: bigint('level_author_steam_id', { mode: 'bigint' }),
 	roundTime: doublePrecision('round_time'),
 	gameState: integer('game_state'),
+	levelsPlayed: bigint('levels_played', { mode: 'bigint' }),
+}).existing()
+
+export const lobbyPlayedLevel = pgView('lobby_played_level', {
+	lobbyId: bigint('lobby_id', { mode: 'bigint' }).notNull(),
+	levelUid: text('level_uid').notNull(),
+	workshopId: bigint('workshop_id', { mode: 'bigint' }).notNull(),
+	xxHash: text('xx_hash').notNull(),
+	name: text().notNull(),
+	imageUrl: text('image_url').notNull(),
+	authorName: text('author_name'),
 }).existing()
 
 // Read-only views managed by the Adventure Diesel migration.
@@ -1759,6 +1770,7 @@ export const lobby = pgTable(
 		levelAuthorSteamId: bigint('level_author_steam_id', { mode: 'bigint' }),
 		roundTime: doublePrecision('round_time'),
 		gameState: integer('game_state'),
+		levelsPlayed: bigint('levels_played', { mode: 'bigint' }).notNull().default(0n),
 		masterId: text('master_id').notNull(),
 		roomName: text('room_name').notNull(),
 		hostId: bigint('host_id', { mode: 'bigint' }).notNull(),

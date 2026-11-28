@@ -2,4 +2,10 @@
 usePageSeo('lobby')
 </script>
 
-<template><LobbyShell><LobbyStatisticsPanel live /><LobbyRoomBrowser /></LobbyShell></template>
+<template>
+	<LobbyShell>
+		<template #navigationActions><LobbyRangeSelect live /></template>
+		<LobbyStatisticsPanel live />
+		<LobbyRoomBrowser />
+	</LobbyShell>
+</template>

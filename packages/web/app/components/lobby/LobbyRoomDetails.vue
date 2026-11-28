@@ -21,7 +21,10 @@ useDiscordComponentEmbed(() => room.value ? {
 } : undefined)
 const events = computed(() => data.value?.lobbyHistories?.nodes ?? [])
 const page = computed(() => mapLobbyPage(data.value?.lobbyHistories?.pageInfo))
-const now = useLobbyClock(() => !!room.value && !room.value.closedAt)
+const now = useLobbyClock(
+	() => !!room.value && !room.value.closedAt,
+	() => room.value && !room.value.closedAt ? Date.parse(room.value.firstSeen) : undefined,
+)
 const dateFields = new Set(['firstSeen', 'lastSeen', 'closedAt', 'peakTime'])
 const fields = computed<Array<[string,string]>>(() => room.value ? [
 	['status',t(room.value.closedAt ? 'lobby.analytics.closed' : mounted.value && now.value.getTime()-Date.parse(room.value.lastSeen)>LOBBY_STALE_MS ? 'lobby.analytics.staleRoom' : 'lobby.analytics.active')],
@@ -62,13 +65,18 @@ const eventLabel = (value: string) => ['opened','updated','closed','reopened'].i
 <template>
 	<DataState :pending="fetching && !data" :error="!data ? error?.message : null" :empty="!!data && !room" :loading-label="t('common.loading')" :error-title="t('common.error')" :empty-title="t('lobby.analytics.notFound')">
 		<div v-if="room" class="space-y-6">
-			<h2 class="break-words text-2xl font-bold">{{ room.roomName }}</h2>
+			<div class="space-y-1">
+				<h2 class="break-words text-2xl font-bold">{{ room.roomName }}</h2>
+				<LobbyRoomRoundSummary :room="room" />
+			</div>
 			<p>{{ t('lobby.table.host') }}: <NuxtLink v-if="room.host" :to="`/user/${room.host.steamId}`" class="text-primary hover:underline">{{ room.host.steamName || t('lobby.analytics.unknownHost') }}</NuxtLink><span v-else>{{ t('lobby.analytics.unknownHost') }}</span></p>
 			<LobbyRoomLevel :room="room" />
 			<LobbyFreshness v-if="!room.closedAt" :observed-at="room.lastSeen" :error="error?.message" />
 			<UAlert v-else-if="error" color="warning" :title="t('lobby.analytics.connectionError')" :description="error.message" />
 			<UCard><dl class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3"><div v-for="[key,value] in fields" :key="key"><dt class="text-sm text-muted-foreground">{{ t(lobbyLabel(key)) }}</dt><dd class="mt-1 font-medium"><NuxtTime v-if="dateFields.has(key) && value" :datetime="value" :locale="locale" date-style="short" time-style="short" :hour12="false" /><span v-else>{{ dateFields.has(key) ? t('common.unavailable') : value }}</span></dd></div></dl></UCard>
 			<LobbyChart :title="t('lobby.analytics.roomTimeline')" :points="points" :series="series" step />
+
+			<LobbyRoomPlayedLevels v-if="room.isPublic" :room-id="room.id" />
 
 			<section class="space-y-4"><h2 class="text-xl font-semibold">{{ t('lobby.analytics.eventHistory') }}</h2>
 
