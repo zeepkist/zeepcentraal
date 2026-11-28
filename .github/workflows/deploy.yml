@@ -105,7 +105,7 @@ jobs:
     needs: release-plan
     if: ${{ needs.release-plan.outputs.rust_packages != '' }}
     # SteamCMD runtime is Ubuntu 22.04 (glibc 2.35); all shipped Rust binaries need that ABI.
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     env:
       CARGO_INCREMENTAL: '0'
       CARGO_BUILD_JOBS: '2'
