@@ -2243,7 +2243,7 @@ dependencies = [
  "md-5",
  "memchr",
  "rand 0.10.4",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "stringprep",
 ]
 
@@ -2838,7 +2838,7 @@ version = "8.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ffa149f6aa81b58a5b3011d01a857c4ed12c7a732d2c51947a4c7c692185f0"
 dependencies = [
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "walkdir",
 ]
 
@@ -3224,9 +3224,9 @@ dependencies = [
 
 [[package]]
 name = "sha2"
-version = "0.11.1"
+version = "0.11.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "47d7069beb7d6ac7b9acd1039986e73443f24234f41074da099d6f994ac9ad19"
+checksum = "5b0e5c7d67bc53f435386b2130fdc900488c5703770f6d8a4633060e34288a27"
 dependencies = [
  "cfg-if",
  "cpufeatures 0.3.1",
@@ -4766,7 +4766,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha1 0.11.0",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "thiserror 2.0.21",
  "tokio",
  "tracing",
@@ -4792,7 +4792,7 @@ dependencies = [
  "pq-sys",
  "serde",
  "serde_json",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "thiserror 2.0.21",
  "tokio",
  "tokio-postgres",
@@ -4815,7 +4815,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "tokio",
  "tracing",
  "zc-core",
@@ -4850,7 +4850,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serenity",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "thiserror 2.0.21",
  "tokio",
  "tokio-postgres",
@@ -4878,7 +4878,7 @@ dependencies = [
  "reqwest 0.13.5",
  "serde",
  "serde_json",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "tokio",
  "tokio-postgres",
  "tokio-stream",
@@ -4905,7 +4905,7 @@ dependencies = [
  "reqwest 0.13.5",
  "serde",
  "serde_json",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "tokio",
  "tokio-postgres",
  "tracing",
@@ -4945,7 +4945,7 @@ dependencies = [
  "scalar_api_reference",
  "serde",
  "serde_json",
- "sha2 0.11.1",
+ "sha2 0.11.2",
  "steam-client-rs",
  "subtle",
  "tokio",
